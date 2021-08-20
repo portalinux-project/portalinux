@@ -1,0 +1,39 @@
+#!/bin/sh
+
+errorCheck(){
+	if [ $1 -ne 0 ]; then
+		echo "Error."
+		echo "There was an error decompressing all files"
+		exit 1
+	fi
+}
+
+for i in $(ls | grep ".gz"); do
+	printf "Gunzipping $i..."
+	gzip -d "$i"
+	errorCheck $?
+	echo "Done."
+done
+
+for i in $(ls | grep ".bz2"); do
+	printf "Bunzipping $i..."
+	bzip2 -d "$i"
+	errorCheck $?
+	echo "Done."
+done
+
+for i in $(ls | grep ".xz"); do
+	printf "Un-xz-ing $i..."
+	xz -d "$i"
+	errorCheck $?
+	echo "Done."
+done
+
+for i in $(ls | grep ".tar"); do
+	printf "Untarring $i..."
+	tar -xf "$i"
+	errorCheck $?
+	echo "Done."
+done
+
+echo "All files have been decompressed"
