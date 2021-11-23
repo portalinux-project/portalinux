@@ -1,5 +1,6 @@
 #!/usr/bin/make
 MAKEPATH := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+WGETOPTS := "-q"
 
 .SILENT:
 .PHONY: all clean init
@@ -15,19 +16,13 @@ init:
 	mkdir -p build/compiled
 
 build/tarballs/.done: init
-	cd build && ../scripts/get-deps
+	cd build; ../scripts/get-deps $(WGETOPTS)
 	touch build/tarballs/.done
 
 build/workdir/.done: build/tarballs/.done
-	mkdir build/workdir -p
-	cd build/tarballs && ../../scripts/decompress-all
-	for i in $$(ls build/tarballs); do \
-		if [ -d $$i ]; then \
-			mv build/tarballs/$$i build/workdir; \
-		else \
-			rm build/tarballs/$$i; \
-		fi; \
-	done
+	cd build/tarballs; ../../scripts/decompress-all;
+	rm build/tarballs/*.tar;
+	mv build/tarballs build/workdir
 	touch build/workdir/.done
 
 build/compiled/vmlinuz32: build/workdir/.done

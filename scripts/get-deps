@@ -22,7 +22,7 @@ mkdir tarballs
 cd tarballs
 for i in $URL; do
 	printf "Downloading $i..."
-	wget -q "$i"
+	wget "$i" $@
 	errorCheck $?
 	echo "Done."
 done
