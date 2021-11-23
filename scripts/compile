@@ -1,0 +1,59 @@
+#!/bin/sh
+path=""
+config=""
+mode=0
+
+set -v
+main(){
+	if [ "$path" = "" ] | [ "$config" = "" ]; then
+		exit 1
+	fi
+
+	case $mode in
+		0)
+			mv "$config" "$path"
+			cd "path"
+			$make
+			;;
+		1)
+			cwd=$(pwd)
+			cd "$path"
+			mkdir build
+			cd build
+			../configure $(cat "$cwd/$config")
+			$make
+			;;
+	esac
+}
+
+while true; do
+	case $1 in
+		-f)
+			mode=0
+			config="$2"
+			shift
+			;;
+		-a)
+			mode=1
+			config="$2"
+			shift
+			;;
+		-d)
+			path="$2"
+			shift
+			;;
+		*)
+			if [ "$2" != "" ]; then
+				make="$2"
+				shift
+			fi
+	esac
+
+	if [ $# -ne 0 ]; then
+		shift
+	else
+		break
+	fi
+done
+
+main
