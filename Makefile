@@ -1,5 +1,6 @@
 #!/usr/bin/make
 MAKEPATH := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+WGETOPTS := "-q"
 ARCH := $(shell uname -m)
 
 .SILENT:
@@ -16,7 +17,7 @@ init:
 	mkdir -p build/compiled
 
 build/tarballs/.done: init
-	cd build && ../scripts/get-deps
+	cd build && ../scripts/get-deps $(WGETOPTS)
 	touch build/tarballs/.done
 
 build/workdir/.done: build/tarballs/.done
