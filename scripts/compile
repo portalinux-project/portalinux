@@ -11,8 +11,8 @@ main(){
 
 	case $mode in
 		0)
-			mv "$config" "$path"
-			cd "path"
+			cp "$config" "$path"
+			cd "$path"
 			$make
 			;;
 		1)
