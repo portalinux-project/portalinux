@@ -1,4 +1,0 @@
-#!/bin/sh
-
-test "$(pwd)/" = "$1"
-echo $?

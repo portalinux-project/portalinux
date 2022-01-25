@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# patch for gcc
+sed 's/limits/linux\/limits' gcc-11.2.0/libsanitizer/asan/asan_linux.cpp
+
+# binutils
+../configure --prefix=/opt/cross --target=i686-pocket-linux-gnu --disable-multilib
+make -j2
+make install
+
+# gcc part 1
+../configure --prefix=/opt/cross --target=i686-pocket-linux-gnu --enable-languages=c,c++ --disable-multilib
+make -j2 all-gcc
+make install-gcc
+
+# linux headers
+make ARCH=x86 INSTALL_HDR_PATH=/opt/cross/i686-pocket-linux-gnu headers_install
+
+# glibc part 1
+../configure --prefix=/opt/cross/i686-pocket-linux-gnu --build=i686-pc-linux-gnu --host=i686-pocket-linux-gnu --target=i686-pocket-linux-gnu --with-headers=/opt/cross/i686-pocket-linux-gnu/include --disable-multilib libc_cv_forced_unwind=yes
+make install-bootstrap-headers=yes install-headers
+make -j2 csu/subdir_lib
+install csu/crt*.o /opt/cross/i686-pocket-linux-gnu
+i686-pocket-linux-gnu -nostdlib -nostartfiles -shared -x c /dev/null -o /opt/cross/i686-pocket-linux-gnu/lib/libc.so
+touch /opt/cross/i686-pocket-linux-gnu/include/gnu/stubs.h
+
+# gcc part 2
+make -j2 all-target-libgcc
+make install-target-libgcc
+
+# glibc part 2
+make -j2
+make install
+
+# gcc part 3
+make -j2
+make install
