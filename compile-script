@@ -15,7 +15,7 @@ fi
 
 # init
 if [ $init = true ]; then
-	./get-deps && cd tarballs && ../decompress-all
+	./get-deps $@ && cd tarballs && ../decompress-all
 	for i in $(ls | grep -v .tar); do
 		mv $i ..
 	done
@@ -23,7 +23,7 @@ fi
 
 # binutils
 if [ $binutils = true ]; then
-	cd binutils-2.38
+	cd binutils-2.36
 	mkdir -p build
 	cd build
 	../configure --prefix=$prefix --target=i686-pocket-linux-musl --disable-mutilib
@@ -34,11 +34,11 @@ fi
 
 # gcc c/c++ compilers
 if [ $gcc1 = true ]; then
-	ln $rootdir/gmp-6.2.1 gcc-11.2.0/gmp -s
-	ln $rootdir/mpc-1.2.1 gcc-11.2.0/mpc -s
-	ln $rootdir/mpfr-4.1.0 gcc-11.2.0/mpfr -s
+	ln $rootdir/gmp-6.2.1 gcc-10.3.0/gmp -s
+	ln $rootdir/mpc-1.2.1 gcc-10.3.0/mpc -s
+	ln $rootdir/mpfr-4.1.0 gcc-10.3.0/mpfr -s
 
-	cd gcc-11.2.0
+	cd gcc-10.3.0
 	mkdir -p build
 	cd build
 	../configure --prefix=$prefix --target=i686-pocket-linux-musl --disable-multilib --enable-languages=c,c++
@@ -56,7 +56,9 @@ fi
 
 # glibc header files
 if [ $glibc_headers = true ]; then
-	cd musl-1.2.2
+	cd glibc-2.34
+	mkdir -p build
+	cd build
 	../configure --prefix=$prefix/i686-pocket-linux-musl --target=i686-pocket-linux-musl --disable-multilib
 	make install
 	cd $rootdir
@@ -64,7 +66,7 @@ fi
 
 # gcc support lib
 if [ $libgcc = true ]; then
-	cd gcc-11.2.0/build
+	cd gcc-10.3.0/build
 	make -j2 all-target-libgcc
 	make install-target-libgcc
 	cd $rootdir
@@ -72,7 +74,7 @@ fi
 
 # glibc libc.so
 if [ $glibc_libc_so = true ]; then
-	cd musl-1.2.2
+	cd glibc-2.34
 	make -j2
 	make install
 	cd $rootdir
@@ -80,7 +82,7 @@ fi
 
 # gcc c++ library
 if [ $gcc_cpp = true ]; then
-	cd gcc-11.2.0/build
+	cd gcc-10.3.0/build
 	make -j2
 	make install
 	cd $rootdir
