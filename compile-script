@@ -5,9 +5,13 @@ binutils=true
 gcc1=true
 linux_headers=true
 glibc_headers=true
-libgcc=false
-glibc_libc_so=false
-gcc_cpp=false
+libgcc=true
+glibc_libc_so=true
+gcc_cpp=true
+
+if [ "$prefix" = "" ]; then
+	prefix=$(echo ~/cross)
+fi
 
 # init
 if [ $init = true ]; then
@@ -22,9 +26,9 @@ if [ $binutils = true ]; then
 	cd binutils-2.38
 	mkdir -p build
 	cd build
-	../configure --prefix=/opt/cross --target=i686-pocket-linux-musl --disable-mutilib
+	../configure --prefix=$prefix --target=i686-pocket-linux-musl --disable-mutilib
 	make -j2
-	sudo make install
+	make install
 	cd $rootdir
 fi
 
@@ -37,24 +41,24 @@ if [ $gcc1 = true ]; then
 	cd gcc-11.2.0
 	mkdir -p build
 	cd build
-	../configure --prefix=/opt/cross --target=i686-pocket-linux-musl --disable-multilib --enable-languages=c,c++
+	../configure --prefix=$prefix --target=i686-pocket-linux-musl --disable-multilib --enable-languages=c,c++
 	make -j2 all-gcc
-	sudo make install-gcc
+	make install-gcc
 	cd $rootdir
 fi
 
 # linux headers
 if [ $linux_headers = true ]; then
 	cd linux-5.16.10
-	sudo make INSTALL_HDR_PATH=/opt/cross/i686-pocket-linux-musl headers_install
+	make INSTALL_HDR_PATH=$prefix/i686-pocket-linux-musl headers_install
 	cd $rootdir
 fi
 
 # glibc header files
 if [ $glibc_headers = true ]; then
 	cd musl-1.2.2
-	../configure --prefix=/opt/cross/i686-pocket-linux-musl --target=i686-pocket-linux-musl --disable-multilib
-	sudo make install
+	../configure --prefix=$prefix/i686-pocket-linux-musl --target=i686-pocket-linux-musl --disable-multilib
+	make install
 	cd $rootdir
 fi
 
@@ -70,7 +74,7 @@ fi
 if [ $glibc_libc_so = true ]; then
 	cd musl-1.2.2
 	make -j2
-	sudo make install
+	make install
 	cd $rootdir
 fi
 
@@ -78,6 +82,6 @@ fi
 if [ $gcc_cpp = true ]; then
 	cd gcc-11.2.0/build
 	make -j2
-	sudo make install
+	make install
 	cd $rootdir
 fi
