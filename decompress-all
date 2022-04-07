@@ -1,0 +1,19 @@
+#/bin/sh
+
+for i in $(ls | grep .gz); do
+	gzip -dv $i
+done
+
+for i in $(ls | grep .bz2); do
+	bunzip2 -v $i
+done
+
+for i in $(ls | grep .xz); do
+	xz -dv $i
+done
+
+for i in $(ls | grep .tar); do
+	tar -xvf $i
+done
+
+echo "Decompressed all files successfully"

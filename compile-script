@@ -1,37 +1,86 @@
 #!/bin/sh
+rootdir=$(pwd)
+init=true
+binutils=false
+gcc1=false
+linux_headers=false
+musl_headers=false
+libgcc=false
+musl_libc_so=false
+gcc_cpp=false
 
-# patch for gcc
-sed 's/limits/linux\/limits' gcc-11.2.0/libsanitizer/asan/asan_linux.cpp
+# init
+if [ $init = true ]; then
+	./get-deps && cd tarballs && ../decompress-all
+	for i in $(ls | grep -v .tar); do
+		mv $i ..
+	done
+fi
 
 # binutils
-../configure --prefix=/opt/cross --target=i686-pocket-linux-gnu --disable-multilib
-make -j2
-make install
+if [ $binutils = true ]; then
+	cd binutils-2.38
+	mkdir -p build
+	cd build
+	../configure --prefix=/opt/cross --target=i686-pocket-linux-musl --disable-mutilib
+	make -j2
+	sudo make install
+	cd $rootdir
+fi
 
-# gcc part 1
-../configure --prefix=/opt/cross --target=i686-pocket-linux-gnu --enable-languages=c,c++ --disable-multilib
-make -j2 all-gcc
-make install-gcc
+# gcc c/c++ compilers
+if [ $gcc1 = true ]; then
+	ln $rootdir/gmp-6.2.1 gcc-11.2.0/gmp -s
+	ln $rootdir/mpc-1.2.1 gcc-11.2.0/mpc -s
+	ln $rootdir/mpfr-4.1.0 gcc-11.2.0/mpfr -s
+
+	cd gcc-11.2.0
+	mkdir -p build
+	cd build
+	../configure --prefix=/opt/cross --target=i686-pocket-linux-musl --disable-multilib --enable-languages=c,c++
+	make -j2 all-gcc
+	sudo make install-gcc
+	cd $rootdir
+fi
 
 # linux headers
-make ARCH=x86 INSTALL_HDR_PATH=/opt/cross/i686-pocket-linux-gnu headers_install
+if [ linux_headers = true ]; then
+	cd linux-5.16.10
+	make INSTALL_HDR_PATH=/opt/cross/i686-pocket-linux-musl headers_install
+	sudo make INSTALL_HDR_PATH=/opt/cross/i686-pocket-linux-musl headers_install
+	cd $rootdir
+fi
 
-# glibc part 1
-../configure --prefix=/opt/cross/i686-pocket-linux-gnu --build=i686-pc-linux-gnu --host=i686-pocket-linux-gnu --target=i686-pocket-linux-gnu --with-headers=/opt/cross/i686-pocket-linux-gnu/include --disable-multilib libc_cv_forced_unwind=yes
-make install-bootstrap-headers=yes install-headers
-make -j2 csu/subdir_lib
-install csu/crt*.o /opt/cross/i686-pocket-linux-gnu
-i686-pocket-linux-gnu -nostdlib -nostartfiles -shared -x c /dev/null -o /opt/cross/i686-pocket-linux-gnu/lib/libc.so
-touch /opt/cross/i686-pocket-linux-gnu/include/gnu/stubs.h
+# musl libc header files
+if [ musl_headers = true ]; then
+	cd musl-1.2.2
+	./configure --prefix=/opt/cross/i686-pocket-linux-musl --target=i686-pocket-linux-musl --disable-multilib
+	make install-headers
+	make -j2
+	sudo make install
+	cd $rootdir
+fi
 
-# gcc part 2
-make -j2 all-target-libgcc
-make install-target-libgcc
+# gcc support lib
+if [ libgcc = true ]; then
+	cd gcc-11.2.0/build
+	make -j2 all-target-libgcc
+	make install-target-libgcc
+	cd $rootdir
+fi
 
-# glibc part 2
-make -j2
-make install
+# musl libc.so
+if [ musl_libc_so = true ]; then
+	cd musl-1.2.2
+	make -j2
+	sudo make install
+	cd $rootdir
+fi
 
-# gcc part 3
-make -j2
-make install
+# gcc c++ library
+if [ gcc_cpp = true ]; then
+	cd gcc-11.2.0/build
+	make -j2
+	sudo make install
+	cd $rootdir
+fi

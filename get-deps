@@ -1,0 +1,30 @@
+#!/bin/sh
+URL="http://kernel.org/pub/linux/kernel/v5.x/linux-5.16.10.tar.xz https://musl.libc.org/releases/musl-1.2.2.tar.gz https://mirrors.2f30.org/sabotage/tarballs/linux-headers-4.19.88-1.tar.xz http://busybox.net/downloads/busybox-1.31.1.tar.bz2"
+PKG="binutils/binutils-2.36.tar.gz bash/bash-5.1.tar.gz bison/bison-3.7.6.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz libc/glibc-2.34.tar.gz make/make-4.3.tar.gz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz"
+
+genTemplateUrl(){
+	for i in $PKG; do
+		URL="$URL $1/$i"
+	done
+}
+
+errorCheck(){
+	if [ $1 -ne 0 ]; then
+		echo "Error."
+		echo "There was an error downloading required sources"
+		cd .. && rm -rf tarballs
+		exit 1
+	fi
+}
+
+genTemplateUrl "http://ftp.gnu.org/gnu"
+mkdir tarballs
+cd tarballs
+for i in $URL; do
+	printf "Downloading $i..."
+	wget "$i" $@
+	errorCheck $?
+	echo "Done."
+done
+
+echo "Downloaded all sources successfully"
