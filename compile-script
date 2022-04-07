@@ -1,13 +1,15 @@
 #!/bin/sh
 rootdir=$(pwd)/build
-init=true
-binutils=true
-gcc1=true
-linux_headers=true
-glibc_headers=true
+init=false
+binutils=false
+gcc1=false
+linux_headers=false
+glibc_headers=false
 libgcc=true
-glibc_libc_so=true
-gcc_cpp=true
+glibc_libc_so=false
+gcc_cpp=false
+
+export PATH="$PATH:$prefix/bin"
 
 if [ "$prefix" = "" ]; then
 	prefix=$(echo ~/cross)
@@ -19,28 +21,34 @@ fi
 
 # init
 if [ $init = true ]; then
-	./get-deps $@ && cd tarballs && ../decompress-all
+	if [ ! -d tarballs ]; then
+		./get-deps $@
+	fi
+
+	cd tarballs && ../decompress-all
 	mkdir $rootdir
 	for i in $(ls | grep -v .tar); do
 		mv $i $rootdir
 	done
 
 	mkdir $prefix -p
+	cd $rootdir
 fi
 
 # binutils
 if [ $binutils = true ]; then
-	cd binutils-2.36
+	cd $rootdir/binutils-2.36
 	mkdir -p build
 	cd build
 	../configure --prefix=$prefix --target=$arch-pocket-linux-gnu --disable-mutilib
 	make -j2
 	make install
-	cd $rootdir
 fi
 
 # gcc c/c++ compilers
 if [ $gcc1 = true ]; then
+	cd $rootdir
+
 	ln $rootdir/gmp-6.2.1 gcc-10.3.0/gmp -s
 	ln $rootdir/mpc-1.2.1 gcc-10.3.0/mpc -s
 	ln $rootdir/mpfr-4.1.0 gcc-10.3.0/mpfr -s
@@ -56,14 +64,19 @@ fi
 
 # linux headers
 if [ $linux_headers = true ]; then
-	cd linux-5.16.10
-	make INSTALL_HDR_PATH=$prefix/$arch-pocket-linux-gnu headers_install
+	cd $rootdir/linux-5.16.10
+	if [ $(echo $arch | grep -c 86) -ne 0]; then
+		larch=x86
+	else
+		larch=$arch
+	fi
+	make ARCH=$arch INSTALL_HDR_PATH=$prefix/$arch-pocket-linux-gnu headers_install
 	cd $rootdir
 fi
 
 # glibc header files
 if [ $glibc_headers = true ]; then
-	cd glibc-2.34
+	cd $rootdir/glibc-2.34
 	mkdir -p build
 	cd build
 	../configure --prefix=$prefix/$arch-pocket-linux-gnu --target=$arch-pocket-linux-gnu --disable-multilib
@@ -75,7 +88,11 @@ fi
 
 # gcc support lib
 if [ $libgcc = true ]; then
-	cd gcc-10.3.0/build
+	touch $prefix/$arch-pocket-linux-gnu/include/gnu/stubs.h
+	$arch-pocket-linux-gnu-gcc --shared -x c /dev/null -o $prefix/$arch-pocket-linux-gnu/lib/libc.so
+	cd $rootdir/gcc-10.3.0/build
+	make -j2 all-gcc
+	make install-gcc
 	make -j2 all-target-libgcc
 	make install-target-libgcc
 	cd $rootdir
@@ -83,7 +100,7 @@ fi
 
 # glibc libc.so
 if [ $glibc_libc_so = true ]; then
-	cd glibc-2.34/build
+	cd $rootdir/glibc-2.34/build
 	make -j2
 	make install
 	cd $rootdir
@@ -91,7 +108,7 @@ fi
 
 # gcc c++ library
 if [ $gcc_cpp = true ]; then
-	cd gcc-10.3.0/build
+	cd $rootdir/gcc-10.3.0/build
 	make -j2
 	make install
 	cd $rootdir
