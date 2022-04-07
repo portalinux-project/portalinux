@@ -1,5 +1,5 @@
 #!/bin/sh
-rootdir=$(pwd)
+rootdir=$(pwd)/build
 init=true
 binutils=true
 gcc1=true
@@ -13,12 +13,19 @@ if [ "$prefix" = "" ]; then
 	prefix=$(echo ~/cross)
 fi
 
+if [ "$arch" = "" ]; then
+	arch="i486"
+fi
+
 # init
 if [ $init = true ]; then
 	./get-deps $@ && cd tarballs && ../decompress-all
+	mkdir $rootdir
 	for i in $(ls | grep -v .tar); do
-		mv $i ..
+		mv $i $rootdir
 	done
+
+	mkdir $prefix -p
 fi
 
 # binutils
@@ -26,7 +33,7 @@ if [ $binutils = true ]; then
 	cd binutils-2.36
 	mkdir -p build
 	cd build
-	../configure --prefix=$prefix --target=i686-pocket-linux-musl --disable-mutilib
+	../configure --prefix=$prefix --target=$arch-pocket-linux-gnu --disable-mutilib
 	make -j2
 	make install
 	cd $rootdir
@@ -41,7 +48,7 @@ if [ $gcc1 = true ]; then
 	cd gcc-10.3.0
 	mkdir -p build
 	cd build
-	../configure --prefix=$prefix --target=i686-pocket-linux-musl --disable-multilib --enable-languages=c,c++
+	../configure --prefix=$prefix --target=$arch-pocket-linux-gnu --disable-multilib --enable-languages=c,c++
 	make -j2 all-gcc
 	make install-gcc
 	cd $rootdir
@@ -50,7 +57,7 @@ fi
 # linux headers
 if [ $linux_headers = true ]; then
 	cd linux-5.16.10
-	make INSTALL_HDR_PATH=$prefix/i686-pocket-linux-musl headers_install
+	make INSTALL_HDR_PATH=$prefix/$arch-pocket-linux-gnu headers_install
 	cd $rootdir
 fi
 
@@ -59,8 +66,10 @@ if [ $glibc_headers = true ]; then
 	cd glibc-2.34
 	mkdir -p build
 	cd build
-	../configure --prefix=$prefix/i686-pocket-linux-musl --target=i686-pocket-linux-musl --disable-multilib
-	make install
+	../configure --prefix=$prefix/$arch-pocket-linux-gnu --target=$arch-pocket-linux-gnu --disable-multilib
+	make install-bootstrap-headers=yes install-headers
+	make csu/subdir_lib
+	install csu/crti.o csu/crtn.o csu/crt1.o $prefix/$arch-pocket-linux-gnu/lib
 	cd $rootdir
 fi
 
@@ -74,7 +83,7 @@ fi
 
 # glibc libc.so
 if [ $glibc_libc_so = true ]; then
-	cd glibc-2.34
+	cd glibc-2.34/build
 	make -j2
 	make install
 	cd $rootdir
