@@ -1,115 +1,153 @@
 #!/bin/sh
 rootdir=$(pwd)/build
-init=false
-binutils=false
-gcc1=false
-linux_headers=false
-glibc_headers=false
-libgcc=true
-glibc_libc_so=false
-gcc_cpp=false
+output=$(pwd)/output
 
-export PATH="$PATH:$prefix/bin"
-
-if [ "$prefix" = "" ]; then
-	prefix=$(echo ~/cross)
+if [ "$toolchain_prefix" = "" ]; then
+	toolchain_prefix=$(echo ~/cross)
 fi
 
 if [ "$arch" = "" ]; then
 	arch="i486"
 fi
 
+export PATH="$PATH:$toolchain_prefix/bin"
+
 # init
-if [ $init = true ]; then
+if [ ! -d $rootdir ]; then
 	if [ ! -d tarballs ]; then
 		./get-deps $@
 	fi
 
 	cd tarballs && ../decompress-all
 	mkdir $rootdir
+
 	for i in $(ls | grep -v .tar); do
 		mv $i $rootdir
 	done
 
-	mkdir $prefix -p
+	mkdir $toolchain_prefix $output -p
+	sed 's/limits.h/linux\/limits.h/g' $rootdir/gcc-10.3.0/libsanitizer/asan/asan_linux.cpp > $rootdir/gcc-10.3.0/libsanitizer/asan/asan_linux.cpp
 	cd $rootdir
 fi
 
-# binutils
-if [ $binutils = true ]; then
-	cd $rootdir/binutils-2.36
-	mkdir -p build
-	cd build
-	../configure --prefix=$prefix --target=$arch-pocket-linux-gnu --disable-mutilib
-	make -j2
-	make install
-fi
+clean-rootdir(){
+	for i in $(ls $rootdir); do
+		if [ -d $rootdir/$i/build ]; then
+			rm -rf $rootdir/$i/build
+		fi
+	done
+}
 
-# gcc c/c++ compilers
-if [ $gcc1 = true ]; then
-	cd $rootdir
-
-	ln $rootdir/gmp-6.2.1 gcc-10.3.0/gmp -s
-	ln $rootdir/mpc-1.2.1 gcc-10.3.0/mpc -s
-	ln $rootdir/mpfr-4.1.0 gcc-10.3.0/mpfr -s
-
-	cd gcc-10.3.0
-	mkdir -p build
-	cd build
-	../configure --prefix=$prefix --target=$arch-pocket-linux-gnu --disable-multilib --enable-languages=c,c++
-	make -j2 all-gcc
-	make install-gcc
-	cd $rootdir
-fi
-
-# linux headers
-if [ $linux_headers = true ]; then
-	cd $rootdir/linux-5.16.10
-	if [ $(echo $arch | grep -c 86) -ne 0]; then
-		larch=x86
-	else
-		larch=$arch
+compile-toolchain(){
+	# binutils
+	if [ ! -f $toolchain_prefix/bin/$arch-pocket-linux-gnu-as ]; then
+		cd $rootdir/binutils-2.36
+		mkdir -p build
+		cd build
+		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-mutilib
+		make -j2
+		make install
 	fi
-	make ARCH=$arch INSTALL_HDR_PATH=$prefix/$arch-pocket-linux-gnu headers_install
-	cd $rootdir
-fi
 
-# glibc header files
-if [ $glibc_headers = true ]; then
-	cd $rootdir/glibc-2.34
-	mkdir -p build
-	cd build
-	../configure --prefix=$prefix/$arch-pocket-linux-gnu --target=$arch-pocket-linux-gnu --disable-multilib
-	make install-bootstrap-headers=yes install-headers
-	make csu/subdir_lib
-	install csu/crti.o csu/crtn.o csu/crt1.o $prefix/$arch-pocket-linux-gnu/lib
-	cd $rootdir
-fi
+	# gcc c/c++ compilers
+	if [ ! -f $toolchain_prefix/bin/$arch-pocket-linux-gcc ]; then
+		cd $rootdir
 
-# gcc support lib
-if [ $libgcc = true ]; then
-	touch $prefix/$arch-pocket-linux-gnu/include/gnu/stubs.h
-	$arch-pocket-linux-gnu-gcc --shared -x c /dev/null -o $prefix/$arch-pocket-linux-gnu/lib/libc.so
-	cd $rootdir/gcc-10.3.0/build
-	make -j2 all-gcc
-	make install-gcc
-	make -j2 all-target-libgcc
-	make install-target-libgcc
-	cd $rootdir
-fi
+		ln $rootdir/gmp-6.2.1 gcc-10.3.0/gmp -s
+		ln $rootdir/mpc-1.2.1 gcc-10.3.0/mpc -s
+		ln $rootdir/mpfr-4.1.0 gcc-10.3.0/mpfr -s
 
-# glibc libc.so
-if [ $glibc_libc_so = true ]; then
-	cd $rootdir/glibc-2.34/build
-	make -j2
-	make install
-	cd $rootdir
-fi
+		cd gcc-10.3.0
+		mkdir -p build
+		cd build
+		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-multilib --enable-languages=c,c++
+		make -j2 all-gcc
+		make install-gcc
+		cd $rootdir
+	fi
 
-# gcc c++ library
-if [ $gcc_cpp = true ]; then
-	cd $rootdir/gcc-10.3.0/build
-	make -j2
-	make install
-	cd $rootdir
-fi
+	# linux headers
+	if [ ! -d $toolchain_prefix/$arch-pocket-linux-gnu/include/linux ]; then
+		cd $rootdir/linux-5.16.10
+		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
+			larch=x86
+		else
+			larch=$arch
+		fi
+		make ARCH=$larch INSTALL_HDR_PATH=$toolchain_prefix/$arch-pocket-linux-gnu headers_install
+		cd $rootdir
+	fi
+
+	# glibc header files
+	if [ ! -f $toolchain_prefix/$arch-pocket-linux-gnu/include/stdio.h ]; then
+		cd $rootdir/glibc-2.34
+		mkdir -p build
+		cd build
+		../configure --prefix=$toolchain_prefix/$arch-pocket-linux-gnu --host=$arch-pocket-linux-gnu --disable-multilib \
+		--with-headers=$toolchain_prefix/$arch-pocket-linux-gnu/include libc_cv_forced_unwind=yes
+		make install-bootstrap-headers=yes install-headers
+		make csu/subdir_lib
+		install csu/crti.o csu/crtn.o csu/crt1.o $toolchain_prefix/$arch-pocket-linux-gnu/lib
+		cd $rootdir
+	fi
+
+	# gcc support lib
+	if [ ! -f $toolchain_prefix/$arch-pocket-linux-gnu/lib/libgcc_s.so.1 ]; then
+		touch $toolchain_prefix/$arch-pocket-linux-gnu/include/gnu/stubs.h
+		touch $toolchain_prefix/$arch-pocket-linux-gnu/include/gnu/stubs-32.h
+		touch $toolchain_prefix/$arch-pocket-linux-gnu/include/gnu/stubs-64.h
+		$arch-pocket-linux-gnu-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.so
+
+		cd $rootdir/gcc-10.3.0/build
+		make -j2 all-gcc
+		make install-gcc
+		make -j2 all-target-libgcc
+		make install-target-libgcc
+		cd $rootdir
+	fi
+
+	# glibc libc.so
+	if [ ! -f $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.a ]; then
+		cd $rootdir/glibc-2.34/build
+		make -j2
+		make install
+		cd $rootdir
+	fi
+
+	# gcc c++ library
+	if [ ! -f $toolchain_prefix/$arch-pocket-linux-gnu/lib/libstdc++.a ]; then
+		cd $rootdir/gcc-10.3.0/build
+		make -j2
+		make install
+		cd $rootdir
+	fi
+}
+
+compile-rootfs(){
+	if ! command -v $arch-pocket-linux-gnu-gcc &> /dev/null; then
+		compile-toolchain $@
+		clean-roordir
+	fi
+
+	if [ ! -d $output/usr/include/linux ]; then
+		cd $rootdir/linux-5.16.10
+		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
+			larch=x86
+		else
+			larch=$arch
+		fi
+		make ARCH=$larch INSTALL_HDR_PATH=$output/usr headers_install
+		cd $rootdir
+	fi
+
+	if [ ! -f $output/usr/lib/libc.a ]; then
+		cd $rootdir/glibc-2.34
+		mkdir build
+		cd build
+		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu \
+		--with-headers=$output/usr/include libc_cv_forced_unwind=yes
+		make -j2
+		make install DESTDIR=$output
+	fi
+}
+
