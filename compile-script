@@ -10,6 +10,10 @@ if [ "$arch" = "" ]; then
 	arch="i486"
 fi
 
+if [ "$threads" = "" ]; then
+	threads="$(nproc)"
+fi
+
 export PATH="$PATH:$toolchain_prefix/bin"
 
 # init
@@ -30,7 +34,7 @@ if [ ! -d $rootdir ]; then
 	cd $rootdir
 fi
 
-clean-rootdir(){
+clean_rootdir(){
 	for i in $(ls $rootdir); do
 		if [ -d $rootdir/$i/build ]; then
 			rm -rf $rootdir/$i/build
@@ -38,19 +42,19 @@ clean-rootdir(){
 	done
 }
 
-compile-toolchain(){
+compile_toolchain(){
 	# binutils
-	if [ ! -f $toolchain_prefix/bin/$arch-pocket-linux-gnu-as ]; then
+	if [ ! -r $toolchain_prefix/bin/$arch-pocket-linux-gnu-as ]; then
 		cd $rootdir/binutils-2.36
 		mkdir -p build
 		cd build
 		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-mutilib
-		make -j2
+		make -j$threads
 		make install
 	fi
 
 	# gcc c/c++ compilers
-	if [ ! -f $toolchain_prefix/bin/$arch-pocket-linux-gcc ]; then
+	if [ ! -r $toolchain_prefix/bin/$arch-pocket-linux-gnu-gcc ]; then
 		cd $rootdir
 
 		ln $rootdir/gmp-6.2.1 gcc-10.3.0/gmp -s
@@ -61,13 +65,13 @@ compile-toolchain(){
 		mkdir -p build
 		cd build
 		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-multilib --enable-languages=c,c++
-		make -j2 all-gcc
+		make -j$threads all-gcc
 		make install-gcc
 		cd $rootdir
 	fi
 
 	# linux headers
-	if [ ! -d $toolchain_prefix/$arch-pocket-linux-gnu/include/linux ]; then
+	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/include/linux ]; then
 		cd $rootdir/linux-5.16.10
 		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
 			larch=x86
@@ -79,7 +83,7 @@ compile-toolchain(){
 	fi
 
 	# glibc header files
-	if [ ! -f $toolchain_prefix/$arch-pocket-linux-gnu/include/stdio.h ]; then
+	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/include/stdio.h ]; then
 		cd $rootdir/glibc-2.34
 		mkdir -p build
 		cd build
@@ -92,41 +96,41 @@ compile-toolchain(){
 	fi
 
 	# gcc support lib
-	if [ ! -f $toolchain_prefix/$arch-pocket-linux-gnu/lib/libgcc_s.so.1 ]; then
+	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/lib/libgcc_s.so.1 ]; then
 		touch $toolchain_prefix/$arch-pocket-linux-gnu/include/gnu/stubs.h
 		touch $toolchain_prefix/$arch-pocket-linux-gnu/include/gnu/stubs-32.h
 		touch $toolchain_prefix/$arch-pocket-linux-gnu/include/gnu/stubs-64.h
 		$arch-pocket-linux-gnu-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.so
 
 		cd $rootdir/gcc-10.3.0/build
-		make -j2 all-gcc
+		make -j$threads all-gcc
 		make install-gcc
-		make -j2 all-target-libgcc
+		make -j$threads all-target-libgcc
 		make install-target-libgcc
 		cd $rootdir
 	fi
 
 	# glibc libc.so
-	if [ ! -f $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.a ]; then
+	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.a ]; then
 		cd $rootdir/glibc-2.34/build
-		make -j2
+		make -j$threads
 		make install
 		cd $rootdir
 	fi
 
 	# gcc c++ library
-	if [ ! -f $toolchain_prefix/$arch-pocket-linux-gnu/lib/libstdc++.a ]; then
+	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/lib/libstdc++.a ]; then
 		cd $rootdir/gcc-10.3.0/build
-		make -j2
+		make -j$threads
 		make install
 		cd $rootdir
 	fi
 }
 
-compile-rootfs(){
+compile_rootfs(){
 	if ! command -v $arch-pocket-linux-gnu-gcc &> /dev/null; then
-		compile-toolchain $@
-		clean-roordir
+		compile_toolchain
+		clean_rootdir
 	fi
 
 	if [ ! -d $output/usr/include/linux ]; then
@@ -146,8 +150,9 @@ compile-rootfs(){
 		cd build
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu \
 		--with-headers=$output/usr/include libc_cv_forced_unwind=yes
-		make -j2
+		make -j$threads
 		make install DESTDIR=$output
 	fi
 }
 
+compile_toolchain
