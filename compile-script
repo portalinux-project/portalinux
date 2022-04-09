@@ -49,6 +49,7 @@ compile_toolchain(){
 		mkdir -p build
 		cd build
 		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-mutilib
+
 		make -j$threads
 		make install
 	fi
@@ -65,6 +66,7 @@ compile_toolchain(){
 		mkdir -p build
 		cd build
 		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-multilib --enable-languages=c,c++
+
 		make -j$threads all-gcc
 		make install-gcc
 		cd $rootdir
@@ -78,6 +80,7 @@ compile_toolchain(){
 		else
 			larch=$arch
 		fi
+
 		make ARCH=$larch INSTALL_HDR_PATH=$toolchain_prefix/$arch-pocket-linux-gnu headers_install
 		cd $rootdir
 	fi
@@ -89,6 +92,7 @@ compile_toolchain(){
 		cd build
 		../configure --prefix=$toolchain_prefix/$arch-pocket-linux-gnu --host=$arch-pocket-linux-gnu --disable-multilib \
 		--with-headers=$toolchain_prefix/$arch-pocket-linux-gnu/include libc_cv_forced_unwind=yes
+
 		make install-bootstrap-headers=yes install-headers
 		make csu/subdir_lib
 		install csu/crti.o csu/crtn.o csu/crt1.o $toolchain_prefix/$arch-pocket-linux-gnu/lib
@@ -113,6 +117,7 @@ compile_toolchain(){
 	# glibc libc.so
 	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.a ]; then
 		cd $rootdir/glibc-2.34/build
+
 		make -j$threads
 		make install
 		cd $rootdir
@@ -121,6 +126,7 @@ compile_toolchain(){
 	# gcc c++ library
 	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/lib/libstdc++.a ]; then
 		cd $rootdir/gcc-10.3.0/build
+
 		make -j$threads
 		make install
 		cd $rootdir
@@ -133,6 +139,10 @@ compile_rootfs(){
 		clean_rootdir
 	fi
 
+	for i in bin lib sbin usr/bin usr/lib usr/sbin etc root mnt home; do
+		mkdir -p $output/$i
+	done
+
 	if [ ! -d $output/usr/include/linux ]; then
 		cd $rootdir/linux-5.16.10
 		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
@@ -140,19 +150,53 @@ compile_rootfs(){
 		else
 			larch=$arch
 		fi
+
 		make ARCH=$larch INSTALL_HDR_PATH=$output/usr headers_install
 		cd $rootdir
 	fi
 
-	if [ ! -f $output/usr/lib/libc.a ]; then
+	if [ ! -r $output/usr/include/stdio.h ]; then
 		cd $rootdir/glibc-2.34
 		mkdir build
 		cd build
-		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu \
-		--with-headers=$output/usr/include libc_cv_forced_unwind=yes
+		../configure --prefix=/usr --with-sysroot=/ --disable-multilib 	--host=$arch-pocket-linux-gnu \
+		libc_cv_forced_unwind=yes
+
+		make install-bootstrap-headers=yes install-headers DESTDIR=$output
+		make csu/subdir_lib
+		install csu/crti.o csu/crtn.o csu/crt1.o $output/usr/lib
+		cd $rootdir
+	fi
+
+	if [ ! -r $output/usr/lib/libgcc_s.so.1 ]; then
+		touch $output/usr/include/gnu/stubs.h
+		touch $output/usr/include/gnu/stubs-32.h
+		touch $output/usr/include/gnu/stubs-64.h
+		$arch-pocket-linux-gnu-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o $output/usr/lib/libc.so
+
+		cd $rootdir/gcc-10.3.0
+		mkdir build
+		cd build
+		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu
+
+		make all-target-libgcc -j$threads
+		make install-target-libgcc DESTDIR=$output
+	fi
+
+	if [ ! -r $output/usr/lib/libc.a ]; then
+		cd $rootdir/glibc-2.34/build
+
 		make -j$threads
 		make install DESTDIR=$output
 	fi
+
+	if [ -r $output/usr/lib/libstdc++.a ]; then
+		cd $rootdir/gcc-10.3.0/build
+
+		make -j$threads
+		make DESTDIR=$output
+	fi
 }
 
-compile_toolchain
+clean_rootdir
+compile_rootfs
