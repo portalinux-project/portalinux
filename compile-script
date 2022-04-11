@@ -38,6 +38,8 @@ clean_rootdir(){
 	for i in $(ls $rootdir); do
 		if [ -d $rootdir/$i/build ]; then
 			rm -rf $rootdir/$i/build
+		elif [ -r $rootdir/$i/Makefile ]; then
+			cd $rootdir/$i && make clean && make distclean
 		fi
 	done
 }
@@ -104,7 +106,8 @@ compile_toolchain(){
 		touch $toolchain_prefix/$arch-pocket-linux-gnu/include/gnu/stubs.h
 		touch $toolchain_prefix/$arch-pocket-linux-gnu/include/gnu/stubs-32.h
 		touch $toolchain_prefix/$arch-pocket-linux-gnu/include/gnu/stubs-64.h
-		$arch-pocket-linux-gnu-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.so
+		$arch-pocket-linux-gnu-gcc -nostdlib -nostartfiles -shared -x c /dev/null \
+		-o $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.so
 
 		cd $rootdir/gcc-10.3.0/build
 		make -j$threads all-gcc
@@ -139,11 +142,45 @@ compile_rootfs(){
 		clean_rootdir
 	fi
 
-	for i in bin lib sbin usr/bin usr/lib usr/sbin etc root mnt home; do
+	for i in bin dev sys proc lib sbin usr/bin usr/lib usr/sbin etc root mnt home tmp; do
 		mkdir -p $output/$i
 	done
 
-	if [ ! -d $output/usr/include/linux ]; then
+	if [ ! -r $output/bin/busybox ]; then
+		cd $rootdir/busybox-1.34.1
+
+		make defconfig
+		echo "CONFIG_STATIC=y" >> .config
+		echo "CONFIG_CROSS_COMPILER_PREFIX=$toolchain_prefix/bin/$arch-pocket-linux-gnu-" >> .config
+
+		make -j$threads
+
+		mv busybox $output/bin
+		cd $output
+		sudo chroot . /bin/busybox --install -s
+	fi
+
+	if [ ! -r $output/usr/bin/make ]; then
+		cd $rootdir/make-4.3
+		mkdir build
+		cd build
+		../configure --prefix=/usr --host=$arch-pocket-linux-gnu
+
+		make -j$threads
+		make install DESTDIR=$output
+	fi
+
+	if [ ! -r $output/usr/bin/as ]; then
+		cd $rootdir/binutils-2.36
+		mkdir build
+		cd build
+		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu
+
+		make -j$threads
+		make install DESTDIR=$output
+	fi
+
+	if [ ! -r $output/usr/include/linux ]; then
 		cd $rootdir/linux-5.16.10
 		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
 			larch=x86
@@ -155,46 +192,38 @@ compile_rootfs(){
 		cd $rootdir
 	fi
 
-	if [ ! -r $output/usr/include/stdio.h ]; then
+	if [ ! -r $output/usr/lib/libc.a ]; then
+		cd $rootdir/glibc-2.34/build
+
 		cd $rootdir/glibc-2.34
 		mkdir build
 		cd build
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib 	--host=$arch-pocket-linux-gnu \
 		libc_cv_forced_unwind=yes
 
-		make install-bootstrap-headers=yes install-headers DESTDIR=$output
-		make csu/subdir_lib
-		install csu/crti.o csu/crtn.o csu/crt1.o $output/usr/lib
-		cd $rootdir
-	fi
-
-	if [ ! -r $output/usr/lib/libgcc_s.so.1 ]; then
-		touch $output/usr/include/gnu/stubs.h
-		touch $output/usr/include/gnu/stubs-32.h
-		touch $output/usr/include/gnu/stubs-64.h
-		$arch-pocket-linux-gnu-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o $output/usr/lib/libc.so
-
-		cd $rootdir/gcc-10.3.0
-		mkdir build
-		cd build
-		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu
-
-		make all-target-libgcc -j$threads
-		make install-target-libgcc DESTDIR=$output
-	fi
-
-	if [ ! -r $output/usr/lib/libc.a ]; then
-		cd $rootdir/glibc-2.34/build
-
 		make -j$threads
 		make install DESTDIR=$output
 	fi
 
-	if [ -r $output/usr/lib/libstdc++.a ]; then
-		cd $rootdir/gcc-10.3.0/build
+	if [ ! -r $output/usr/lib/libstdc++.a ]; then
+		if [ ! -r $rootdir/gcc-10.3.0/mpfr ]; then
+			ln $rootdir/gmp-6.2.1 $rootdir/gcc-10.3.0/gmp -s
+			ln $rootdir/mpc-1.2.1 $rootdir/gcc-10.3.0/mpc -s
+			ln $rootdir/mpfr-4.1.0 $rootdir/gcc-10.3.0/mpfr -s
+
+			touch $output/usr/include/gnu/stubs.h
+			touch $output/usr/include/gnu/stubs-32.h
+			touch $output/usr/include/gnu/stubs-64.h
+		fi
+
+		cd $rootdir/gcc-10.3.0
+		mkdir build
+		cd build
+		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu \
+		--enable-languages=c,c++ --with-build-sysroot=$toolchain_prefix
 
 		make -j$threads
-		make DESTDIR=$output
+		make install DESTDIR=$output
 	fi
 }
 
