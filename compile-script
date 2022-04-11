@@ -217,6 +217,8 @@ compile_rootfs(){
 			touch $output/usr/include/gnu/stubs-64.h
 		fi
 
+		mkdir $toolchain_prefix/$arch-pocket-linux-gnu/usr/include -p
+
 		cd $rootdir/gcc-10.3.0
 		mkdir build
 		cd build
@@ -225,6 +227,8 @@ compile_rootfs(){
 
 		make -j$threads
 		make install DESTDIR=$output
+
+		rm -rf $toolchain_prefix/$arch-pocket-linux-gnu/usr
 	fi
 }
 
