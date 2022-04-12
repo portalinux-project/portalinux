@@ -223,7 +223,7 @@ compile_rootfs(){
 		mkdir build
 		cd build
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu \
-		--enable-languages=c,c++ --with-build-sysroot=$toolchain_prefix/$arch-pocket-linux-gnu
+		--enable-languages=c,c++ --with-build-sysroot=$output
 
 		make -j$threads
 		make install DESTDIR=$output
