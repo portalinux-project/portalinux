@@ -145,54 +145,50 @@ compile_toolchain(){
 }
 
 compile_initramfs(){
-	
-		echo "CONFIG_STATIC=y" >> .config
-}
-
-compile_rootfs(){
-	if ! command -v $arch-pocket-linux-gnu-gcc &> /dev/null; then
-		echo "Error: toolchain for $arch not found in PATH"
-		exit 1
-	fi
-
-	for i in bin dev sys proc lib sbin usr/bin usr/lib usr/sbin etc root mnt home tmp; do
-		mkdir -p $output/$i
+	for i in bin dev sys proc sbin usr/bin usr/sbin mnt; do
+		mkdir -p $output/initramfs
 	done
 
-	if [ ! -r $output/rootfs/bin/busybox ]; then
+	if [ ! -r $output_initramfs/bin/busybox ]; then
 		cd $rootdir/busybox-1.34.1
 
 		make defconfig
 		echo "CONFIG_CROSS_COMPILER_PREFIX=$toolchain_prefix/bin/$arch-pocket-linux-gnu-" >> .config
+		echo "CONFIG_STATIC=y" >> .config
 
 		make -j$threads
 
-		mv busybox $output/bin
-		cd $output
-		sudo chroot . /bin/busybox --install -s
+		mv busybox $output_rootfs/bin
+		sudo chroot $output_rootfs /bin/busybox --install -s
 	fi
 
-	if [ ! -r $output/usr/bin/make ]; then
-		cd $rootdir/make-4.3
-		mkdir build
-		cd build
-		../configure --prefix=/usr --host=$arch-pocket-linux-gnu
+	if [ ! -r $output_initramfs/init ]; then
+		cp $pldir/initramfs-init $output_initramfs/init
+		chmod 777 $output_initramfs/init
+	fi
+}
 
-		make -j$threads
-		make install DESTDIR=$output
+compile_rootfs(){
+	if ! command -v $arch-pocket-linux-gnu-gcc &> /dev/null; then
+		compile_toolchain
+		clean_rootdir
 	fi
 
-	if [ ! -r $output/usr/bin/as ]; then
+	for i in bin dev sys proc lib sbin usr/bin usr/lib usr/sbin etc root mnt home tmp; do
+		mkdir -p $output_rootfs/$i
+	done
+
+	if [ ! -r $output_rootfs/usr/bin/as ]; then
 		cd $rootdir/binutils-2.36
 		mkdir build
 		cd build
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu
 
 		make -j$threads
-		make install DESTDIR=$output
+		make install DESTDIR=$output_rootfs
 	fi
 
-	if [ ! -r $output/usr/include/linux ]; then
+	if [ ! -r $output_rootfs/usr/include/linux ]; then
 		cd $rootdir/linux-5.16.10
 		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
 			larch=x86
@@ -200,11 +196,11 @@ compile_rootfs(){
 			larch=$arch
 		fi
 
-		make ARCH=$larch INSTALL_HDR_PATH=$output/usr headers_install
+		make ARCH=$larch INSTALL_HDR_PATH=$output_rootfs/usr headers_install
 		cd $rootdir
 	fi
 
-	if [ ! -r $output/usr/lib/libc.a ]; then
+	if [ ! -r $output_rootfs/usr/lib/libc.a ]; then
 		cd $rootdir/glibc-2.34/build
 
 		cd $rootdir/glibc-2.34
@@ -214,46 +210,95 @@ compile_rootfs(){
 		libc_cv_forced_unwind=yes
 
 		make -j$threads
-		make install DESTDIR=$output
+		make install DESTDIR=$output_rootfs
 	fi
 
-	if [ ! -r $output/usr/lib/libstdc++.a ]; then
+	if [ ! -r $output_rootfs/usr/lib/libstdc++.a ]; then
 		if [ ! -r $rootdir/gcc-10.3.0/mpfr ]; then
 			ln $rootdir/gmp-6.2.1 $rootdir/gcc-10.3.0/gmp -s
 			ln $rootdir/mpc-1.2.1 $rootdir/gcc-10.3.0/mpc -s
 			ln $rootdir/mpfr-4.1.0 $rootdir/gcc-10.3.0/mpfr -s
 
-			touch $output/usr/include/gnu/stubs.h
-			touch $output/usr/include/gnu/stubs-32.h
-			touch $output/usr/include/gnu/stubs-64.h
+			touch $output_rootfs/usr/include/gnu/stubs.h
+			touch $output_rootfs/usr/include/gnu/stubs-32.h
+			touch $output_rootfs/usr/include/gnu/stubs-64.h
 		fi
 
 		if [ ! -r $toolchain_prefix/bin/c++ ]; then
-			ln -s ~/cross/bin/$arch-pocket-linux-gcc ~/cross/bin/cc
-			ln -s ~/cross/bin/$arch-pocket-linux-g++ ~/cross/bin/c++
+			ln -s $toolchain_prefix/$arch-pocket-linux-gcc $toolchain_prefix/bin/cc
+			ln -s $toolchain_prefix/$arch-pocket-linux-g++ $toolchain_prefix/bin/c++
 		fi
 
 		cd $rootdir/gcc-10.3.0
 		mkdir build
 		cd build
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu \
-		--enable-languages=c,c++ --with-build-sysroot=$output
+		--enable-languages=c,c++ --with-build-sysroot=$output_rootfs
 
 		make -j$threads
-		make install DESTDIR=$output
+		make install DESTDIR=$output_rootfs
+
+		rm $toolchain_prefix/bin/cc
+		rm $toolchain_prefix/bin/c++
 	fi
+
+	if [ ! -r $output_rootfs/bin/busybox ]; then
+		cd $rootdir/busybox-1.34.1
+
+		make defconfig
+		echo "CONFIG_CROSS_COMPILER_PREFIX=$toolchain_prefix/bin/$arch-pocket-linux-gnu-" >> .config
+
+		make -j$threads
+
+		mv busybox $output_rootfs/bin
+		sudo chroot $output_rootfs /bin/busybox --install -s
+	fi
+
+	if [ ! -r $output_rootfs/usr/bin/make ]; then
+		cd $rootdir/make-4.3
+		mkdir build
+		cd build
+		../configure --prefix=/usr --host=$arch-pocket-linux-gnu
+
+		make -j$threads
+		make install DESTDIR=$output_rootfs
+	fi
+
 }
 
 compile_kernel(){
+	if [ ! -r $output_rootfs ]; then
+		compile_rootfs
+	fi
 
+	if [ ! -r $output_initramfs ]; then
+		compile_initramfs
+	fi
 }
 
 script(){
 	case $1 in
 		init)
 			init_script $2
+			;;
 
-		build)
+		soft-clean)
+			case $2 in
+				build)
+					clean_rootdir
+					;;
+
+				output)
+					rm -rf output
+					;;
+			esac
+			;;
+
+		hard-clean)
+			rm -rf build output tarballs
+			;;
+
+		build | *)
 			if [ ! -d $rootdir ]; then
 				init_script $4
 			fi
@@ -263,20 +308,20 @@ script(){
 					compile_toolchain
 					;;
 
+				initramfs)
+					compile_initramfs
+					;;
+
 				rootfs)
 					compile_rootfs
 					;;
 
-				kernel)
+				kernel | *)
 					compile_kernel
-					;;;
+					;;
 			esac
-
-		clean)
-			rm -rf build output
 			;;
-
-		clean-all)
-			rm -rf build output tarballs
 	esac
 }
+
+script $@
