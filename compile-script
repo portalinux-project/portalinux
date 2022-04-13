@@ -146,7 +146,7 @@ compile_toolchain(){
 
 compile_initramfs(){
 	for i in bin dev sys proc sbin usr/bin usr/sbin mnt; do
-		mkdir -p $output/initramfs
+		mkdir -p $output/initramfs/$i
 	done
 
 	if [ ! -r $output_initramfs/bin/busybox ]; then
@@ -158,8 +158,8 @@ compile_initramfs(){
 
 		make -j$threads
 
-		mv busybox $output_rootfs/bin
-		sudo chroot $output_rootfs /bin/busybox --install -s
+		mv busybox $output_initramfs/bin
+		ln -s /bin/busybox $output_initramfs/bin/sh
 	fi
 
 	if [ ! -r $output_initramfs/init ]; then
@@ -251,7 +251,7 @@ compile_rootfs(){
 		make -j$threads
 
 		mv busybox $output_rootfs/bin
-		sudo chroot $output_rootfs /bin/busybox --install -s
+		ln -s /bin/busybox $output_rootfs/bin/sh
 	fi
 
 	if [ ! -r $output_rootfs/usr/bin/make ]; then
@@ -269,27 +269,38 @@ compile_rootfs(){
 compile_kernel(){
 	if [ ! -r $output_rootfs ]; then
 		compile_rootfs
+		clean_rootdir
 	fi
 
 	if [ ! -r $output_initramfs ]; then
 		compile_initramfs
+		clean_rootdir
 	fi
 }
 
 script(){
 	case $1 in
+		help)
+			echo "Usage:		$0 { help | init | soft-clean | hard-clean | build } [ options ] [ wget-flags ]"
+			echo "		$0 help"
+			echo "		$0 init [ wget-flags ]"
+			echo "		$0 soft-clean { build | output }"
+			echo "		$0 hard-clean"
+			echo "		$0 build { toolchain | initramfs | rootfs | kernel } [ wget-flags ]"
+			echo "Default:	$0 build kernel"
+			;;
 		init)
 			init_script $2
 			;;
 
 		soft-clean)
 			case $2 in
-				build)
-					clean_rootdir
-					;;
-
 				output)
 					rm -rf output
+					;;
+
+				build | *)
+					clean_rootdir
 					;;
 			esac
 			;;
