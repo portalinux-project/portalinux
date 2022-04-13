@@ -1,0 +1,44 @@
+#!/bin/sh
+/bin/busybox --install -s
+
+echo "Welcome to PortaLinux v0.01, (c) 2022 pocketlinux32"
+printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
+
+printf "Mounting pseudo-filesystems..."
+mount -t devtmpfs devtmpfs /dev
+mount -t procfs procfs /proc
+mount -t sysfs sysfs /sys
+echo "Done."
+
+printf "Creating device nodes..."
+echo mdev -s > /proc/sys/kernel/hotplug
+printf "Done.\n\n"
+
+if [ -r /rootfs.cpio.xz ]; then
+	echo "Found root filesystem file. Skipping device scan"
+
+	printf "Decompressing rootfs..."
+	xz -d /rootfs.cpio.xz
+	cd mnt
+	cpio -idm < /rootfs.cpio
+	echo "Done."
+else
+	echo "Device scanning is currently not supported"
+	printf "Starting shell...\n\n"
+	exec /linuxrc
+fi
+
+printf "Creating symbolic links to busybox..."
+for i in $(./bin/busybox | tail -$(expr $(./bin/busybox | wc -l) - $(./bin/busybox | grep "Currently" -n | cut -d: -f1)) | sed 's/,//g'); do
+	ln -s /bin/busybox bin/$i
+done
+printf "Done."
+
+printf "Moving mounted filesystems..."
+mount --move /dev /mnt/dev
+mount --move /proc /mnt/proc
+mount --move /sys /mnt/sys
+printf "Done."
+
+echo "Starting system..."
+exec switch_root /mnt /sbin/init
