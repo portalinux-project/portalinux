@@ -214,20 +214,16 @@ compile_rootfs(){
 	fi
 
 	if [ ! -r $output_rootfs/usr/lib/libstdc++.a ]; then
-		if [ ! -r $rootdir/gcc-10.3.0/mpfr ]; then
-			ln $rootdir/gmp-6.2.1 $rootdir/gcc-10.3.0/gmp -s
-			ln $rootdir/mpc-1.2.1 $rootdir/gcc-10.3.0/mpc -s
-			ln $rootdir/mpfr-4.1.0 $rootdir/gcc-10.3.0/mpfr -s
+		ln $rootdir/gmp-6.2.1 $rootdir/gcc-10.3.0/gmp -s
+		ln $rootdir/mpc-1.2.1 $rootdir/gcc-10.3.0/mpc -s
+		ln $rootdir/mpfr-4.1.0 $rootdir/gcc-10.3.0/mpfr -s
 
-			touch $output_rootfs/usr/include/gnu/stubs.h
-			touch $output_rootfs/usr/include/gnu/stubs-32.h
-			touch $output_rootfs/usr/include/gnu/stubs-64.h
-		fi
-
-		if [ ! -r $toolchain_prefix/bin/c++ ]; then
-			ln -s $toolchain_prefix/$arch-pocket-linux-gcc $toolchain_prefix/bin/cc
-			ln -s $toolchain_prefix/$arch-pocket-linux-g++ $toolchain_prefix/bin/c++
-		fi
+		mkdir -p $output_rootfs/usr/include/gnu
+		touch $output_rootfs/usr/include/gnu/stubs.h
+		touch $output_rootfs/usr/include/gnu/stubs-32.h
+		touch $output_rootfs/usr/include/gnu/stubs-64.h
+		ln -s $toolchain_prefix/$arch-pocket-linux-gcc $toolchain_prefix/bin/cc
+		ln -s $toolchain_prefix/$arch-pocket-linux-g++ $toolchain_prefix/bin/c++
 
 		cd $rootdir/gcc-10.3.0
 		mkdir build
@@ -277,6 +273,10 @@ compile_kernel(){
 		clean_rootdir
 	fi
 
+	cd $output_rootfs
+	find . | cpio -H newc -ov > $output_initramfs/rootfs.cpio
+	xz -v $output_initramfs/rootfs.cpio
+
 	cd $rootdir/linux-5.16.10
 	make ARCH=i386 defconfig
 
@@ -284,7 +284,7 @@ compile_kernel(){
 
 	sed -i "s/pl_initramfs/$output_initramfs/g" .config
 
-	CC=$arch-pocket-linux-gnu-gcc make -j$threads
+	CC=$arch-pocket-linux-gnu-gcc make -j$threads bzImage
 }
 
 script(){
@@ -315,7 +315,12 @@ script(){
 			;;
 
 		hard-clean)
-			rm -rf build output tarballs
+			for i in $(ls); do
+				if [ "$i" != "compile-script" ] && [ "$i" != "decompress-all" ] && [ "$i" != "get-deps" ] \
+				&& [ "$i" != "initramfs-init" ] && [ "$i" != "linuxconf.patch" ] && [ "$i" != "README.md" ]; then
+					rm -rf $i
+				fi
+			done
 			;;
 
 		build | *)
