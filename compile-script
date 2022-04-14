@@ -201,8 +201,6 @@ compile_rootfs(){
 	fi
 
 	if [ ! -r $output_rootfs/usr/lib/libc.a ]; then
-		cd $rootdir/glibc-2.34/build
-
 		cd $rootdir/glibc-2.34
 		mkdir build
 		cd build
@@ -222,8 +220,8 @@ compile_rootfs(){
 		touch $output_rootfs/usr/include/gnu/stubs.h
 		touch $output_rootfs/usr/include/gnu/stubs-32.h
 		touch $output_rootfs/usr/include/gnu/stubs-64.h
-		ln -s $toolchain_prefix/$arch-pocket-linux-gcc $toolchain_prefix/bin/cc
-		ln -s $toolchain_prefix/$arch-pocket-linux-g++ $toolchain_prefix/bin/c++
+		ln -s $toolchain_prefix/bin/$arch-pocket-linux-gcc $toolchain_prefix/bin/cc
+		ln -s $toolchain_prefix/bin/$arch-pocket-linux-g++ $toolchain_prefix/bin/c++
 
 		cd $rootdir/gcc-10.3.0
 		mkdir build
@@ -234,8 +232,8 @@ compile_rootfs(){
 		make -j$threads
 		make install DESTDIR=$output_rootfs
 
-		rm $toolchain_prefix/bin/cc
-		rm $toolchain_prefix/bin/c++
+#		rm $toolchain_prefix/bin/cc
+#		rm $toolchain_prefix/bin/c++
 	fi
 
 	if [ ! -r $output_rootfs/bin/busybox ]; then
