@@ -1,12 +1,13 @@
 #!/bin/sh
 /bin/busybox --install -s
+dmesg -n 1
 
 echo "Welcome to PortaLinux v0.01, (c) 2022 pocketlinux32"
 printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
 
 printf "Mounting pseudo-filesystems..."
 mount -t devtmpfs devtmpfs /dev
-mount -t procfs procfs /proc
+mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 echo "Done."
 
