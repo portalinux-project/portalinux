@@ -20,6 +20,24 @@ fi
 export PATH="$toolchain_prefix/bin:$PATH"
 
 
+clean_rootdir(){
+	for i in $(ls $rootdir); do
+		if [ -d $rootdir/$i/build ]; then
+			rm -rfv $rootdir/$i/build
+		elif [ -r $rootdir/$i/Makefile ]; then
+			cd $rootdir/$i && make clean && make distclean
+		fi
+	done
+}
+
+get_linuxarch(){
+	if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
+		larch=x86
+	else
+		larch=$arch
+	fi
+}
+
 init_script(){
 	if [ -d $rootdir ]; then
 		rm -rf build
@@ -40,16 +58,6 @@ init_script(){
 	sed -i 's/limits.h/linux\/limits.h/g' $rootdir/gcc-10.3.0/libsanitizer/asan/asan_linux.cpp
 	sed -i '20 i #include <bits/xopen_lim.h>' $rootdir/busybox-1.34.1/include/libbb.h
 	cd $rootdir
-}
-
-clean_rootdir(){
-	for i in $(ls $rootdir); do
-		if [ -d $rootdir/$i/build ]; then
-			rm -rf $rootdir/$i/build
-		elif [ -r $rootdir/$i/Makefile ]; then
-			cd $rootdir/$i && make clean && make distclean
-		fi
-	done
 }
 
 compile_toolchain(){
@@ -85,13 +93,8 @@ compile_toolchain(){
 	# linux headers
 	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/include/linux ]; then
 		cd $rootdir/linux-5.16.10
-		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
-			larch=x86
-		else
-			larch=$arch
-		fi
 
-		make ARCH=$larch INSTALL_HDR_PATH=$toolchain_prefix/$arch-pocket-linux-gnu headers_install
+		make ARCH=$(get_linuxarch) INSTALL_HDR_PATH=$toolchain_prefix/$arch-pocket-linux-gnu headers_install
 		cd $rootdir
 	fi
 
@@ -220,6 +223,7 @@ compile_rootfs(){
 		touch $output_rootfs/usr/include/gnu/stubs.h
 		touch $output_rootfs/usr/include/gnu/stubs-32.h
 		touch $output_rootfs/usr/include/gnu/stubs-64.h
+
 		ln -s $toolchain_prefix/bin/$arch-pocket-linux-gcc $toolchain_prefix/bin/cc
 		ln -s $toolchain_prefix/bin/$arch-pocket-linux-g++ $toolchain_prefix/bin/c++
 
@@ -232,8 +236,8 @@ compile_rootfs(){
 		make -j$threads
 		make install DESTDIR=$output_rootfs
 
-#		rm $toolchain_prefix/bin/cc
-#		rm $toolchain_prefix/bin/c++
+		rm $toolchain_prefix/bin/cc
+		rm $toolchain_prefix/bin/c++
 	fi
 
 	if [ ! -r $output_rootfs/bin/busybox ]; then
@@ -276,13 +280,14 @@ compile_kernel(){
 	xz -v $output_initramfs/rootfs.cpio
 
 	cd $rootdir/linux-5.16.10
-	make ARCH=i386 defconfig
+	make ARCH=$(get_linuxarch) defconfig
 
-	patch .config $pldir/linuxconf.patch
+	patch .config $pldir/$(get_linuxarch)-linuxconf.patch
 
 	sed -i "s/pl_initramfs/$output_initramfs/g" .config
 
 	CC=$arch-pocket-linux-gnu-gcc make -j$threads bzImage
+	cp arch/$(get_linuxarch)/boot/bzImage $output
 }
 
 script(){
@@ -300,10 +305,13 @@ script(){
 			init_script $2
 			;;
 
-		soft-clean)
+		clean)
 			case $2 in
+				tarballs)
+					rm -rfv build tarballs
+					;;
 				output)
-					rm -rf output
+					rm -rfv output
 					;;
 
 				build | *)
@@ -315,7 +323,8 @@ script(){
 		hard-clean)
 			for i in $(ls); do
 				if [ "$i" != "compile-script" ] && [ "$i" != "decompress-all" ] && [ "$i" != "get-deps" ] \
-				&& [ "$i" != "initramfs-init" ] && [ "$i" != "linuxconf.patch" ] && [ "$i" != "README.md" ]; then
+				&& [ "$i" != "initramfs-init" ] && [ $(echo "$i" | grep -c "linuxconf.patch") -eq 0 ] && \
+				[ "$i" != "README.md" ]; then
 					rm -rf $i
 				fi
 			done
