@@ -276,6 +276,15 @@ compile_kernel(){
 		compile_initramfs
 		clean_rootdir
 	fi
+
+	cd $rootdir/linux-5.16.10
+	make ARCH=i386 defconfig
+
+	patch .config $pldir/linuxconf.patch
+
+	sed -i "s/pl_initramfs/$output_initramfs/g" .config
+
+	CC=$arch-pocket-linux-gnu-gcc make -j$threads
 }
 
 script(){
