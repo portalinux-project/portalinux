@@ -32,9 +32,9 @@ clean_rootdir(){
 
 get_linuxarch(){
 	if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
-		larch=x86
+		echo x86
 	else
-		larch=$arch
+		echo $arch
 	fi
 }
 
@@ -148,6 +148,11 @@ compile_toolchain(){
 }
 
 compile_initramfs(){
+	if ! command -v $arch-pocket-linux-gnu-gcc &> /dev/null; then
+		compile_toolchain
+		clean_rootdir
+	fi
+
 	for i in bin dev sys proc sbin usr/bin usr/sbin mnt; do
 		mkdir -p $output/initramfs/$i
 	done
@@ -224,8 +229,8 @@ compile_rootfs(){
 		touch $output_rootfs/usr/include/gnu/stubs-32.h
 		touch $output_rootfs/usr/include/gnu/stubs-64.h
 
-		ln -s $toolchain_prefix/bin/$arch-pocket-linux-gcc $toolchain_prefix/bin/cc
-		ln -s $toolchain_prefix/bin/$arch-pocket-linux-g++ $toolchain_prefix/bin/c++
+		ln -s $toolchain_prefix/bin/$arch-pocket-linux-gnu-gcc $toolchain_prefix/bin/cc
+		ln -s $toolchain_prefix/bin/$arch-pocket-linux-gnu-g++ $toolchain_prefix/bin/c++
 
 		cd $rootdir/gcc-10.3.0
 		mkdir build
@@ -325,7 +330,7 @@ script(){
 				if [ "$i" != "compile-script" ] && [ "$i" != "decompress-all" ] && [ "$i" != "get-deps" ] \
 				&& [ "$i" != "initramfs-init" ] && [ $(echo "$i" | grep -c "linuxconf.patch") -eq 0 ] && \
 				[ "$i" != "README.md" ]; then
-					rm -rf $i
+					rm -rfv $i
 				fi
 			done
 			;;
