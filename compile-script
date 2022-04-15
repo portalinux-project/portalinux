@@ -174,6 +174,10 @@ compile_initramfs(){
 		cp $pldir/initramfs-init $output_initramfs/init
 		chmod 777 $output_initramfs/init
 	fi
+
+	sudo mknod $output_initramfs/dev/console c 5 1
+	sudo mknod $output_initramfs/dev/tty c 5 0
+	sudo mknod $output_initramfs/dev/null c 1 3
 }
 
 compile_rootfs(){
@@ -289,7 +293,7 @@ compile_kernel(){
 
 	patch .config $pldir/$(get_linuxarch)-linuxconf.patch
 
-	sed -i "s/pl_initramfs/$output_initramfs/g" .config
+	sed -i "s/pl_initramfs/$(echo $output_initramfs | sed 's/\//\\\//g')/g" .config
 
 	CC=$arch-pocket-linux-gnu-gcc make -j$threads bzImage
 	cp arch/$(get_linuxarch)/boot/bzImage $output
