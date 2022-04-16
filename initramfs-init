@@ -15,6 +15,8 @@ printf "Creating device nodes..."
 echo mdev -s > /proc/sys/kernel/hotplug
 printf "Done.\n\n"
 
+mount -t tmpfs tmpfs -o size=2G /mnt
+
 if [ -r /rootfs.cpio.xz ]; then
 	echo "Found root filesystem file. Skipping device scan"
 
@@ -26,13 +28,12 @@ if [ -r /rootfs.cpio.xz ]; then
 else
 	echo "Device scanning is currently not supported"
 	printf "Starting shell...\n\n"
+	umount /mnt
 	exec /linuxrc
 fi
 
 printf "Creating symbolic links to busybox..."
-for i in $(./bin/busybox | tail -$(expr $(./bin/busybox | wc -l) - $(./bin/busybox | grep "Currently" -n | cut -d: -f1)) | sed 's/,//g'); do
-	ln -s /bin/busybox bin/$i
-done
+chroot /mnt /bin/busybox --install -s
 printf "Done."
 
 printf "Moving mounted filesystems..."

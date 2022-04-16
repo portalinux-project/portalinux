@@ -186,32 +186,32 @@ compile_rootfs(){
 		clean_rootdir
 	fi
 
-	for i in bin dev sys proc lib sbin usr/bin usr/lib usr/sbin etc root mnt home tmp; do
+	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin etc root mnt home tmp; do
 		mkdir -p $output_rootfs/$i
 	done
 
-	if [ ! -r $output_rootfs/usr/bin/as ]; then
-		cd $rootdir/binutils-2.36
-		mkdir build
-		cd build
-		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu
-
-		make -j$threads
-		make install DESTDIR=$output_rootfs
-	fi
-
-	if [ ! -r $output_rootfs/usr/include/linux ]; then
-		cd $rootdir/linux-5.16.10
-		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
-			larch=x86
-		else
-			larch=$arch
-		fi
-
-		make ARCH=$larch INSTALL_HDR_PATH=$output_rootfs/usr headers_install
-		cd $rootdir
-	fi
-
+#	if [ ! -r $output_rootfs/usr/bin/as ]; then
+#		cd $rootdir/binutils-2.36
+#		mkdir build
+#		cd build
+#		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu
+#
+#		make -j$threads
+#		make install DESTDIR=$output_rootfs
+#	fi
+#
+#	if [ ! -r $output_rootfs/usr/include/linux ]; then
+#		cd $rootdir/linux-5.16.10
+#		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
+#			larch=x86
+#		else
+#			larch=$arch
+#		fi
+#
+#		make ARCH=$larch INSTALL_HDR_PATH=$output_rootfs/usr headers_install
+#		cd $rootdir
+#	fi
+#
 	if [ ! -r $output_rootfs/usr/lib/libc.a ]; then
 		cd $rootdir/glibc-2.34
 		mkdir build
@@ -239,11 +239,14 @@ compile_rootfs(){
 		cd $rootdir/gcc-10.3.0
 		mkdir build
 		cd build
-		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu \
-		--enable-languages=c,c++ --with-build-sysroot=$output_rootfs
+		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap \
+		--host=$arch-pocket-linux-gnu --enable-languages=c,c++ --with-build-sysroot=$output_rootfs \
+		--libexecdir=/opt/libexec --bindir=/opt/bin
 
-		make -j$threads
-		make install DESTDIR=$output_rootfs
+		make all-target-libgcc -j$threads
+		make all-target-libstdc++-v3
+		make install-target-libgcc DESTDIR=$output_rootfs
+		make install-target-libstdc++-v3 DESTDIR=$output_rootfs
 
 		rm $toolchain_prefix/bin/cc
 		rm $toolchain_prefix/bin/c++
@@ -261,16 +264,24 @@ compile_rootfs(){
 		ln -s /bin/busybox $output_rootfs/bin/sh
 	fi
 
-	if [ ! -r $output_rootfs/usr/bin/make ]; then
-		cd $rootdir/make-4.3
-		mkdir build
-		cd build
-		../configure --prefix=/usr --host=$arch-pocket-linux-gnu
+#	if [ ! -r $output_rootfs/usr/bin/make ]; then
+#		cd $rootdir/make-4.3
+#		mkdir build
+#		cd build
+#		../configure --prefix=/usr --host=$arch-pocket-linux-gnu
+#
+#		make -j$threads
+#		make install DESTDIR=$output_rootfs
+#	fi
 
-		make -j$threads
-		make install DESTDIR=$output_rootfs
+	if [ ! -r $output_rootfs/init ]; then
+		cp $pldir/initramfs-init $output_rootfs/init
+		chmod 777 $output_rootfs/init
 	fi
 
+	sudo mknod $output_rootfs/dev/console c 5 1
+	sudo mknod $output_rootfs/dev/tty c 5 0
+	sudo mknod $output_rootfs/dev/null c 1 3
 }
 
 compile_kernel(){
@@ -279,21 +290,21 @@ compile_kernel(){
 		clean_rootdir
 	fi
 
-	if [ ! -r $output_initramfs ]; then
-		compile_initramfs
-		clean_rootdir
-	fi
-
-	cd $output_rootfs
-	find . | cpio -H newc -ov > $output_initramfs/rootfs.cpio
-	xz -v $output_initramfs/rootfs.cpio
+#	if [ ! -r $output_initramfs ]; then
+#		compile_initramfs
+#		clean_rootdir
+#	fi
+#
+#	cd $output_rootfs
+#	find . | cpio -H newc -ov > $output_initramfs/rootfs.cpio
+#	xz -v $output_initramfs/rootfs.cpio
 
 	cd $rootdir/linux-5.16.10
 	make ARCH=$(get_linuxarch) defconfig
 
 	patch .config $pldir/$(get_linuxarch)-linuxconf.patch
 
-	sed -i "s/pl_initramfs/$(echo $output_initramfs | sed 's/\//\\\//g')/g" .config
+	sed -i "s/pl_initramfs/$(echo $output_rootfs | sed 's/\//\\\//g')/g" .config
 
 	CC=$arch-pocket-linux-gnu-gcc make -j$threads bzImage
 	cp arch/$(get_linuxarch)/boot/bzImage $output
@@ -341,10 +352,10 @@ script(){
 
 		build | *)
 			if [ ! -d $rootdir ]; then
-				init_script $4
+				init_script $3
 			fi
 
-			case $3 in
+			case $2 in
 				toolchain)
 					compile_toolchain
 					;;
