@@ -6,8 +6,8 @@ also being as secure and compatible with as many components as it can.
 # Minimum Requirements
 
 - CPU: Intel 80486
-- RAM: 2.2GiB (target: 256MiB)
-- HDD: 384MiB (target: 32MiB)
+- RAM: 384MB (target: 256MiB)
+- HDD: 64MiB (target: 32MiB)
 
 # Build Requirements
 
