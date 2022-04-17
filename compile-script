@@ -222,7 +222,7 @@ compile_rootfs(){
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib 	--host=$arch-pocket-linux-gnu \
 		libc_cv_forced_unwind=yes CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
-		make -j$threads
+		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install DESTDIR=$output_rootfs
 	fi
 
@@ -243,10 +243,11 @@ compile_rootfs(){
 		mkdir build
 		cd build
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap \
-		--host=$arch-pocket-linux-gnu --enable-languages=c,c++ --with-build-sysroot=$output_rootfs \
-		--libexecdir=/opt/libexec --bindir=/opt/bin CFLAGS="-s -O2" CXXFLAGS="-s -O2"
+		--host=$arch-pocket-linux-gnu --disable-libstdcxx-debug --enable-languages=c,c++ \
+		--with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin \
+		CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
-		make -j$threads
+		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install-target-libgcc DESTDIR=$output_rootfs
 		make install-target-libstdc++-v3 DESTDIR=$output_rootfs
 
