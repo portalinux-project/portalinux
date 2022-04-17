@@ -15,32 +15,34 @@ printf "Creating device nodes..."
 echo mdev -s > /proc/sys/kernel/hotplug
 printf "Done.\n\n"
 
-mount -t tmpfs tmpfs -o size=2G /mnt
+exec /sbin/init
 
-if [ -r /rootfs.cpio.xz ]; then
-	echo "Found root filesystem file. Skipping device scan"
+#mount -t tmpfs tmpfs -o size=2G /mnt
 
-	printf "Decompressing rootfs..."
-	xz -d /rootfs.cpio.xz
-	cd mnt
-	cpio -idm < /rootfs.cpio
-	echo "Done."
-else
-	echo "Device scanning is currently not supported"
-	printf "Starting shell...\n\n"
-	umount /mnt
-	exec /linuxrc
-fi
-
-printf "Creating symbolic links to busybox..."
-chroot /mnt /bin/busybox --install -s
-printf "Done."
-
-printf "Moving mounted filesystems..."
-mount --move /dev /mnt/dev
-mount --move /proc /mnt/proc
-mount --move /sys /mnt/sys
-printf "Done."
-
-echo "Starting system..."
-exec switch_root /mnt /sbin/init
+#if [ -r /rootfs.cpio.xz ]; then
+#	echo "Found root filesystem file. Skipping device scan"
+#
+#	printf "Decompressing rootfs..."
+#	xz -d /rootfs.cpio.xz
+#	cd mnt
+#	cpio -idm < /rootfs.cpio
+#	echo "Done."
+#else
+#	echo "Device scanning is currently not supported"
+#	printf "Starting shell...\n\n"
+#	umount /mnt
+#	exec /linuxrc
+#fi
+#
+#printf "Creating symbolic links to busybox..."
+#chroot /mnt /bin/busybox --install -s
+#printf "Done."
+#
+#printf "Moving mounted filesystems..."
+#mount --move /dev /mnt/dev
+#mount --move /proc /mnt/proc
+#mount --move /sys /mnt/sys
+#printf "Done."
+#
+#echo "Starting system..."
+#exec switch_root /mnt /sbin/init
