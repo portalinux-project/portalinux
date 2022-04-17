@@ -13,6 +13,18 @@ if [ "$arch" = "" ]; then
 	arch="i486"
 fi
 
+if [ "$abi" = "" ]; then
+	if [ $(echo $arch | grep armel -c) -ne 0 ]; then
+		arch="arm"
+		abi="gnueabi"
+	elif [ $(echo $arch | grep armhf) ]; then
+		arch="arm"
+		abi="gnueabihf"
+	else
+		abi="gnu"
+	fi
+fi
+
 if [ "$threads" = "" ]; then
 	threads="$(nproc)"
 fi
@@ -31,11 +43,17 @@ clean_rootdir(){
 }
 
 get_linuxarch(){
-	if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
-		echo x86
-	else
-		echo $arch
-	fi
+	case $arch in
+		*86)
+			echo x86
+			;;
+		aarch64)
+			echo arm64
+			;;
+		*)
+			echo $arch
+			;;
+	esac
 }
 
 init_script(){
@@ -190,34 +208,19 @@ compile_rootfs(){
 		mkdir -p $output_rootfs/$i
 	done
 
-#	if [ ! -r $output_rootfs/usr/bin/as ]; then
-#		cd $rootdir/binutils-2.36
-#		mkdir build
-#		cd build
-#		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu
-#
-#		make -j$threads
-#		make install DESTDIR=$output_rootfs
-#	fi
-#
-#	if [ ! -r $output_rootfs/usr/include/linux ]; then
-#		cd $rootdir/linux-5.16.10
-#		if [ $(echo $arch | grep 86 -c) -ne 0 ]; then
-#			larch=x86
-#		else
-#			larch=$arch
-#		fi
-#
-#		make ARCH=$larch INSTALL_HDR_PATH=$output_rootfs/usr headers_install
-#		cd $rootdir
-#	fi
-#
+	if [ ! -r $output_rootfs/usr/include/linux ]; then
+		cd $rootdir/linux-5.16.10
+
+		make ARCH=$(get_linuxarch) INSTALL_HDR_PATH=$output_rootfs/usr headers_install
+		cd $rootdir
+	fi
+
 	if [ ! -r $output_rootfs/usr/lib/libc.a ]; then
 		cd $rootdir/glibc-2.34
 		mkdir build
 		cd build
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib 	--host=$arch-pocket-linux-gnu \
-		libc_cv_forced_unwind=yes
+		libc_cv_forced_unwind=yes CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
 		make -j$threads
 		make install DESTDIR=$output_rootfs
@@ -241,10 +244,9 @@ compile_rootfs(){
 		cd build
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap \
 		--host=$arch-pocket-linux-gnu --enable-languages=c,c++ --with-build-sysroot=$output_rootfs \
-		--libexecdir=/opt/libexec --bindir=/opt/bin
+		--libexecdir=/opt/libexec --bindir=/opt/bin CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
-		make all-target-libgcc -j$threads
-		make all-target-libstdc++-v3
+		make -j$threads
 		make install-target-libgcc DESTDIR=$output_rootfs
 		make install-target-libstdc++-v3 DESTDIR=$output_rootfs
 
@@ -264,16 +266,6 @@ compile_rootfs(){
 		ln -s /bin/busybox $output_rootfs/bin/sh
 	fi
 
-#	if [ ! -r $output_rootfs/usr/bin/make ]; then
-#		cd $rootdir/make-4.3
-#		mkdir build
-#		cd build
-#		../configure --prefix=/usr --host=$arch-pocket-linux-gnu
-#
-#		make -j$threads
-#		make install DESTDIR=$output_rootfs
-#	fi
-
 	if [ ! -r $output_rootfs/init ]; then
 		cp $pldir/initramfs-init $output_rootfs/init
 		chmod 777 $output_rootfs/init
@@ -282,6 +274,30 @@ compile_rootfs(){
 	sudo mknod $output_rootfs/dev/console c 5 1
 	sudo mknod $output_rootfs/dev/tty c 5 0
 	sudo mknod $output_rootfs/dev/null c 1 3
+
+
+}
+
+compile_devrfs(){
+	if [ ! -r $output_rootfs/usr/bin/as ]; then
+		cd $rootdir/binutils-2.36
+		mkdir build
+		cd build
+		../configure --prefix=/usr --bindir=/opt --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu
+
+		make -j$threads
+		make install DESTDIR=$output_rootfs
+	fi
+
+	if [ ! -r $output_rootfs/usr/bin/make ]; then
+		cd $rootdir/make-4.3
+		mkdir build
+		cd build
+		../configure --prefix=/opt --host=$arch-pocket-linux-gnu
+
+		make -j$threads
+		make install DESTDIR=$output_rootfs
+	fi
 }
 
 compile_kernel(){
@@ -294,10 +310,9 @@ compile_kernel(){
 #		compile_initramfs
 #		clean_rootdir
 #	fi
-#
-#	cd $output_rootfs
-#	find . | cpio -H newc -ov > $output_initramfs/rootfs.cpio
-#	xz -v $output_initramfs/rootfs.cpio
+
+	cd $output_rootfs
+	find . | cpio -H newc -ov > $output/rootfs.cpio
 
 	cd $rootdir/linux-5.16.10
 	make ARCH=$(get_linuxarch) defconfig
