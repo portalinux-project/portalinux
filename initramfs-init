@@ -2,7 +2,7 @@
 /bin/busybox --install -s
 dmesg -n 1
 
-echo "Welcome to PortaLinux v0.01, (c) 2022 pocketlinux32"
+echo "Welcome to PortaLinux v0.02, (c) 2022 pocketlinux32"
 printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
 
 printf "Mounting pseudo-filesystems..."
@@ -14,6 +14,8 @@ echo "Done."
 printf "Creating device nodes..."
 echo mdev -s > /proc/sys/kernel/hotplug
 printf "Done.\n\n"
+
+echo "Running init..."
 
 exec /sbin/init
 
