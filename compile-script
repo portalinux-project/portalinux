@@ -17,7 +17,7 @@ if [ "$abi" = "" ]; then
 	if [ $(echo $arch | grep armel -c) -ne 0 ]; then
 		arch="arm"
 		abi="gnueabi"
-	elif [ $(echo $arch | grep armhf) ]; then
+	elif [ $(echo $arch | grep armhf -c) -ne 0 ]; then
 		arch="arm"
 		abi="gnueabihf"
 	else
@@ -226,10 +226,10 @@ compile_rootfs(){
 		ln $rootdir/mpc-1.2.1 $rootdir/gcc-10.3.0/mpc -s
 		ln $rootdir/mpfr-4.1.0 $rootdir/gcc-10.3.0/mpfr -s
 
-		mkdir -p $output_rootfs/usr/include/gnu
-		touch $output_rootfs/usr/include/gnu/stubs.h
-		touch $output_rootfs/usr/include/gnu/stubs-32.h
-		touch $output_rootfs/usr/include/gnu/stubs-64.h
+		mkdir -p $output_rootfs/opt/include/gnu
+		touch $output_rootfs/opt/include/gnu/stubs.h
+		touch $output_rootfs/opt/include/gnu/stubs-32.h
+		touch $output_rootfs/opt/include/gnu/stubs-64.h
 
 		ln -s $toolchain_prefix/bin/$arch-pocket-linux-gnu-gcc $toolchain_prefix/bin/cc
 		ln -s $toolchain_prefix/bin/$arch-pocket-linux-gnu-g++ $toolchain_prefix/bin/c++
@@ -240,7 +240,8 @@ compile_rootfs(){
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap \
 		--host=$arch-pocket-linux-gnu --disable-libstdcxx-debug --enable-languages=c,c++ \
 		--with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin \
-		--includedir=/opt/include --datarootdir=/opt/share CFLAGS="-s -O2" CXXFLAGS="-s -O2"
+		--includedir=/opt/include --datarootdir=/opt/share --with-native-system-header-dir=/opt/include \
+		CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
 		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install-target-libgcc DESTDIR=$output_rootfs
@@ -268,11 +269,12 @@ compile_rootfs(){
 		chmod 777 $output_rootfs/init
 	fi
 
+	mkdir -p $output_rootfs/usr/include
 	sudo mknod $output_rootfs/dev/console c 5 1
 	sudo mknod $output_rootfs/dev/tty c 5 0
 	sudo mknod $output_rootfs/dev/null c 1 3
-
-
+	cp -rv $output_rootfs/opt $output/header-dir
+	rm -rfv $output/rootfs/opt/*
 }
 
 compile_devrfs(){

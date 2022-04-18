@@ -2,7 +2,7 @@
 /bin/busybox --install -s
 dmesg -n 1
 
-echo "Welcome to PortaLinux v0.02, (c) 2022 pocketlinux32"
+echo "Welcome to PortaLinux v0.03, (c) 2022 pocketlinux32"
 printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
 
 printf "Mounting pseudo-filesystems..."
@@ -18,33 +18,3 @@ printf "Done.\n\n"
 echo "Running init..."
 
 exec /sbin/init
-
-#mount -t tmpfs tmpfs -o size=2G /mnt
-
-#if [ -r /rootfs.cpio.xz ]; then
-#	echo "Found root filesystem file. Skipping device scan"
-#
-#	printf "Decompressing rootfs..."
-#	xz -d /rootfs.cpio.xz
-#	cd mnt
-#	cpio -idm < /rootfs.cpio
-#	echo "Done."
-#else
-#	echo "Device scanning is currently not supported"
-#	printf "Starting shell...\n\n"
-#	umount /mnt
-#	exec /linuxrc
-#fi
-#
-#printf "Creating symbolic links to busybox..."
-#chroot /mnt /bin/busybox --install -s
-#printf "Done."
-#
-#printf "Moving mounted filesystems..."
-#mount --move /dev /mnt/dev
-#mount --move /proc /mnt/proc
-#mount --move /sys /mnt/sys
-#printf "Done."
-#
-#echo "Starting system..."
-#exec switch_root /mnt /sbin/init
