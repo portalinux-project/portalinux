@@ -208,22 +208,17 @@ compile_rootfs(){
 		mkdir -p $output_rootfs/$i
 	done
 
-	if [ ! -r $output_rootfs/usr/include/linux ]; then
-		cd $rootdir/linux-5.16.10
-
-		make ARCH=$(get_linuxarch) INSTALL_HDR_PATH=$output_rootfs/usr headers_install
-		cd $rootdir
-	fi
-
 	if [ ! -r $output_rootfs/usr/lib/libc.a ]; then
 		cd $rootdir/glibc-2.34
 		mkdir build
 		cd build
-		../configure --prefix=/usr --with-sysroot=/ --disable-multilib 	--host=$arch-pocket-linux-gnu \
-		libc_cv_forced_unwind=yes CFLAGS="-s -O2" CXXFLAGS="-s -O2"
+		../configure --prefix=/usr --with-sysroot=/ --disable-multilib  --host=$arch-pocket-linux-gnu \
+		--datarootdir=/opt/share --includedir=/opt/include libc_cv_forced_unwind=yes CFLAGS="-s -O2" \
+		CXXFLAGS="-s -O2"
 
 		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install DESTDIR=$output_rootfs
+		cd $rootfs
 	fi
 
 	if [ ! -r $output_rootfs/usr/lib/libstdc++.a ]; then
@@ -245,7 +240,7 @@ compile_rootfs(){
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap \
 		--host=$arch-pocket-linux-gnu --disable-libstdcxx-debug --enable-languages=c,c++ \
 		--with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin \
-		CFLAGS="-s -O2" CXXFLAGS="-s -O2"
+		--includedir=/opt/include --datarootdir=/opt/share CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
 		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install-target-libgcc DESTDIR=$output_rootfs
@@ -253,6 +248,7 @@ compile_rootfs(){
 
 		rm $toolchain_prefix/bin/cc
 		rm $toolchain_prefix/bin/c++
+		cd $rootdir
 	fi
 
 	if [ ! -r $output_rootfs/bin/busybox ]; then
@@ -280,14 +276,34 @@ compile_rootfs(){
 }
 
 compile_devrfs(){
-	if [ ! -r $output_rootfs/usr/bin/as ]; then
+	if [ ! -r $output_rootfs ]; then
+		compile_rootfs
+	fi
+
+	if [ ! -r $output_rootfs/opt/include/linux ]; then
+		cd $rootdir/linux-5.16.10
+
+		make ARCH=$(get_linuxarch) INSTALL_HDR_PATH=$output_rootfs/opt headers_install
+		cd $rootdir
+	fi
+
+	if [ ! -r $output_rootfs/opt/bin/as ]; then
 		cd $rootdir/binutils-2.36
 		mkdir build
 		cd build
-		../configure --prefix=/usr --bindir=/opt --with-sysroot=/ --disable-multilib --host=$arch-pocket-linux-gnu
+		../configure --prefix=/usr --bindir=/opt/bin --datarootdir=/opt/share --with-sysroot=/ \
+		--disable-multilib --host=$arch-pocket-linux-gnu
 
 		make -j$threads
 		make install DESTDIR=$output_rootfs
+		cd $rootdir
+	fi
+
+	if [ ! -r $output_rootfs/opt/bin/g++ ]; then
+		cd $rootdir/gcc-10.3.0/build
+
+		make install-gcc
+		cd $rootdir
 	fi
 
 	if [ ! -r $output_rootfs/usr/bin/make ]; then
