@@ -1,10 +1,22 @@
 #!/bin/sh
 /bin/busybox --install -s
 dmesg -n 1
+device=""
 
 device_scan(){
-	devices = $(blkid | cut -d: -f1)
-	
+	devices = $(blkid | cut -d: -f1 | grep -v loop | grep -v ram)
+
+	for i in $devices; do
+		if [ $(blkid | grep $i | grep -c ext4) -ne 0 ]; then
+			mount $i /opt
+
+			if [ -f /opt/.pl-opt-mount ]; then
+				device="$i"
+			fi
+		fi
+
+		umount /opt
+	done
 }
 
 echo "Welcome to PortaLinux v0.03, (c) 2022 pocketlinux32"

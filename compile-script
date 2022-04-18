@@ -302,7 +302,7 @@ compile_devrfs(){
 	if [ ! -r $output_rootfs/opt/bin/g++ ]; then
 		cd $rootdir/gcc-10.3.0/build
 
-		make install-gcc
+		make install-gcc DESTDIR=$output_rootfs
 		cd $rootdir
 	fi
 
@@ -401,6 +401,10 @@ script(){
 
 				rootfs)
 					compile_rootfs
+					;;
+
+				devrfs)
+					compile_devrfs
 					;;
 
 				kernel | *)
