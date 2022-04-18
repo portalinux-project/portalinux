@@ -273,8 +273,6 @@ compile_rootfs(){
 	sudo mknod $output_rootfs/dev/console c 5 1
 	sudo mknod $output_rootfs/dev/tty c 5 0
 	sudo mknod $output_rootfs/dev/null c 1 3
-	cp -rv $output_rootfs/opt $output/header-dir
-	rm -rfv $output/rootfs/opt/*
 }
 
 compile_devrfs(){
@@ -294,7 +292,7 @@ compile_devrfs(){
 		mkdir build
 		cd build
 		../configure --prefix=/usr --bindir=/opt/bin --datarootdir=/opt/share --with-sysroot=/ \
-		--disable-multilib --host=$arch-pocket-linux-gnu
+		--with-native-system-header-dir=/opt/include --disable-multilib --host=$arch-pocket-linux-gnu
 
 		make -j$threads
 		make install DESTDIR=$output_rootfs
@@ -329,6 +327,9 @@ compile_kernel(){
 #		compile_initramfs
 #		clean_rootdir
 #	fi
+
+	cp -rv $output_rootfs/opt $output/header-dir
+	rm -rfv $output/rootfs/opt/*
 
 	cd $output_rootfs
 	find . | cpio -H newc -ov > $output/rootfs.cpio

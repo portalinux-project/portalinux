@@ -2,6 +2,11 @@
 /bin/busybox --install -s
 dmesg -n 1
 
+device_scan(){
+	devices = $(blkid | cut -d: -f1)
+	
+}
+
 echo "Welcome to PortaLinux v0.03, (c) 2022 pocketlinux32"
 printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
 
@@ -14,6 +19,8 @@ echo "Done."
 printf "Creating device nodes..."
 echo mdev -s > /proc/sys/kernel/hotplug
 printf "Done.\n\n"
+
+echo "Device scanning is not supported yet"
 
 echo "Running init..."
 
