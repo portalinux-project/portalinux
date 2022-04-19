@@ -58,7 +58,7 @@ printf "Parsing command-line options..."
 parse_kcmdline
 printf "Done"
 
-if [ devscan_timeout -gt 0 ]; then
+if [ $devscan_timeout -gt 0 ]; then
 	printf "Scanning persistent partition (/opt)..."
 	device_scan
 else
