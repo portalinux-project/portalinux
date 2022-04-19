@@ -84,9 +84,10 @@ compile_toolchain(){
 		cd $rootdir/binutils-2.36
 		mkdir -p build
 		cd build
-		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-mutilib
+		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-mutilib CFLAGS="-s -O2" \
+		CXXFLAGS="-s -O2"
 
-		make -j$threads
+		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install
 	fi
 
@@ -101,9 +102,10 @@ compile_toolchain(){
 		cd gcc-10.3.0
 		mkdir -p build
 		cd build
-		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-multilib --enable-languages=c,c++
+		../configure --prefix=$toolchain_prefix --target=$arch-pocket-linux-gnu --disable-multilib --enable-languages=c,c++ \
+		--disable-libstdcxx-debug --disable-bootstrap CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
-		make -j$threads all-gcc
+		make -j$threads all-gcc CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install-gcc
 		cd $rootdir
 	fi
@@ -121,11 +123,12 @@ compile_toolchain(){
 		cd $rootdir/glibc-2.34
 		mkdir -p build
 		cd build
-		../configure --prefix=$toolchain_prefix/$arch-pocket-linux-gnu --host=$arch-pocket-linux-gnu --disable-multilib \
-		--with-headers=$toolchain_prefix/$arch-pocket-linux-gnu/include libc_cv_forced_unwind=yes
+		../configure --prefix=$toolchain_prefix/$arch-pocket-linux-gnu --host=$arch-pocket-linux-gnu \
+		--disable-multilib --with-headers=$toolchain_prefix/$arch-pocket-linux-gnu/include libc_cv_forced_unwind=yes \
+		CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
 		make install-bootstrap-headers=yes install-headers
-		make csu/subdir_lib
+		make csu/subdir_lib CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		install csu/crti.o csu/crtn.o csu/crt1.o $toolchain_prefix/$arch-pocket-linux-gnu/lib
 		cd $rootdir
 	fi
@@ -139,9 +142,9 @@ compile_toolchain(){
 		-o $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.so
 
 		cd $rootdir/gcc-10.3.0/build
-		make -j$threads all-gcc
+		make -j$threads all-gcc CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install-gcc
-		make -j$threads all-target-libgcc
+		make -j$threads all-target-libgcc CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install-target-libgcc
 		cd $rootdir
 	fi
@@ -150,7 +153,7 @@ compile_toolchain(){
 	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/lib/libc.a ]; then
 		cd $rootdir/glibc-2.34/build
 
-		make -j$threads
+		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install
 		cd $rootdir
 	fi
@@ -159,7 +162,7 @@ compile_toolchain(){
 	if [ ! -r $toolchain_prefix/$arch-pocket-linux-gnu/lib/libstdc++.a ]; then
 		cd $rootdir/gcc-10.3.0/build
 
-		make -j$threads
+		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install
 		cd $rootdir
 	fi
@@ -241,8 +244,7 @@ compile_rootfs(){
 		--host=$arch-pocket-linux-gnu --disable-libstdcxx-debug --enable-languages=c,c++ \
 		--with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin \
 		--includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share \
-		--with-native-system-header-dir=/opt/include \
-		CFLAGS="-s -O2" CXXFLAGS="-s -O2"
+		--with-native-system-header-dir=/opt/include CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
 		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install-target-libgcc DESTDIR=$output_rootfs
@@ -293,9 +295,10 @@ compile_devrfs(){
 		mkdir build
 		cd build
 		../configure --prefix=/usr --bindir=/opt/bin --datarootdir=/opt/share --with-sysroot=/ \
-		--with-native-system-header-dir=/opt/include --disable-multilib --host=$arch-pocket-linux-gnu
+		--with-native-system-header-dir=/opt/include --disable-multilib --host=$arch-pocket-linux-gnu \
+		CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
-		make -j$threads
+		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install DESTDIR=$output_rootfs
 		cd $rootdir
 	fi
@@ -311,9 +314,9 @@ compile_devrfs(){
 		cd $rootdir/make-4.3
 		mkdir build
 		cd build
-		../configure --prefix=/opt --host=$arch-pocket-linux-gnu
+		../configure --prefix=/opt --host=$arch-pocket-linux-gnu CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
-		make -j$threads
+		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install DESTDIR=$output_rootfs
 	fi
 }
