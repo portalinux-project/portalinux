@@ -6,8 +6,8 @@ also being as secure and compatible with as many components as it can.
 # Minimum Requirements
 
 - CPU: Intel 80486
-- RAM: 220 MiB
-- HDD: 32MiB
+- RAM: 136 MiB
+- HDD: 22 MiB
 
 # Build Requirements
 
@@ -25,4 +25,4 @@ also being as secure and compatible with as many components as it can.
 - CPU: Doesn't matter. If it turns on and can read 2GiB RAM and at least 32GiB
 of storage, it will work
 - RAM: 2GiB
-- Storage: 12GiB
+- Storage: 10GiB

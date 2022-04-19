@@ -240,7 +240,8 @@ compile_rootfs(){
 		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap \
 		--host=$arch-pocket-linux-gnu --disable-libstdcxx-debug --enable-languages=c,c++ \
 		--with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin \
-		--includedir=/opt/include --datarootdir=/opt/share --with-native-system-header-dir=/opt/include \
+		--includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share \
+		--with-native-system-header-dir=/opt/include \
 		CFLAGS="-s -O2" CXXFLAGS="-s -O2"
 
 		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
@@ -320,15 +321,8 @@ compile_devrfs(){
 compile_kernel(){
 	if [ ! -r $output_rootfs ]; then
 		compile_rootfs
-		clean_rootdir
 	fi
 
-#	if [ ! -r $output_initramfs ]; then
-#		compile_initramfs
-#		clean_rootdir
-#	fi
-
-	cp -rv $output_rootfs/opt $output/header-dir
 	rm -rfv $output/rootfs/opt/*
 
 	cd $output_rootfs
@@ -363,14 +357,19 @@ script(){
 		clean)
 			case $2 in
 				tarballs)
-					rm -rfv build tarballs
+					rm -rfv $pldir/build $pldir/tarballs
 					;;
 				output)
-					rm -rfv output
+					rm -rfv $pldir/output
 					;;
 
-				build | *)
+				build)
 					clean_rootdir
+					;;
+
+				*)
+					script clean build
+					script clean output
 					;;
 			esac
 			;;

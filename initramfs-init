@@ -2,24 +2,46 @@
 /bin/busybox --install -s
 dmesg -n 1
 device=""
+devscan_timeout = 10
+
+parse_kcmdline(){
+	cmdline=$(cat /proc/cmdline | egrep -o 'plflags.[a-z,0-9,\:,\,]*' | cut -d'=' -f2)
+
+	if [ $(echo $cmdline | grep -c nodevscan) -ne 0 ]; then
+		devscan_timeout = 0
+	elif [ $(echo $cmdline | grep -n dstimeout) ]; then
+		devscan_timeout = $(echo $cmdline | egrep -o 'dstimeout.[a-z,0-9,\:]*' | cut -d: -f2)
+	fi
+}
 
 device_scan(){
 	devices = $(blkid | cut -d: -f1 | grep -v loop | grep -v ram)
 
-	for i in $devices; do
-		if [ $(blkid | grep $i | grep -c ext4) -ne 0 ]; then
-			mount $i /opt
+	for junk in $(seq 1 $devscan_timeout); do
+		printf "."
+		for i in $devices; do
+			if [ $(blkid | grep $i | grep -c ext4) -ne 0 ]; then
+				mount $i /opt
 
-			if [ -f /opt/.pl-opt-mount ]; then
-				device="$i"
+				if [ -f /opt/.pl-opt-mount ]; then
+					device="$i"
+					break
+				fi
 			fi
-		fi
 
-		umount /opt
+			umount /opt
+		done
+
+		if [ "$devices" = "" ]; then
+			sleep 1
+		else
+			echo "Found persistent partition at $device."
+			break
+		fi
 	done
 }
 
-echo "Welcome to PortaLinux v0.03, (c) 2022 pocketlinux32"
+echo "Welcome to PortaLinux v0.04, (c) 2022 pocketlinux32"
 printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
 
 printf "Mounting pseudo-filesystems..."
@@ -32,7 +54,20 @@ printf "Creating device nodes..."
 echo mdev -s > /proc/sys/kernel/hotplug
 printf "Done.\n\n"
 
-echo "Device scanning is not supported yet"
+printf "Parsing command-line options..."
+parse_kcmdline
+printf "Done"
+
+if [ devscan_timeout -gt 0 ]; then
+	printf "Scanning persistent partition (/opt)..."
+	device_scan
+else
+	echo "Device scan skipped."
+fi
+
+if ! mountpoint /opt &>/dev/null; then
+	echo "/opt is not a mountpoint. Running without filesystem persistence."
+fi
 
 echo "Running init..."
 
