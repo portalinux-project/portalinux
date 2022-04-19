@@ -2,20 +2,20 @@
 /bin/busybox --install -s
 dmesg -n 1
 device=""
-devscan_timeout = 10
+devscan_timeout=10
 
 parse_kcmdline(){
 	cmdline=$(cat /proc/cmdline | egrep -o 'plflags.[a-z,0-9,\:,\,]*' | cut -d'=' -f2)
 
 	if [ $(echo $cmdline | grep -c nodevscan) -ne 0 ]; then
-		devscan_timeout = 0
+		devscan_timeout=0
 	elif [ $(echo $cmdline | grep -n dstimeout) ]; then
-		devscan_timeout = $(echo $cmdline | egrep -o 'dstimeout.[a-z,0-9,\:]*' | cut -d: -f2)
+		devscan_timeout=$(echo $cmdline | egrep -o 'dstimeout.[a-z,0-9,\:]*' | cut -d: -f2)
 	fi
 }
 
 device_scan(){
-	devices = $(blkid | cut -d: -f1 | grep -v loop | grep -v ram)
+	devices=$(blkid | cut -d: -f1 | grep -v loop | grep -v ram)
 
 	for junk in $(seq 1 $devscan_timeout); do
 		printf "."
@@ -39,6 +39,10 @@ device_scan(){
 			break
 		fi
 	done
+
+	if ! mountpoint /opt &>/dev/null; then
+		echo "None found"
+	fi
 }
 
 echo "Welcome to PortaLinux v0.04, (c) 2022 pocketlinux32"
@@ -56,10 +60,10 @@ printf "Done.\n\n"
 
 printf "Parsing command-line options..."
 parse_kcmdline
-printf "Done"
+echo "Done."
 
 if [ $devscan_timeout -gt 0 ]; then
-	printf "Scanning persistent partition (/opt)..."
+	printf "Scanning for persistent partition (/opt)..."
 	device_scan
 else
 	echo "Device scan skipped."
