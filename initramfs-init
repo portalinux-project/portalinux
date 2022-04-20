@@ -54,6 +54,15 @@ mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 echo "Done."
 
+if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/)" ]; then
+	echo "Running in chroot. Aborting boot and dropping to shell..."
+	/bin/ash
+	for i in dev proc sys; do
+		umount /$i
+	done
+	exit
+fi
+
 printf "Creating device nodes..."
 echo mdev -s > /proc/sys/kernel/hotplug
 printf "Done.\n\n"
@@ -71,6 +80,20 @@ fi
 
 if ! mountpoint /opt &>/dev/null; then
 	echo "/opt is not a mountpoint. Running without filesystem persistence."
+else
+	printf "Setting up filesystem persistence..."
+
+	for i in etc home var; do
+		if [ ! -d /opt/$i ]; then
+			mkdir /opt/$i
+			cp -r /$i/* /opt/$i
+		fi
+	done
+
+	mount --bind /opt/etc /etc
+	mount --bind /opt/home /home
+	mount --bind /opt/var /var
+	echo "Done."
 fi
 
 echo "Running init..."
