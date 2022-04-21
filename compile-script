@@ -58,11 +58,14 @@ get_linuxarch(){
 
 init_script(){
 	if [ -d $rootdir ]; then
-		rm -rf build
+		rm -rf $rootdir
 	fi
 
 	if [ ! -d tarballs ]; then
 		./get-deps $@
+		if [ $? -ne 0 ]; then
+			exit 1
+		fi
 	fi
 
 	cd tarballs && ../decompress-all
@@ -354,7 +357,8 @@ script(){
 			echo "Default:	$0 build kernel"
 			;;
 		init)
-			init_script $2
+			shift
+			init_script $@
 			;;
 
 		clean)
