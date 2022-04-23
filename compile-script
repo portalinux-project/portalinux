@@ -333,14 +333,13 @@ compile_kernel(){
 
 	cd $output_rootfs
 	find . | cpio -H newc -ov > $output/rootfs.cpio
+	xz --check=crc32 -v $output/rootfs.cpio
 
 	cd $rootdir/linux-5.16.10
 	make ARCH=$(get_linuxarch) allnoconfig
 
 	patch .config $pldir/generic-linuxconf.patch
 	patch .config $pldir/$(get_linuxarch)-linuxconf.patch
-
-#	sed -i "s/pl_initramfs/$(echo $output_rootfs | sed 's/\//\\\//g')/g" .config
 
 	CC=$arch-pocket-linux-gnu-gcc make -j$threads bzImage
 	cp arch/$(get_linuxarch)/boot/bzImage $output
