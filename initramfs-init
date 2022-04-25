@@ -45,7 +45,7 @@ device_scan(){
 	fi
 }
 
-echo "Welcome to PortaLinux v0.04, (c) 2022 pocketlinux32"
+echo "Welcome to PortaLinux v0.05, (c) 2022 pocketlinux32"
 printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
 
 printf "Mounting pseudo-filesystems..."
@@ -54,7 +54,7 @@ mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 echo "Done."
 
-if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/)" ]; then
+if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
 	echo "Running in chroot. Aborting boot and dropping to shell..."
 	/bin/ash
 	for i in dev proc sys; do
