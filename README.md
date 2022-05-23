@@ -6,13 +6,14 @@ also being as secure and compatible with as many components as it can.
 # Minimum Requirements
 
 - CPU: Intel 80486
-- RAM: 136 MiB
+- RAM: 110 MiB
 - HDD: 22 MiB
 
 # Build Requirements
 
 ## Build tools
 
+- [PL-Make](https://github.com/pocketlinux32/pl-make)
 - Make >= 4.x
 - GCC >= 7
 - GLIBC >= 2.31
@@ -22,7 +23,7 @@ also being as secure and compatible with as many components as it can.
 
 ## System Requirements
 
-- CPU: Doesn't matter. If it turns on and can read 2GiB RAM and at least 32GiB
-of storage, it will work
+- CPU: Doesn't matter. If it turns on and can read at least 2GiB RAM and at
+least 16GiB of storage, it will work
 - RAM: 2GiB
 - Storage: 10GiB
