@@ -78,7 +78,7 @@ _get_deps(){
 		printf "Downloading $i..."
 		wget -q --show-progress --progress=dot:giga "$i" $@
 		local retVar=$?
-		if [ retVar -ne 0 ]; then
+		if [ $retVar -ne 0 ]; then
 			echo "Error."
 			echo "There was an error downloading required sources"
 			cd .. && rm -rf tarballs
@@ -86,6 +86,7 @@ _get_deps(){
 		fi
 		echo "Done."
 	done
+	cd ..
 }
 
 _decompress_all(){
@@ -109,17 +110,17 @@ _decompress_all(){
 }
 
 soft_clean(){
-	for i in $(ls $rootdir); do
-		if [ -d $rootdir/$i/build ]; then
-			rm -rfv $rootdir/$i/build
-		elif [ -r $rootdir/$i/Makefile ]; then
-			cd $rootdir/$i && make clean && make distclean
+	for i in $(ls $build); do
+		if [ -d $build/$i/build ]; then
+			rm -rfv $build/$i/build
+		elif [ -r $build/$i/Makefile ]; then
+			cd $build/$i && make clean && make distclean
 		fi
 	done
 }
 
 hard_clean(){
-	rm -rf $build $output $pldir/tarballs
+	rm -rfv $build $output $pldir/tarballs
 }
 
 pl_init(){
@@ -127,12 +128,20 @@ pl_init(){
 		rm -rfv
 	fi
 
+	mkdir $build
+
 	if [ ! -d tarballs ]; then
 		_get_deps $@
 	fi
 
 	cd tarballs
 	_decompress_all
+
+	for i in $(ls); do
+		if [ -d $i ]; then
+			mv $i $build
+		fi
+	done
 
 	mkdir $toolchain_prefix $output -p
 	sed -i 's/limits.h/linux\/limits.h/g' $build/gcc-10.3.0/libsanitizer/asan/asan_linux.cpp
@@ -311,6 +320,9 @@ compile_musl_toolchain(){
 }
 
 compile_initramfs(){
+	_determine_target_type
+	_generate_linux_arch
+
 	for i in bin dev sys proc sbin usr/bin usr/sbin mnt; do
 		mkdir -p $output/initramfs/$i
 	done
@@ -339,6 +351,14 @@ compile_initramfs(){
 }
 
 compile_rootfs(){
+	_determine_target_type
+	_generate_linux_arch
+
+	if [ ! -r $toolchain_prefix/bin/$compile_target-gcc ]; then
+		echo "Error: You do not have the compiler for system $compile_target installed. Please run $0 compile_glibc_toolchain or $0 compile_musl_toolchain and try again"
+		exit 1
+	fi
+
 	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin etc root mnt home tmp; do
 		mkdir -p $output_rootfs/$i
 	done
@@ -424,6 +444,9 @@ compile_rootfs(){
 }
 
 compile_devrfs(){
+	_determine_target_type
+	_generate_linux_arch
+
 	if [ ! -r $output_rootfs ]; then
 		compile_rootfs
 	fi
@@ -467,6 +490,9 @@ compile_devrfs(){
 }
 
 compile_kernel(){
+	_determine_target_type
+	_generate_linux_arch
+
 	if [ ! -r $output_rootfs ]; then
 		compile_rootfs
 	fi
