@@ -59,9 +59,8 @@ _get_deps(){
 	local URL="http://kernel.org/pub/linux/kernel/v5.x/linux-5.16.10.tar.xz http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
 	local PKG="binutils/binutils-2.36.tar.gz bison/bison-3.7.6.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz make/make-4.3.tar.gz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz"
 
-	if [ "$dist" = "embedded" ]; then
+	if [ "$dist" = "musl" ]; then
 		URL="$URL https://github.com/ghaerr/microwindows/archive/refs/heads/master.tar.gz https://musl.libc.org/releases/musl-1.2.3.tar.gz"
-		shift 1
 	else
 		URL="$URL https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
 		PKG="$PKG libc/glibc-2.34.tar.gz bash/bash-5.1.tar.gz nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz"
@@ -128,7 +127,7 @@ pl_init(){
 		rm -rfv
 	fi
 
-	mkdir $build
+	mkdir $build -p
 
 	if [ ! -d tarballs ]; then
 		_get_deps $@
@@ -145,7 +144,9 @@ pl_init(){
 
 	mkdir $toolchain_prefix $output -p
 	sed -i 's/limits.h/linux\/limits.h/g' $build/gcc-10.3.0/libsanitizer/asan/asan_linux.cpp
-	sed -i '20 i #include <bits/xopen_lim.h>' $build/busybox-1.34.1/include/libbb.h
+	if [ "$dist" = "gnu" ]; then
+		sed -i '20 i #include <bits/xopen_lim.h>' $build/busybox-1.34.1/include/libbb.h
+	fi
 	cd $build
 }
 
