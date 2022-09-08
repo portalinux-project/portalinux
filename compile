@@ -1,63 +1,23 @@
 #!/bin/sh
 set -e
+
 pldir=$(pwd)
 build=$pldir/build
 output=$pldir/output
 output_rootfs=$output/rootfs
 output_initramfs=$output/initramfs
+toolchain_prefix="$(echo ~/cross)"
+threads=$(nproc)
 
-compile_target=""
-linux_arch=""
-
-if [ "$toolchain_prefix" = "" ]; then
-	toolchain_prefix=$(echo ~/cross)
-fi
-
-if [ "$threads" = "" ]; then
-	threads="$(nproc)"
-fi
-
-export PATH="$toolchain_prefix/bin:$PATH"
-
-_determine_target_type(){
-	if [ "$arch" = "" ]; then
-		arch="i486"
-	fi
-
-	if [ $(echo $arch | grep armel -c) -ne 0 ]; then
-		arch="arm"
-		abi="eabi"
-	elif [ $(echo $arch | grep armhf -c) -ne 0 ]; then
-		arch="arm"
-		abi="eabihf"
-	else
-		abi=""
-	fi
-
-	if [ "$dist" = "" ]; then
-		dist="gnu"
-	fi
-
-	compile_target="$arch-pocket-linux-$dist$abi"
-}
-
-_generate_linux_arch(){
-	case $arch in
-		*86)
-			linux_arch=i386
-			;;
-		aarch64)
-			linux_arch=arm64
-			;;
-		*)
-			linux_arch=$arch
-			;;
-	esac
-}
+compile_target="i486-pocket-linux-gnu"
+linux_arch="x86"
+arch="i486"
+abi=""
+dist="gnu"
 
 _get_deps(){
 	local URL="http://kernel.org/pub/linux/kernel/v5.x/linux-5.16.10.tar.xz http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
-	local PKG="binutils/binutils-2.36.tar.gz bison/bison-3.7.6.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz make/make-4.3.tar.gz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz"
+	local PKG="binutils/binutils-2.37.tar.gz bison/bison-3.7.6.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz make/make-4.3.tar.gz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz"
 
 	if [ "$dist" = "musl" ]; then
 		URL="$URL https://github.com/ghaerr/microwindows/archive/refs/heads/master.tar.gz https://musl.libc.org/releases/musl-1.2.3.tar.gz"
@@ -85,7 +45,6 @@ _get_deps(){
 		fi
 		echo "Done."
 	done
-	cd ..
 }
 
 _decompress_all(){
@@ -102,61 +61,18 @@ _decompress_all(){
 	done
 
 	for i in $(ls | grep .tar); do
-		tar -xvf $i
+		printf "Unpacking tar archive $i..."
+		tar -xf $i
+		echo "Done."
 	done
 
 	echo "Decompressed all files successfully"
 }
 
-soft_clean(){
-	for i in $(ls $build); do
-		if [ -d $build/$i/build ]; then
-			rm -rfv $build/$i/build
-		elif [ -r $build/$i/Makefile ]; then
-			cd $build/$i && make clean && make distclean
-		fi
-	done
-}
-
-hard_clean(){
-	rm -rfv $build $output $pldir/tarballs
-}
-
-pl_init(){
-	if [ -d $build ]; then
-		rm -rfv
-	fi
-
-	mkdir $build -p
-
-	if [ ! -d tarballs ]; then
-		_get_deps $@
-	fi
-
-	cd tarballs
-	_decompress_all
-
-	for i in $(ls); do
-		if [ -d $i ]; then
-			mv $i $build
-		fi
-	done
-
-	mkdir $toolchain_prefix $output -p
-	sed -i 's/limits.h/linux\/limits.h/g' $build/gcc-10.3.0/libsanitizer/asan/asan_linux.cpp
-	if [ "$dist" = "gnu" ]; then
-		sed -i '20 i #include <bits/xopen_lim.h>' $build/busybox-1.34.1/include/libbb.h
-	fi
-	cd $build
-}
-
 compile_glibc_toolchain(){
-	_determine_target_type
-	_generate_linux_arch
-
 	# binutils
 	if [ ! -r $toolchain_prefix/bin/$compile_target-as ]; then
-		cd $build/binutils-2.36
+		cd $build/binutils-2.37
 		mkdir -p build
 		cd build
 		../configure --prefix=$toolchain_prefix --target=$compile_target --disable-mutilib CFLAGS="-s -O2" \
@@ -170,9 +86,11 @@ compile_glibc_toolchain(){
 	if [ ! -r $toolchain_prefix/bin/$compile_target-gcc ]; then
 		cd $build
 
+		set +e
 		ln $build/gmp-6.2.1 gcc-10.3.0/gmp -s
 		ln $build/mpc-1.2.1 gcc-10.3.0/mpc -s
 		ln $build/mpfr-4.1.0 gcc-10.3.0/mpfr -s
+		set -e
 
 		cd gcc-10.3.0
 		mkdir -p build
@@ -189,7 +107,7 @@ compile_glibc_toolchain(){
 	if [ ! -r $toolchain_prefix/$compile_target/include/linux ]; then
 		cd $build/linux-5.16.10
 
-		make ARCH=$(get_linuxarch) INSTALL_HDR_PATH=$toolchain_prefix/$compile_target headers_install
+		make ARCH=$linux_arch INSTALL_HDR_PATH=$toolchain_prefix/$compile_target headers_install
 		cd $build
 	fi
 
@@ -244,21 +162,18 @@ compile_glibc_toolchain(){
 }
 
 compile_musl_toolchain(){
-	_determine_target_type
-	_generate_linux_arch
-
 	cd $build
 
 	# musl headers
 	if [ ! -r "$toolchain_prefix/$compile_target/include" ]; then
 		cd musl-1.2.3
-		make ARCH=i386 prefix=$toolchain_prefix/$compile_target install-headers
+		make ARCH=$arch prefix=$toolchain_prefix/$compile_target install-headers
 		cd ..
 	fi
 
 	# binutils
 	if [ ! -r "$toolchain_prefix/bin/$compile_target-as" ]; then
-		cd binutils-2.36
+		cd binutils-2.37
 		mkdir -p build
 		cd build
 		../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --disable-werror
@@ -292,7 +207,7 @@ compile_musl_toolchain(){
 		cd musl-1.2.3
 		ARCH=i686 CC=$compile_target-gcc CROSS_COMPILE=$compile_target- LIBCC=$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a ./configure --host=$compile_target --disable-multilib --prefix=~/cross/$compile_target
 		make -j4 AR=$compile_target-ar RANLIB=$compile_target-ranlib
-		make AR=$compile_target-ar RANLIB=i486-pocket-linux-ranlib install
+		make AR=$compile_target-ar RANLIB=$compile_target-ranlib install
 		cd ..
 	fi
 
@@ -320,43 +235,14 @@ compile_musl_toolchain(){
 	fi
 }
 
-compile_initramfs(){
-	_determine_target_type
-	_generate_linux_arch
-
-	for i in bin dev sys proc sbin usr/bin usr/sbin mnt; do
-		mkdir -p $output/initramfs/$i
-	done
-
-	if [ ! -r $output_initramfs/bin/busybox ]; then
-		cd $build/busybox-1.34.1
-
-		make defconfig
-		echo "CONFIG_CROSS_COMPILER_PREFIX=$toolchain_prefix/bin/$compile_target-" >> .config
-		echo "CONFIG_STATIC=y" >> .config
-
-		make -j$threads
-
-		mv busybox $output_initramfs/bin
-		ln -s /bin/busybox $output_initramfs/bin/sh
-	fi
-
-	if [ ! -r $output_initramfs/init ]; then
-		cp $pldir/initramfs-init $output_initramfs/init
-		chmod 777 $output_initramfs/init
-	fi
-
-	sudo mknod $output_initramfs/dev/console c 5 1
-	sudo mknod $output_initramfs/dev/tty c 5 0
-	sudo mknod $output_initramfs/dev/null c 1 3
+compile_toolchain(){
+	echo "Error: This command is under development. Please use $0 --build glibc_toolchain or musl_toolchain."
+	exit 1
 }
 
 compile_rootfs(){
-	_determine_target_type
-	_generate_linux_arch
-
 	if [ ! -r $toolchain_prefix/bin/$compile_target-gcc ]; then
-		echo "Error: You do not have the compiler for system $compile_target installed. Please run $0 compile_glibc_toolchain or $0 compile_musl_toolchain and try again"
+		echo "Error: You do not have the compiler for system $compile_target installed. Please run $0 compile_toolchain and try again"
 		exit 1
 	fi
 
@@ -382,12 +268,12 @@ compile_rootfs(){
 			musl)
 				cd $build/musl-1.2.3
 				./configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$compile_target \
-				--datarootdir=/opt/share --includedir=/opt/include CFLAGS="-s -O2" CXXFLAGS="-s -O2"
+				--datarootdir=/opt/share --includedir=/opt/include
 				;;
 		esac
 
-		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
-		make install DESTDIR=$output_rootfs
+		make -j$threads
+		make install-strip DESTDIR=$output_rootfs
 		cd $rootfs
 	fi
 
@@ -410,11 +296,11 @@ compile_rootfs(){
 		--host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ \
 		--with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin \
 		--includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share \
-		--with-native-system-header-dir=/opt/include $extra_flag CFLAGS="-s -O2" CXXFLAGS="-s -O2"
+		--with-native-system-header-dir=/opt/include $extra_flag
 
-		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
-		make install-target-libgcc DESTDIR=$output_rootfs
-		make install-target-libstdc++-v3 DESTDIR=$output_rootfs
+		make -j$threads
+		make install-strip-target-libgcc DESTDIR=$output_rootfs
+		make install-strip-target-libstdc++-v3 DESTDIR=$output_rootfs
 
 		rm $toolchain_prefix/bin/cc
 		rm $toolchain_prefix/bin/c++
@@ -445,9 +331,6 @@ compile_rootfs(){
 }
 
 compile_devrfs(){
-	_determine_target_type
-	_generate_linux_arch
-
 	if [ ! -r $output_rootfs ]; then
 		compile_rootfs
 	fi
@@ -491,34 +374,130 @@ compile_devrfs(){
 }
 
 compile_kernel(){
-	_determine_target_type
-	_generate_linux_arch
+	cd $build/linux-5.16.10
 
-	if [ ! -r $output_rootfs ]; then
-		compile_rootfs
+	if [ ! -f .config ]; then
+		if [ "$dist" = "musl" ]; then
+			make -s ARCH=$linux_arch allnoconfig
+		else
+			make -s ARCH=$linux_arch alldefconfig
+		fi
 	fi
 
+	CC=$compile_target-gcc make -j$threads bzImage
+	cp arch/$linux_arch/boot/bzImage $output
+}
+
+create_boot_image(){
 	rm -rfv $output/rootfs/opt/*
 
 	cd $output_rootfs
 	find . | cpio -H newc -ov > $output/rootfs.cpio
 	xz --check=crc32 -v $output/rootfs.cpio
-
-	cd $build/linux-5.16.10
-	make ARCH=$(get_linuxarch) allnoconfig
-
-	patch .config $pldir/generic-linuxconf.patch
-	patch .config $pldir/$(get_linuxarch)-linuxconf.patch
-
-	CC=$compile_target-gcc make -j$threads bzImage
-	cp arch/$(get_linuxarch)/boot/bzImage $output
 }
 
-case $1 in
-	_*)
-		echo "$1: command not found"
-		;;
-	*)
-		$@
-		;;
-esac
+printf "PortaLinux Build System\n\n"
+while [ $# -gt 0 ]; do
+	case $1 in
+		"--init")
+			if [ -d $build ]; then
+				rm -rf $build
+			fi
+
+			if [ ! -d tarballs ]; then
+				_get_deps $fetch_args
+			fi
+
+			mkdir -p $build
+			cd $pldir/tarballs
+			_decompress_all
+			for i in $(ls); do
+				if [ -d $i ]; then
+					mv $i $build
+				fi
+			done
+
+			mkdir $toolchain_prefix $output -p
+			if [ "$dist" = "gnu" ]; then
+				sed -i 's/limits.h/linux\/limits.h/g' $build/gcc-10.3.0/libsanitizer/asan/asan_linux.cpp
+				sed -i '20 i #include <bits/xopen_lim.h>' $build/busybox-1.34.1/include/libbb.h
+			else
+				cd $build/musl-1.2.3
+				for i in arch crt; do
+					cd $i
+					for j in i486 i586 i686; do
+						ln i386 $j -s
+					done
+					cd ..
+				done
+			fi
+			exit 0
+			;;
+		"--target-system")
+			arch=$(echo $2 | cut -d- -f1)
+			dist=$(echo $2 | cut -d- -f2)
+
+			if [ $(echo $arch | grep -c armel) -ne 0 ]; then
+				arch="arm"
+				abi="eabi"
+			elif [ $(echo $arch | grep -c armhf) -ne 0 ]; then
+				arch="arm"
+				abi="eabihf"
+			fi
+
+			if [ $(echo $arch | grep -c 86) -ne 0 ]; then
+				linux_arch="x86"
+			elif [ "$arch" = "aarch64" ]; then
+				linux_arch="arm64"
+			else
+				linux_arch="$arch"
+			fi
+
+			compile_target="$arch-pocket-linux-$dist$abi"
+			shift
+			;;
+		"--clean")
+			set +e
+			for i in $(ls $build); do
+				printf "Cleaninig $i..."
+				if [ -d $build/$i/build ]; then
+					rm -rf $build/$i/build
+				elif [ -r $build/$i/Makefile ]; then
+					cd $build/$i
+					make -s clean >/dev/null 2>&1
+					make -s distclean >/dev/null 2>&1
+				fi
+				echo "Done."
+			done
+			exit 0
+			;;
+		"--hard-clean")
+			rm -rfv $build $output $pldir/tarballs
+			exit 0
+			;;
+		"--threads")
+			threads=$2
+			shift
+			;;
+		"--build")
+			action=$2
+			shift
+			;;
+		"--help")
+			printf "Usage: $0 {--target-arch|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
+			echo "--init				Initializes the build system by downloading necessary components and unpacking them"
+			echo "--target-system [arch-dist]	Specifies the CPU architecture and the C library to be used (default: i486-gnu)"
+			echo "--clean				Cleans the build directory"
+			echo "--hard-clean			Removes any directories created by --init"
+			echo "--threads [n]			Sets the amount of threads to be used in compilation"
+			echo "--build [action]		Compiles toolchain, rootfs or devrfs (the previous list of words are the valid values for 'action')"
+			exit 0
+			;;
+	esac
+	shift
+done
+
+echo "Log file: $pldir/log.txt"
+echo "Target System: $compile_target"
+printf "Toolchain install directory: $toolchain_prefix\n\n"
+compile_$action
