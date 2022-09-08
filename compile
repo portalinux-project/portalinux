@@ -23,7 +23,7 @@ _get_deps(){
 		URL="$URL https://github.com/ghaerr/microwindows/archive/refs/heads/master.tar.gz https://musl.libc.org/releases/musl-1.2.3.tar.gz"
 	else
 		URL="$URL https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
-		PKG="$PKG libc/glibc-2.34.tar.gz bash/bash-5.1.tar.gz nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz"
+		PKG="$PKG libc/glibc-2.32.tar.gz bash/bash-5.1.tar.gz nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz"
 	fi
 
 	for i in $PKG; do
@@ -34,6 +34,9 @@ _get_deps(){
 	cd tarballs
 
 	for i in $URL; do
+#		if [ -f "$(basename $i)" ] || [ -f "$(basename $i |cut -d. -f$(expr $(basename $i | grep -o '\.' | wc -l) - 1)" ]; then
+#
+#		fi
 		printf "Downloading $i..."
 		wget -q --show-progress --progress=dot:giga "$i" $@
 		local retVar=$?
@@ -113,7 +116,7 @@ compile_glibc_toolchain(){
 
 	# glibc header files
 	if [ ! -r $toolchain_prefix/$compile_target/include/stdio.h ]; then
-		cd $build/glibc-2.34
+		cd $build/glibc-2.32
 		mkdir -p build
 		cd build
 		../configure --prefix=$toolchain_prefix/$compile_target --host=$compile_target \
@@ -144,7 +147,7 @@ compile_glibc_toolchain(){
 
 	# glibc libc.so
 	if [ ! -r $toolchain_prefix/$compile_target/lib/libc.a ]; then
-		cd $build/glibc-2.34/build
+		cd $build/glibc-2.32/build
 
 		make -j$threads CFLAGS_FOR_TARGET="-s -O2" CXXFLAGS_FOR_TARGET="-s -O2"
 		make install
@@ -253,7 +256,7 @@ compile_rootfs(){
 	if [ ! -r $output_rootfs/usr/lib/libc.a ]; then
 		case $dist in
 			gnu)
-				cd $build/glibc-2.34
+				cd $build/glibc-2.32
 				mkdir build
 				cd build
 				../configure --prefix=/usr --with-sysroot=/ --disable-multilib --host=$compile_target \
