@@ -13,7 +13,6 @@ also being as secure and compatible with as many components as it can.
 
 ## Build tools
 
-- [PL-Make](https://github.com/pocketlinux32/pl-make)
 - Make >= 4.x
 - GCC >= 7
 - GLIBC >= 2.31
