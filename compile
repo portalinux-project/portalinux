@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-pldir="$(pwd)"
+pldir="$(dirname $(realpath $0))"
 logfile="$pldir/log.txt"
 build="$pldir/build"
 output="$pldir/output"
@@ -113,7 +113,7 @@ _runtime_calc(){
 }
 
 compile_toolchain(){
-	cd $build
+	cd "$build"
 
 	# binutils
 	if [ ! -r "$toolchain_prefix/bin/$compile_target-as" ]; then
@@ -269,20 +269,24 @@ compile_rootfs(){
 		printf "."
 	done
 	echo "Done."
+	cd "$build"
 
 	if [ ! -r "$output_rootfs/usr/lib/libc.a" ]; then
 		local common_flags="--prefix=/usr --with-sysroot=/ --disable-multilib --host=$compile_target --datarootdir=/opt/share --includedir=/opt/include"
 		local make_flags="DESTDIR=$output_rootfs install"
 		if [ "$dist" = "musl" ]; then
-			cd $build/musl-1.2.3
+			cd "$build/musl-1.2.3"
 			printf "Configuring musl..."
 			script -qeac "./configure $common_flags 2>&1" "$logfile" >/dev/null
+			printf "Done.\nCompiling musl..."
 			make_flags="$make_flags-strip"
 		else
-			cd $build/glibc-2.31
+			cd "$build/glibc-2.31"
 			mkdir -p build
 			cd build
-			../configure $common_flags libc_cv_forced_unwind=yes CFLAGS="-s -O2" CXXFLAGS="-s -O2"
+			printf "Configuring glibc..."
+			script -qeac "../configure $common_flags libc_cv_forced_unwind=yes CFLAGS='-s -O2' CXXFLAGS='-s -O2' 2>&1" "$logfile" >/dev/null
+			printf "Done.\nCompiling glibc..."
 
 			mkdir -p "$output_rootfs/opt/include/gnu"
 			touch "$output_rootfs/opt/include/gnu/stubs.h"
@@ -290,19 +294,20 @@ compile_rootfs(){
 			touch "$output_rootfs/opt/include/gnu/stubs-64.h"
 		fi
 
-		make -j$threads
-		make $make_flags
-		cd $build
+		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
+		printf "Done\nInstalling libc..."
+		script -qeac "make $make_flags 2>&1" "$logfile" >/dev/null
+		echo "Done."
+		cd "$build"
 	fi
 
 	if [ ! -r "$output_rootfs/usr/lib/libstdc++.a" ]; then
 		local extra_flag=""
+		set +e
 		if [ ! -f gcc-10.3.0/mpfr ]; then
-			set +e
 			ln $(pwd)/gmp-6.2.1 gcc-10.3.0/gmp -s 2>/dev/null
 			ln $(pwd)/mpc-1.2.1 gcc-10.3.0/mpc -s 2>/dev/null
 			ln $(pwd)/mpfr-4.1.0 gcc-10.3.0/mpfr -s 2>/dev/null
-			set -e
 		fi
 
 		if [ "$dist" = "musl" ]; then
@@ -311,92 +316,112 @@ compile_rootfs(){
 
 		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null
 		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null
+		set -e
 
 		cd gcc-10.3.0
 		mkdir -p build
 		cd build
-		../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap \
-		--host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ \
-		--with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin \
-		--includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share \
-		--with-native-system-header-dir=/opt/include $extra_flag
+		printf "Configuring GCC..."
+		script -qeac "../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap --host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include $extra_flag 2>&1" "$logfile" >/dev/null
+		printf "Done.\nCompiling GCC..."
+		script -qeac "make -j$threads 2>&1" >/dev/null
+		printf "Done.\nInstalling libgcc..."
+		script -qeac "make install-strip-target-libgcc DESTDIR=$output_rootfs 2>&1" "$logfile" >/dev/null
+		printf "Done.\nInstalling libstdc++..."
+		script -qeac "make install-strip-target-libstdc++-v3 DESTDIR=$output_rootfs 2>&1" "$logfile" >/dev/null
+		echo "Done."
 
-		make -j$threads
-		make install-strip-target-libgcc DESTDIR=$output_rootfs
-		make install-strip-target-libstdc++-v3 DESTDIR=$output_rootfs
-
-		rm "$toolchain_prefix/bin/cc"
-		rm "$toolchain_prefix/bin/c+"
-		cd ..
+		rm "$toolchain_prefix/bin/cc" -f
+		rm "$toolchain_prefix/bin/c+" -f
+		cd ../..
 	fi
 
 	if [ ! -r "$output_rootfs/bin/busybox" ]; then
 		cd busybox-1.34.1
 
-		make defconfig
+		printf "Configuring BusyBox..."
+		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
 		echo "CONFIG_CROSS_COMPILER_PREFIX=$toolchain_prefix/bin/$compile_target-" >> .config
-
-		make -j$threads
-
+		printf "Done.\nCompiling BusyBox..."
+		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
+		printf "Done.\nInstalling Busybox..."
 		mv busybox "$output_rootfs/bin"
-		ln -s "/bin/busybox" "$output_rootfs/bin/sh"
+		set +e
+		ln -s "/bin/busybox" "$output_rootfs/bin/sh" 2>/dev/null
+		set -e
+		echo "Done."
 	fi
 
-	if [ ! -r $output_rootfs/init ]; then
+	if [ ! -r "$output_rootfs/init" ]; then
+		printf "Installing init script..."
 		cp "$pldir/initramfs-init" "$output_rootfs/init"
 		chmod 777 "$output_rootfs/init"
+		echo "Done."
 	fi
 
 	mkdir -p "$output_rootfs/usr/include"
-	sudo mknod "$output_rootfs/dev/console" c 5 1
-	sudo mknod "$output_rootfs/dev/tty" c 5 0
-	sudo mknod "$output_rootfs/dev/null" c 1 3
+	set +e
+	printf "Creating necessary device nodes..."
+	sudo mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null
+	sudo mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null
+	sudo mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null
+	echo "Done."
 }
 
 compile_devrfs(){
 	if [ ! -r "$output_rootfs" ]; then
 		compile_rootfs
+	else
+		cd "$build"
 	fi
 
-	if [ ! -r $output_rootfs/opt/include/linux ]; then
-		cd $build/linux-5.16.10
+	if [ ! -r "$output_rootfs/opt/include/linux" ]; then
+		cd linux-5.16.10
 
-		make ARCH=$(get_linuxarch) INSTALL_HDR_PATH=$output_rootfs/opt headers_install
-		cd $build
+		printf "Installing Linux headers..."
+		script -qeac "make ARCH=$(get_linuxarch) INSTALL_HDR_PATH=$output_rootfs/opt headers_install 2>&1" >/dev/null
+		echo "Done."
+		cd ..
 	fi
 
 	if [ ! -r $output_rootfs/opt/bin/as ]; then
-		cd $build/binutils-2.36
+		cd binutils-2.36
 		mkdir build
 		cd build
-		../configure --prefix=/usr --bindir=/opt/bin --datarootdir=/opt/share --with-sysroot=/ \
-		--with-native-system-header-dir=/opt/include --disable-multilib --host=$compile_target
-
-		make -j$threads
-		make install-strip DESTDIR=$output_rootfs
-		cd $build
+		printf "Configuring Binutils..."
+		script -qeac "../configure --prefix=/usr --bindir=/opt/bin --datarootdir=/opt/share --with-sysroot=/ --with-native-system-header-dir=/opt/include --disable-multilib --host=$compile_target 2>&1" >/dev/null
+		printf "Done.\nCompiling Binutils..."
+		script -qeac "make -j$threads 2>&1" >/dev/null
+		printf "Done.\nInstalling Binutils"
+		script -qeac "make install-strip DESTDIR=$output_rootfs 2>&1" >/dev/null
+		cd ../..
 	fi
 
-	if [ ! -r $output_rootfs/opt/bin/g++ ]; then
-		cd $build/gcc-10.3.0/build
+	if [ ! -r "$output_rootfs/opt/bin/g++" ]; then
+		cd gcc-10.3.0/build
 
-		make install-strip DESTDIR=$output_rootfs
-		cd $build
+		printf "Installing GCC C/C++ Compilers..."
+		script -qeac "make install-strip DESTDIR=$output_rootfs 2>&1" >/dev/null
+		echo "Done"
+		cd ../..
 	fi
 
-	if [ ! -r $output_rootfs/usr/bin/make ]; then
-		cd $build/make-4.3
+	if [ ! -r "$output_rootfs/usr/bin/make" ]; then
+		cd make-4.3
 		mkdir build
 		cd build
-		../configure --prefix=/opt --host=$compile_target
-
-		make -j$threads
-		make install-strip DESTDIR=$output_rootfs
+		printf "Configuring Make..."
+		script -qeac "../configure --prefix=/opt --host=$compile_target 2>&1" >/dev/null
+		printf "Done.\nCompiling Make..."
+		script -qeac "make -j$threads 2>&1" >/dev/null
+		printf "Done.\nInstalling Make..."
+		script -qeac "make install-strip DESTDIR=$output_rootfs 2>&1" >/dev/null
+		echo "Done."
 	fi
 }
 
 compile_kernel(){
-	cd $build/linux-5.16.10
+	cd "$build/linux-5.16.10"
 
 	if [ ! -f .config ]; then
 		if [ "$dist" = "musl" ]; then
@@ -411,14 +436,27 @@ compile_kernel(){
 }
 
 create_boot_image(){
-	rm -rfv $output/rootfs/opt/*
-
-	cd $output_rootfs
-	find . | cpio -H newc -ov > $output/rootfs.cpio
-	xz --check=crc32 -v $output/rootfs.cpio
+	printf "Deleting unnecessary files..."
+	for i in $(find "$output/rootfs/opt"); do
+		if [ ! -d "$i" ]; then
+			rm -f "$i"
+			printf "."
+		fi
+	done
+	printf "Done.\nCreating initramfs boot file..."
+	cd "$output_rootfs"
+	find . | cpio -H newc -ov > $output/rootfs.cpio 2>/dev/null
+	xz --check=crc32 $output/rootfs.cpio
+	echo "Done"
 }
 
 printf "PortaLinux Build System v0.05\n\n"
+
+if [ $# -eq 0 ]; then
+	echo "Error: No command given. Run $0 --help for a list of supported commands"
+	exit 1
+fi
+
 while [ $# -gt 0 ]; do
 	case $1 in
 		"--init")
@@ -519,6 +557,10 @@ while [ $# -gt 0 ]; do
 			echo "--threads [n]			Sets the amount of threads to be used in compilation"
 			echo "--build [action]		Compiles toolchain, rootfs, devrfs or kernel. The previous list of words are the supported operations."
 			exit 0
+			;;
+		*)
+			echo "Error: Unrecognized command. Run $0 --help for a list of supported commands."
+			exit 2
 			;;
 	esac
 	shift
