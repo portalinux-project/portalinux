@@ -6,8 +6,11 @@ while also being as secure and compatible with as many components as it can.
 # Minimum Requirements
 
 - CPU: Intel 80486
-- RAM: 110 MiB
-- HDD: 22 MiB
+- RAM: 128* MiB
+- HDD: 22** MiB
+
+*** These metrics may vary depending on the kernel config and the C library
+used**
 
 # Build Requirements
 
