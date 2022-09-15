@@ -328,7 +328,7 @@ compile_rootfs(){
 		mkdir -p build
 		cd build
 		printf "Configuring GCC..."
-		script -qeac "../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap --host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include --with-arch=specific_arch $extra_flag 2>&1" "$logfile" >/dev/null
+		script -qeac "../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap --host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include --with-arch=$specific_arch $extra_flag 2>&1" "$logfile" >/dev/null
 		printf "Done.\nCompiling GCC..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nInstalling libstdc++..."
