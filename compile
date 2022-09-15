@@ -12,6 +12,7 @@ threads=$(nproc)
 
 compile_target="i486-pocket-linux-gnu"
 linux_arch="i386"
+specific_arch="i486"
 arch="i486"
 abi=""
 dist="gnu"
@@ -139,32 +140,32 @@ compile_toolchain(){
 		local extra_flags=""
 		if [ ! -f gcc-10.3.0/mpfr ]; then
 			set +e
-			ln $(pwd)/gmp-6.2.1 gcc-10.3.0/gmp -s
-			ln $(pwd)/mpc-1.2.1 gcc-10.3.0/mpc -s
-			ln $(pwd)/mpfr-4.1.0 gcc-10.3.0/mpfr -s
+			ln $(pwd)/gmp-6.2.1 gcc-10.3.0/gmp -s 2>/dev/null
+			ln $(pwd)/mpc-1.2.1 gcc-10.3.0/mpc -s 2>/dev/null
+			ln $(pwd)/mpfr-4.1.0 gcc-10.3.0/mpfr -s 2>/dev/null
 			set -e
 		fi
 
 		if [ "$dist" = "musl" ]; then
-			extra_flags="--disable-libsanitizer --enable-initfini-array --with-arch=$arch --with-tune=generic"
+			extra_flags="--disable-libsanitizer --enable-initfini-array"
 		fi
 
 		cd gcc-10.3.0
 		mkdir -p build
 		cd build
 		printf "Configuring GCC..."
-		script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap $extra_flags" "$logfile" >/dev/null
+		script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --enable-languages=c,c++ --with-arch=$specific_arch --disable-libstdcxx-debug --disable-bootstrap $extra_flags" "$logfile" >/dev/null
 		printf "Done\nCompiling GCC C/C++ compilers..."
-		script -qeac "make -j$threads all-gcc 2>&1" >/dev/null
+		script -qeac "make -j$threads all-gcc 2>&1" "$logfile" >/dev/null
 		printf "Done\nInstalling GCC C/C++ compilers..."
-		script -qeac "make install-strip-gcc 2>&1" >/dev/null
+		script -qeac "make install-strip-gcc 2>&1" "$logfile" >/dev/null
 		echo "Done"
 		cd ../..
 	fi
 
 	# linux headers
 	if [ ! -r "$toolchain_prefix/$compile_target/include/linux" ]; then
-		cd linux-5.16.10
+		cd linux-5.19.8
 		printf "Installing Linux headers..."
 		script -qeac "make ARCH=$linux_arch INSTALL_HDR_PATH=$toolchain_prefix/$compile_target headers_install 2>&1" "$logfile" >/dev/null
 		echo "Done."
@@ -186,7 +187,7 @@ compile_toolchain(){
 			printf "Configuring glibc..."
 			script -qeac "../configure --prefix=$toolchain_prefix/$compile_target --host=$compile_target --disable-multilib --with-headers=$toolchain_prefix/$compile_target/include libc_cv_forced_unwind=yes 2>&1" "$logfile" >/dev/null
 			printf "Done.\nInstalling glibc headers..."
-			script -qeac "make install-bootstrap-headers=yes install-headers 2>&1" >/dev/null
+			script -qeac "make install-bootstrap-headers=yes install-headers 2>&1" "$logfile" >/dev/null
 			printf "Done.\nCompiling and installing glibc start files..."
 			script -qeac "make -j$threads csu/subdir_lib CFLAGS_FOR_TARGET='-s -O2' CXXFLAGS_FOR_TARGET='-s -O2' 2>&1" "$logfile" >/dev/null
 			install csu/crti.o csu/crtn.o csu/crt1.o $toolchain_prefix/$compile_target/lib
@@ -327,9 +328,9 @@ compile_rootfs(){
 		mkdir -p build
 		cd build
 		printf "Configuring GCC..."
-		script -qeac "../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap --host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include $extra_flag 2>&1" "$logfile" >/dev/null
+		script -qeac "../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap --host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include --with-arch=specific_arch $extra_flag 2>&1" "$logfile" >/dev/null
 		printf "Done.\nCompiling GCC..."
-		script -qeac "make -j$threads 2>&1" >/dev/null
+		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nInstalling libstdc++..."
 		script -qeac "make install-strip-target-libstdc++-v3 DESTDIR=$output_rootfs 2>&1" "$logfile" >/dev/null
 		echo "Done."
@@ -379,7 +380,7 @@ compile_devrfs(){
 	fi
 
 	if [ ! -r "$output_rootfs/opt/include/linux" ]; then
-		cd linux-5.16.10
+		cd linux-5.19.8
 
 		printf "Installing Linux headers..."
 		script -qeac "make ARCH=$(get_linuxarch) INSTALL_HDR_PATH=$output_rootfs/opt headers_install 2>&1" >/dev/null
@@ -426,17 +427,14 @@ compile_devrfs(){
 }
 
 compile_kernel(){
-	cd "$build/linux-5.16.10"
+	cd "$build/linux-5.19.8"
 
 	if [ ! -f .config ]; then
-		if [ "$dist" = "musl" ]; then
-			make -s ARCH=$linux_arch allnoconfig 2>1 >/dev/null
-		else
-			make -s ARCH=$linux_arch alldefconfig 2>1 >/dev/null
-		fi
+		echo "Error: Kernel has not been configured yet. Run $0 --config-kernel and try again"
+		exit 4
 	fi
 
-	script -qeac "CC=$compile_target-gcc make -j$threads bzImage" "$logfile"
+	script -qeac " make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads bzImage" "$logfile"
 	cp arch/$linux_arch/boot/bzImage "$output"
 }
 
@@ -485,7 +483,6 @@ while [ $# -gt 0 ]; do
 			mkdir $toolchain_prefix $output -p
 			if [ "$dist" = "gnu" ]; then
 				sed -i 's/limits.h/linux\/limits.h/g' $build/gcc-10.3.0/libsanitizer/asan/asan_linux.cpp
-				sed -i '20 i #include <bits/xopen_lim.h>' $build/busybox-1.34.1/include/libbb.h
 			else
 				cd $build/musl-1.2.3
 				for i in arch crt; do
@@ -500,19 +497,20 @@ while [ $# -gt 0 ]; do
 			exit 0
 			;;
 		"--target-system")
-			arch=$(echo $2 | cut -d- -f1)
+			specific_arch=$(echo $2 | cut -d- -f1)
 			dist=$(echo $2 | cut -d- -f2)
 
-			if [ $(echo $arch | grep -c armel) -ne 0 ]; then
+			if [ $(echo "$specific_arch" | grep -c arm) -ne 0 ]; then
 				arch="arm"
 				abi="eabi"
-			elif [ $(echo $arch | grep -c armhf) -ne 0 ]; then
-				arch="arm"
-				abi="eabihf"
+				if [ $(echo "$specific_arch" | grep -c 7) -ne 0 ]; then
+					abi="eabihf"
+				fi
 			fi
 
-			if [ $(echo $arch | grep -c 86) -ne 0 ]; then
-				if [ $(echo $arch | grep -c i) -ne 0 ]; then
+			if [ $(echo "$specific_arch" | grep -c 86) -ne 0 ]; then
+				arch="$specific_arch"
+				if [ $(echo "$specific_arch" | grep -c i) -ne 0 ]; then
 					linux_arch="i386"
 				else
 					linux_arch="x86"
@@ -553,7 +551,7 @@ while [ $# -gt 0 ]; do
 			;;
 		"--hard-clean")
 			_runtime_calc start
-			rm -rfv $build $output $pldir/tarballs
+			rm -rfv "$build" "$output" "$pldir/tarballs" "$logfile"
 			_runtime_calc stop
 			exit 0
 			;;
@@ -565,14 +563,19 @@ while [ $# -gt 0 ]; do
 			action=$2
 			shift
 			;;
+		"--config-kernel")
+			make -C "$build/linux-5.19.8" menuconfig
+			exit 0
+			;;
 		"--help")
 			printf "Usage: $0 {--target-arch|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
 			echo "--init				Initializes the build system by downloading necessary components and unpacking them"
 			echo "--target-system [arch-dist]	Specifies the CPU architecture and the C library to be used. Default: i486-gnu"
-			echo "--toolchain-prefix [path]		Sets the target system's toolchain's install directory. Default: ~/cross"
+			echo "--toolchain-prefix [path]	Sets the target system's toolchain's install directory. Default: ~/cross"
 			echo "--clean				Cleans the build directory"
 			echo "--hard-clean			Removes any directories created by --init"
 			echo "--threads [n]			Sets the amount of threads to be used in compilation"
+			echo "--config-kernel			Configures the Linux kernel"
 			echo "--build [action]		Compiles toolchain, rootfs, devrfs, kernel or boot-img. The previous list of words are the supported operations."
 			exit 0
 			;;
