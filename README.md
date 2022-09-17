@@ -7,7 +7,7 @@ while also being as secure and compatible with as many components as it can.
 
 - CPU: Intel 80486
 - RAM: 128* MiB
-- HDD: 22** MiB
+- HDD: 12** MiB
 
 ** * These metrics may vary depending on the kernel config and the C library used**
 
@@ -17,7 +17,6 @@ while also being as secure and compatible with as many components as it can.
 
 - Make >= 4.x
 - GCC >= 7
-- GLIBC >= 2.31
 - Flex >= 2.x
 - Bison >= 3.x
 - Gawk >= 3.x/Busybox Awk >= 1.30.1
