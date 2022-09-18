@@ -26,14 +26,21 @@ if [ $(echo $PATH | grep -c "$toolchain_prefix") -eq 0 ]; then
 fi
 
 _get_deps(){
-	local URL="http://kernel.org/pub/linux/kernel/v5.x/linux-5.19.8.tar.xz http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
-	local PKG="binutils/binutils-2.37.tar.gz bison/bison-3.7.6.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz make/make-4.3.tar.gz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz"
+	local skew=$(echo $1 | cut -d- -f1)
+	local libc=$(echo $1 | cut -d- -f2)
 
-	if [ "$dist" = "musl" ]; then
+	local URL="http://kernel.org/pub/linux/kernel/v5.x/linux-5.19.8.tar.xz http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
+	local PKG="binutils/binutils-2.37.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz"
+
+	if [ "$libc" = "musl" ]; then
 		URL="$URL https://github.com/ghaerr/microwindows/archive/refs/heads/master.tar.gz https://musl.libc.org/releases/musl-1.2.3.tar.gz"
 	else
 		URL="$URL https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
 		PKG="$PKG libc/glibc-2.31.tar.gz bash/bash-5.1.tar.gz nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz"
+	fi
+
+	if [ "$skew" = "dev" ]; then
+		PKG="$PKG bison/bison-3.7.6.tar.gz make/make-4.3.tar.gz"
 	fi
 
 	for i in $PKG; do
@@ -46,7 +53,7 @@ _get_deps(){
 	for i in $URL; do
 		if [ ! -f "$(basename $i)" ]; then
 			printf "Downloading $i..."
-			wget -q --show-progress --progress=dot:giga "$i" $@
+			wget -q --show-progress --progress=dot:giga "$i" $2
 			local retVar=$?
 			if [ $retVar -ne 0 ]; then
 				echo "Error."
@@ -127,7 +134,7 @@ compile_toolchain(){
 		mkdir -p build
 		cd build
 		printf "Configuring Binutils..."
-		script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --disable-werror 2>&1" "$logfile" >/dev/null
+		script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --with-arch=$specific_arch --disable-werror 2>&1" "$logfile" >/dev/null
 		printf "Done\nCompiling Binutils..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done\nInstalling Binutils..."
@@ -473,7 +480,7 @@ while [ $# -gt 0 ]; do
 				echo "Done."
 			fi
 
-			_get_deps $fetch_args
+			_get_deps $2 $fetch_args
 			mkdir -p $build
 			cd $pldir/tarballs
 			_decompress_all
@@ -584,7 +591,7 @@ while [ $# -gt 0 ]; do
 			;;
 		"--help")
 			printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
-			echo "--init				Initializes the build system by downloading necessary components and unpacking them"
+			echo "--init [dist]			Initializes the build system by downloading necessary components and unpacking them"
 			echo "--target-system [arch-dist]	Specifies the CPU architecture and the C library to be used. Default: i486-gnu"
 			echo "--toolchain-prefix [path]	Sets the target system's toolchain's install directory. Default: ~/cross"
 			echo "--clean				Cleans the build directory"
