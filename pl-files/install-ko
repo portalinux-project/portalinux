@@ -1,0 +1,32 @@
+#!/bin/sh
+set -e
+module_path=""
+module=""
+
+echo  "Kernel Module Installer v0.01"
+printf "(c)2022 pocketlinux32, Under GPLv2\n\n"
+
+while [ $# -gt 0]; do
+	case $1 in
+		"-h" | "--help")
+			printf "Usage: $0 {--help} [path]\n\n"
+			echo "-h|--help		Shows this help"
+			exit 0
+			;;
+		*)
+			module_path=$1
+			;;
+	esac
+	shift
+done
+
+module=$(basename "$module_path")
+
+if [ ! -d /lib/modules/$(uname -r)/kernel/drivers/misc ]; then
+	mkdir -p /lib/modules/$(uname -r)/kernel/drivers/misc
+fi
+
+mv "$module_path" /lib/modules/$(uname -r)/kernel/drivers/misc
+depmod $(uname -r) /lib/modules/$(uname -r)/kernel/drivers/misc
+
+echo "$module has been installed"

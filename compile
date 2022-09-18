@@ -2,6 +2,7 @@
 set -e
 
 pldir="$(dirname $(realpath $0))"
+plfiles="$pldir/pl-files"
 logfile="$pldir/log.txt"
 build="$pldir/build"
 output="$pldir/output"
@@ -358,7 +359,7 @@ compile_rootfs(){
 
 	if [ ! -r "$output_rootfs/init" ]; then
 		printf "Installing init script..."
-		cp "$pldir/initramfs-init" "$output_rootfs/init"
+		cp "$plfiles/initramfs-init" "$output_rootfs/init"
 		chmod 777 "$output_rootfs/init"
 		echo "Done."
 	fi
@@ -435,12 +436,14 @@ compile_kernel(){
 	fi
 
 	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads bzImage" "$logfile"
+	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads modules" "$logfile"
+	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch INSTALL_MOD_PATH=$output_rootfs modules_install" "$logfile"
 	cp arch/$linux_arch/boot/bzImage "$output"
 }
 
 create_boot_image(){
 	printf "Deleting unnecessary files..."
-	for i in $(find "$output/rootfs/opt"); do
+	for i in $(find "$output_rootfs/opt"); do
 		if [ ! -d "$i" ]; then
 			rm -f "$i"
 			printf "."
@@ -453,7 +456,7 @@ create_boot_image(){
 	echo "Done"
 }
 
-printf "PortaLinux Build System v0.05\n\n"
+printf "PortaLinux Build System v0.06\n\n"
 
 if [ $# -eq 0 ]; then
 	echo "Error: No command given. Run $0 --help for a list of supported commands"
@@ -580,7 +583,7 @@ while [ $# -gt 0 ]; do
 			exit 0
 			;;
 		"--help")
-			printf "Usage: $0 {--target-arch|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
+			printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
 			echo "--init				Initializes the build system by downloading necessary components and unpacking them"
 			echo "--target-system [arch-dist]	Specifies the CPU architecture and the C library to be used. Default: i486-gnu"
 			echo "--toolchain-prefix [path]	Sets the target system's toolchain's install directory. Default: ~/cross"

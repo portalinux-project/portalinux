@@ -10,7 +10,15 @@ parse_kcmdline(){
 	if [ $(echo $cmdline | grep -c nodevscan) -ne 0 ]; then
 		devscan_timeout=0
 	elif [ $(echo $cmdline | grep -n dstimeout) ]; then
-		devscan_timeout=$(echo $cmdline | egrep -o 'dstimeout.[a-z,0-9,\:]*' | cut -d: -f2)
+		devscan_timeout=$(echo $cmdline | egrep -o 'dstimeout.[0-9,\:]*' | cut -d: -f2)
+		if [ "$devscan_timeout" = "" ]; then
+			devscan_timeout=10
+		fi
+	fi
+
+	if [ $(echo $cmdline) | grep -c optdev ]; then
+		devscan_timeout=0
+		device=$(echo $cmdline | egrep -o 'optdev.[a-z,0-9,\:]*' | cut -d: -f2)
 	fi
 }
 
@@ -64,8 +72,14 @@ if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
 fi
 
 printf "Creating device nodes..."
-echo mdev -s > /proc/sys/kernel/hotplug
-printf "Done.\n\n"
+mdev -s
+echo "Done."
+if [ -r /lib/modules ]; then
+	printf "Loading kernel modules..."
+	modprobe -a
+	echo "Done."
+fi
+echo
 
 printf "Parsing command-line options..."
 parse_kcmdline
@@ -76,6 +90,9 @@ if [ $devscan_timeout -gt 0 ]; then
 	device_scan
 else
 	echo "Device scan skipped."
+	if [ "$device" != "" ] && [ -r "$device" ]; then
+		mount "$device" /opt 2>/dev/null
+	fi
 fi
 
 if ! mountpoint /opt &>/dev/null; then
@@ -83,12 +100,14 @@ if ! mountpoint /opt &>/dev/null; then
 else
 	printf "Setting up filesystem persistence..."
 
-	for i in etc home var; do
-		if [ ! -d /opt/$i ]; then
-			mkdir /opt/$i
-			cp -r /$i/* /opt/$i
-		fi
-	done
+	if [ ! -d /opt/etc ]; then
+		for i in etc home var; do
+			if [ ! -d /opt/$i ]; then
+				mkdir -p /opt/$i
+				cp -r /$i/* /opt/$i
+			fi
+		done
+	fi
 
 	mount --bind /opt/etc /etc
 	mount --bind /opt/home /home
