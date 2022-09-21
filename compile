@@ -333,9 +333,6 @@ compile_rootfs(){
 	if [ ! -r "$toolchain_prefix/bin/$compile_target-gcc" ]; then
 		echo "Error: You do not have the compiler for system $compile_target installed. Please run $0 --build toolchain and try again"
 		exit 1
-	elif [ $(id -u) -ne 0 ]; then
-		echo "Error: You are not root"
-		exit 3
 	fi
 
 	printf "Creating rootfs structure..."
@@ -444,19 +441,11 @@ compile_rootfs(){
 	fi
 
 	mkdir -p "$output_rootfs/usr/include"
-	set +e
-	printf "Creating necessary device nodes..."
-	mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null
-	mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null
-	mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null
-	echo "Done."
 }
 
 compile_devrfs(){
 	if [ ! -r "$output_rootfs" ]; then
 		compile_rootfs
-	else
-		cd "$build"
 	fi
 
 	if [ ! -r "$output_rootfs/opt/include/linux" ]; then
@@ -468,7 +457,7 @@ compile_devrfs(){
 		cd ..
 	fi
 
-	if [ ! -r $output_rootfs/opt/bin/as ]; then
+	if [ ! -r "$output_rootfs/opt/bin/as" ]; then
 		cd binutils-2.36
 		mkdir build
 		cd build
@@ -533,11 +522,27 @@ rootfs_cleanup(){
 
 create_boot_image(){
 	rootfs_cleanup
-	printf "Creating initramfs boot file..."
-	cd "$output_rootfs"
-	find . | cpio -H newc -ov > $output/rootfs.cpio 2>/dev/null
-	xz --check=crc32 $output/rootfs.cpio
-	echo "Done"
+
+	if [ $(id -u) -ne 0 ]; then
+		echo "Error: You are not root"
+		exit 3
+	fi
+
+	set +e
+	printf "Creating necessary device nodes..."
+	mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null
+	mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null
+	mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null
+	echo "Done."
+	set -e
+
+	if [ "" = "" ]; then
+		printf "Creating initramfs boot file..."
+		cd "$output_rootfs"
+		find . | cpio -H newc -ov > $output/rootfs.cpio 2>/dev/null
+		xz --check=crc32 $output/rootfs.cpio
+		echo "Done"
+	fi
 }
 
 printf "PortaLinux Build System v0.06\n\n"
@@ -569,7 +574,7 @@ while [ $# -gt 0 ]; do
 
 			_get_pkg_names $(echo "$2" | cut -d- -f1)
 			mkdir $toolchain_prefix $output -p
-			if [ $(echo $2 | grep "musl") ]; then
+			if [ $(echo $2 | grep "musl" -c) -ne 0 ]; then
 				for i in arch crt; do
 					cd "$musl_dir/$i"
 					for j in i486 i586 i686; do
@@ -643,10 +648,16 @@ while [ $# -gt 0 ]; do
 		"--clean")
 			_runtime_calc start
 			set +e
+			mode=2
+
+			if [ "$2" != "" ]; then
+				mode="$2"
+			fi
+
 			for i in $(ls "$build"); do
 				printf "Cleaninig $i..."
 				if [ -d "$build/$i/build" ]; then
-					if [ $2 -eq 1 ]; then
+					if [ $mode -eq 1 ]; then
 						cd "$build/$i/build"
 						make -s clean >/dev/null 2>&1
 						shift
@@ -661,19 +672,19 @@ while [ $# -gt 0 ]; do
 				echo "Done."
 			done
 
-			if [ $2 -eq 3 ]; then
+			if [ $mode -eq 3 ]; then
 				printf "Deleting output directory..."
 				rm -rf "$output"
 				shift
 			fi
-			rm "$logfile"
+			rm -f "$logfile"
 			_runtime_calc stop
 			exit 0
 			;;
 		"--hard-clean")
 			_runtime_calc start
 			rm -rfv "$build" "$output" "$logfile"
-			if [ "$2" = "no-rm-tarballs" ]; then
+			if [ $(echo "$2" | grep "no-rm-t" -c) -ne 0 ]; then
 				shift
 			else
 				rm -rfv "$pldir/tarballs"
