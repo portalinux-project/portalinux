@@ -1,0 +1,9 @@
+::sysinit:/etc/init.d/rcS
+::respawn:/sbin/getty 0 tty1
+::respawn:/sbin/getty 0 tty2
+::respawn:/sbin/getty 0 tty3
+::respawn:/sbin/getty 0 tty4
+::restart:/sbin/init
+::ctrlaltdel:/sbin/reboot
+::shutdown:/bin/umount -a -r
+::shutdown:/sbin/swapoff -a

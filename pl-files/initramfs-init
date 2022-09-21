@@ -1,66 +1,9 @@
 #!/bin/sh
 /bin/busybox --install -s
 dmesg -n 1
-device=""
-devscan_timeout=10
 
-parse_kcmdline(){
-	cmdline=$(cat /proc/cmdline | egrep -o 'plflags.[a-z,0-9,\:,\,]*' | cut -d'=' -f2)
-
-	if [ $(echo $cmdline | grep -c nodevscan) -ne 0 ]; then
-		devscan_timeout=0
-	elif [ $(echo $cmdline | grep -n dstimeout) ]; then
-		devscan_timeout=$(echo $cmdline | egrep -o 'dstimeout.[0-9,\:]*' | cut -d: -f2)
-		if [ "$devscan_timeout" = "" ]; then
-			devscan_timeout=10
-		fi
-	fi
-
-	if [ $(echo $cmdline) | grep -c optdev ]; then
-		devscan_timeout=0
-		device=$(echo $cmdline | egrep -o 'optdev.[a-z,0-9,\:]*' | cut -d: -f2)
-	fi
-}
-
-device_scan(){
-	devices=$(blkid | cut -d: -f1 | grep -v loop | grep -v ram)
-
-	for junk in $(seq 1 $devscan_timeout); do
-		printf "."
-		for i in $devices; do
-			if [ $(blkid | grep $i | grep -c ext4) -ne 0 ]; then
-				mount $i /opt
-
-				if [ -f /opt/.pl-opt-mount ]; then
-					device="$i"
-					break
-				fi
-			fi
-
-			umount /opt
-		done
-
-		if [ "$devices" = "" ]; then
-			sleep 1
-		else
-			echo "Found persistent partition at $device."
-			break
-		fi
-	done
-
-	if ! mountpoint /opt &>/dev/null; then
-		echo "None found"
-	fi
-}
-
-echo "Welcome to PortaLinux v0.05, (c) 2022 pocketlinux32"
+echo "Welcome to PortaLinux v0.06, (c) 2022 pocketlinux32"
 printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
-
-printf "Mounting pseudo-filesystems..."
-mount -t devtmpfs devtmpfs /dev
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-echo "Done."
 
 if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
 	echo "Running in chroot. Aborting boot and dropping to shell..."
@@ -71,50 +14,21 @@ if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
 	exit
 fi
 
-printf "Creating device nodes..."
-mdev -s
-echo "Done."
-if [ -r /lib/modules ]; then
-	printf "Loading kernel modules..."
-	modprobe -a
-	echo "Done."
-fi
+printf "Mounting pseudo-filesystems..."
+mount -t devtmpfs devtmpfs /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+printf "Done.\nCreating device nodes..."
+echo mdev -s > /proc/sys/kernel/hotplug
+printf "Done.\nSwitching from ramfs to tmpfs"
+mkdir -p /pivot/dev /pivot/sys /pivot/proc
+for i in dev sys proc; do
+	mount -o move /$i /pivot/$i
+	rm -rf $i
+done
+for i in $(ls | grep -v init | grep -v linuxrc); do
+	mv $i /pivot
+done
+printf "Done.\nExecuting init...\n"
+exec switch_root /pivot /sbin/init
 echo
-
-printf "Parsing command-line options..."
-parse_kcmdline
-echo "Done."
-
-if [ $devscan_timeout -gt 0 ]; then
-	printf "Scanning for persistent partition (/opt)..."
-	device_scan
-else
-	echo "Device scan skipped."
-	if [ "$device" != "" ] && [ -r "$device" ]; then
-		mount "$device" /opt 2>/dev/null
-	fi
-fi
-
-if ! mountpoint /opt &>/dev/null; then
-	echo "/opt is not a mountpoint. Running without filesystem persistence."
-else
-	printf "Setting up filesystem persistence..."
-
-	if [ ! -d /opt/etc ]; then
-		for i in etc home var; do
-			if [ ! -d /opt/$i ]; then
-				mkdir -p /opt/$i
-				cp -r /$i/* /opt/$i
-			fi
-		done
-	fi
-
-	mount --bind /opt/etc /etc
-	mount --bind /opt/home /home
-	mount --bind /opt/var /var
-	echo "Done."
-fi
-
-echo "Running init..."
-
-exec /sbin/init
