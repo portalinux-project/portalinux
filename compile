@@ -336,7 +336,7 @@ compile_rootfs(){
 	fi
 
 	printf "Creating rootfs structure..."
-	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin etc root mnt home tmp; do
+	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin etc/init.d root mnt home tmp; do
 		mkdir -p "$output_rootfs/$i"
 		printf "."
 	done
@@ -425,7 +425,7 @@ compile_rootfs(){
 		mkdir -p "$bash_dir/build"
 		cd "$bash_dir/build"
 		printf "Configuring GNU Bash..."
-		script -qeac "../configure --host=$compile_target --prefix=/bin 2>&1" "$logfile" >/dev/null
+		script -qeac "../configure --host=$compile_target --prefix=/ 2>&1" "$logfile" >/dev/null
 		printf "Done.\nCompiling GNU Bash..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nInstalling GNU Bash..."
@@ -437,6 +437,14 @@ compile_rootfs(){
 		printf "Installing init script..."
 		cp "$plfiles/initramfs-init" "$output_rootfs/init"
 		chmod 777 "$output_rootfs/init"
+		echo "Done."
+	fi
+
+	if [ ! -r "$output_rootfs/etc/init.d/rcS" ]; then
+		printf "Installing etc files..."
+		cp "$plfiles/inittab" "$output_rootfs/etc"
+		cp "$plfiles/rcS" "$output_rootfs/etc/init.d"
+		chmod 777 "$output_rootfs/etc/init.d/rcS"
 		echo "Done."
 	fi
 
