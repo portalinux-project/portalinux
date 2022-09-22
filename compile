@@ -425,7 +425,7 @@ compile_rootfs(){
 		mkdir -p "$bash_dir/build"
 		cd "$bash_dir/build"
 		printf "Configuring GNU Bash..."
-		script -qeac "../configure --host=$compile_target --prefix=/usr --includedir=/opt/include --sharedir=/opt/share" 2>&1" "$logfile" >/dev/null
+		script -qeac "../configure --host=$compile_target --prefix=/usr --includedir=/opt/include --sharedir=/opt/share 2>&1" "$logfile" >/dev/null
 		printf "Done.\nCompiling GNU Bash..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nInstalling GNU Bash..."
