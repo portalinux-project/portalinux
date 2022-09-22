@@ -47,7 +47,7 @@ _get_pkg_names(){
 	mpfr_dir="$(realpath $(echo $dirlist | grep 'mpfr.[0-9,a-z,A-Z,\.]*' -o))"
 	busybox_dir="$(realpath $(echo $dirlist | grep 'busybox.[0-9,a-z,A-Z,\.]*' -o))"
 
-	if [ "$1" = "musl" ]; then
+	if [ "$1" = "musl" ] || [ $dist = "musl" ]; then
 		musl_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
 	else
 		gnu_dir="$(realpath $(echo $dirlist | grep 'glibc.[0-9,a-z,A-Z,\.]*' -o))"
@@ -761,7 +761,7 @@ case $action in
 		create_boot_image
 		;;
 	*)
-		printf "Error: Unknown build command. Run $0 --help for a list of supported commands."
+		echo "Error: Unknown build command. Run $0 --help for a list of supported commands."
 		exit 4
 		;;
 esac
