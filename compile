@@ -166,7 +166,7 @@ _runtime_calc(){
 _parse_platform(){
 	case $specific_arch in
 		android32 | earm)
-			specific_arch="armv7a"
+			specific_arch="armv7"
 			dist="musl"
 			;;
 		android64 | earm64)
