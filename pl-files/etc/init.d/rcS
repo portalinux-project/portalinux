@@ -7,14 +7,14 @@ parse_kcmdline(){
 
 	if [ $(echo $cmdline | grep -c nodevscan) -ne 0 ]; then
 		devscan_timeout=0
-	elif [ $(echo $cmdline | grep -n dstimeout) ]; then
+	elif [ $(echo $cmdline | grep -c dstimeout) -ne 0 ]; then
 		devscan_timeout=$(echo $cmdline | egrep -o 'dstimeout.[0-9,\:]*' | cut -d: -f2)
 		if [ "$devscan_timeout" = "" ]; then
 			devscan_timeout=10
 		fi
 	fi
 
-	if [ $(echo $cmdline) | grep -c optdev ]; then
+	if [ $(echo $cmdline | grep -c optdev) -ne ]; then
 		devscan_timeout=0
 		device=$(echo $cmdline | egrep -o 'optdev.[a-z,0-9,\:]*' | cut -d: -f2)
 	fi
@@ -51,6 +51,8 @@ device_scan(){
 	fi
 }
 
+echo "Welcome to PortaLinux v0.06, (c) 2022 pocketlinux32"
+printf "Init script. Running on Linux $(uname -m) $(uname -r)\n\n"
 
 if [ -r /lib/modules ]; then
 	printf "Loading kernel modules..."

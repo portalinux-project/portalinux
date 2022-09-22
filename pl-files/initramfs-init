@@ -5,6 +5,12 @@ dmesg -n 1
 echo "Welcome to PortaLinux v0.06, (c) 2022 pocketlinux32"
 printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
 
+printf "Mounting pseudo-filesystems..."
+mount -t devtmpfs devtmpfs /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+echo "Done."
+
 if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
 	echo "Running in chroot. Aborting boot and dropping to shell..."
 	/bin/ash
@@ -14,21 +20,24 @@ if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
 	exit
 fi
 
-printf "Mounting pseudo-filesystems..."
-mount -t devtmpfs devtmpfs /dev
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-printf "Done.\nCreating device nodes..."
-echo mdev -s > /proc/sys/kernel/hotplug
-printf "Done.\nSwitching from ramfs to tmpfs"
+printf "Creating device nodes..."
+if [ -r /proc/sys/kernel/hotplug ]; then
+	echo mdev -s > /proc/sys/kernel/hotplug
+else
+	mdev -s
+fi
+printf "Done.\nSwitching from ramfs to tmpfs..."
+mkdir /pivot
+mount -t tmpfs tmpfs /pivot
 mkdir -p /pivot/dev /pivot/sys /pivot/proc
 for i in dev sys proc; do
 	mount -o move /$i /pivot/$i
-	rm -rf $i
+	printf "."
 done
-for i in $(ls | grep -v init | grep -v linuxrc); do
-	mv $i /pivot
+for i in $(ls / | grep -v init | grep -v linuxrc | grep -v pivot); do
+	cp -r $i /pivot
+	printf "."
 done
 printf "Done.\nExecuting init...\n"
-exec switch_root /pivot /sbin/init
 echo
+exec switch_root /pivot /sbin/init

@@ -336,7 +336,7 @@ compile_rootfs(){
 	fi
 
 	printf "Creating rootfs structure..."
-	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin etc/init.d root mnt home tmp; do
+	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin root mnt home tmp; do
 		mkdir -p "$output_rootfs/$i"
 		printf "."
 	done
@@ -440,10 +440,9 @@ compile_rootfs(){
 		echo "Done."
 	fi
 
-	if [ ! -r "$output_rootfs/etc/init.d/rcS" ]; then
+	if [ ! -r "$output_rootfs/etc" ]; then
 		printf "Installing etc files..."
-		cp "$plfiles/inittab" "$output_rootfs/etc"
-		cp "$plfiles/rcS" "$output_rootfs/etc/init.d"
+		cp -r "$plfiles/etc" "$output_rootfs"
 		chmod 777 "$output_rootfs/etc/init.d/rcS"
 		echo "Done."
 	fi
@@ -683,6 +682,7 @@ while [ $# -gt 0 ]; do
 			if [ $mode -eq 3 ]; then
 				printf "Deleting output directory..."
 				rm -rf "$output"
+				echo "Done."
 				shift
 			fi
 			rm -f "$logfile"
