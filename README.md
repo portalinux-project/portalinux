@@ -46,6 +46,12 @@ being the only valid options).
 ./compile --target-system $arch-$dist --init
 ```
 
+Before you start compiling anything, make sure your `PATH` contains your
+toolchain install path's bin folder as the first search path:
+```
+PATH=$toolchain_prefix/bin:$PATH
+```
+
 ## Toolchain
 
 To compile the target toolchain, run the following:
