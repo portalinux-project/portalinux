@@ -762,5 +762,6 @@ case $action in
 	*)
 		printf "Error: Unknown build command. Run $0 --help for a list of supported commands."
 		exit 4
+		;;
 esac
 _runtime_calc stop
