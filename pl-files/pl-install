@@ -1,0 +1,85 @@
+#!/bin/sh
+set -e
+
+#verify_pkg(){}
+
+install_pkg(){
+	if [ ! -f "$1" ]; then
+		echo "Error: $1 does not exist"
+		exit 1
+	fi
+	untar_dir=$(mktemp -d /tmp/plinstall-XXXXXX)
+	absolute_pkg_path=$(realpath "$1")
+	pkg_name=$(basename "$1" | rev | cut -d. -f2 | rev)
+
+	cd $untar_dir
+	printf "Unpacking package $(basename $absolute_pkg_path)..."
+	xzcat "$absolute_pkg_path" | tar -xf -
+	echo "Done."
+
+	cd files
+	file_list=$(find . -type f)
+	cd ..
+
+	if [ -f ./install.sh ]; then
+		echo "Executing install script..."
+		./install.sh $untar_dir
+	else
+		printf "Installing files..."
+		cp -r ./files/* /
+		echo "Done."
+	fi
+
+	if [ -f ./post-install.sh ]; then
+		echo "Executing post-install script..."
+		./post-install.sh $untar_dir
+	fi
+
+	echo "$pkg_name"
+	echo "$file_list" > /var/pl-install/$pkg_name.pldb
+	if [ -f ./uninstall.sh ]; then
+		mv ./uninstall.sh "/var/pl-install/$pkg_name-uninstall.sh"
+	fi
+}
+
+uninstall_pkg(){
+	if [ ! -f "/var/pl-install/$1.pldb" ]; then
+		echo "Error: Package $1 is not installed"
+		exit 2
+	fi
+
+	if [ -f "/var/pl-install/$1-uninstall.sh" ]; then
+		echo "Running uninstall script..."
+		/var/pl-install/$1-uninstall.sh
+	else
+		printf "Removing files..."
+		for i in $(cat /var/pl-install/$1.pldb); do
+			printf "."
+			rm "$i"
+		done
+		echo "Done."
+	fi
+}
+
+echo "PortaLinux Package Installer v0.01"
+printf "(c) 2022 pocketlinux32, Under GPLv2+\n\n"
+
+case $1 in
+	"--install" | "install")
+		install_pkg $2
+		;;
+	"--remove" | "--uninstall" | "remove")
+		uninstall_pkg $2
+		;;
+	"--help" | "help")
+		printf "Usage: $0 {--install|--remove} pkg_name\n\n"
+		echo "--install		Installs a package"
+		echo "--remove		Removes an installed package"
+		echo "--help			Shows this help"
+		;;
+	*)
+		echo "Error: Unknown option. Run $0 --help for more information"
+		exit 1
+		;;
+esac
+exit 0

@@ -47,26 +47,19 @@ _get_pkg_names(){
 	mpfr_dir="$(realpath $(echo $dirlist | grep 'mpfr.[0-9,a-z,A-Z,\.]*' -o))"
 	busybox_dir="$(realpath $(echo $dirlist | grep 'busybox.[0-9,a-z,A-Z,\.]*' -o))"
 
-	if [ "$1" = "musl" ] || [ "$dist" = "musl" ]; then
+	if [ "$dist" = "musl" ]; then
 		musl_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
 	else
 		gnu_dir="$(realpath $(echo $dirlist | grep 'glibc.[0-9,a-z,A-Z,\.]*' -o))"
 		bash_dir="$(realpath $(echo $dirlist | grep 'bash.[0-9,a-z,A-Z,\.]*' -o))"
 	fi
-
-	if [ "$2" = "dev" ]; then
-		make_dir="$(realpath $(echo $dirlist | grep 'make.[0-9,a-z,A-Z,\.]*' -o))"
-	fi
 }
 
 _get_deps(){
-	local libc=$(echo $1 | cut -d- -f1)
-	local skew=$(echo $1 | cut -d- -f2)
-
 	local URL="$kernel_url http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
 	local PKG="binutils/binutils-2.37.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz"
 
-	if [ "$libc" = "musl" ]; then
+	if [ "$dist" = "musl" ]; then
 		URL="$URL https://musl.libc.org/releases/musl-1.2.3.tar.gz"
 	else
 		PKG="$PKG libc/glibc-2.31.tar.gz bash/bash-5.1.tar.gz"
@@ -74,11 +67,7 @@ _get_deps(){
 
 	if [ "$skew" = "experimental" ]; then
 		URl="$URL https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2 https://github.com/ghaerr/microwindows/archive/refs/heads/master.tar.gz"
-		PKG="$PKG nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz"
-	fi
-
-	if [ "$skew" = "dev" ] || [ "$1" = "experimental" ]; then
-		PKG="$PKG bison/bison-3.7.6.tar.gz make/make-4.3.tar.gz"
+		PKG="$PKG nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz bison/bison-3.7.6.tar.gz make/make-4.3.tar.gz"
 	fi
 
 	for i in $PKG; do
@@ -175,7 +164,7 @@ _parse_platform(){
 			;;
 		pc | pc32)
 			specific_arch="i486"
-			dist="gnu"
+			dist="musl"
 			;;
 		pc64)
 			specific_arch="x86_64"
@@ -195,7 +184,7 @@ compile_toolchain(){
 		cd "$binutils_dir/build"
 		if [ ! -r "$binutils/build/Makefile" ]; then
 			printf "Configuring Binutils..."
-			script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --with-arch=$specific_arch --disable-werror 2>&1" "$logfile" >/dev/null
+			script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --with-cpu=$specific_arch --disable-werror 2>&1" "$logfile" >/dev/null
 			echo "Done."
 		fi
 		printf "Compiling Binutils..."
@@ -224,7 +213,7 @@ compile_toolchain(){
 		cd "$gcc_dir/build"
 		if [ ! -r "$gcc_dir/build/Makefile" ]; then
 			printf "Configuring GCC..."
-			script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --enable-languages=c,c++ --with-arch=$specific_arch --disable-libstdcxx-debug --disable-bootstrap $extra_flags" "$logfile" >/dev/null
+			script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --enable-languages=c,c++ --with-cpu=$specific_arch --disable-libstdcxx-debug --disable-bootstrap $extra_flags" "$logfile" >/dev/null
 			echo "Done."
 		fi
 		printf "Compiling GCC C/C++ compilers..."
@@ -261,7 +250,7 @@ compile_toolchain(){
 			script -qeac "make install-bootstrap-headers=yes install-headers 2>&1" "$logfile" >/dev/null
 			printf "Done.\nCompiling and installing glibc start files..."
 			script -qeac "make -j$threads csu/subdir_lib CFLAGS_FOR_TARGET='-s -O2' CXXFLAGS_FOR_TARGET='-s -O2' 2>&1" "$logfile" >/dev/null
-			install csu/crti.o csu/crtn.o csu/crt1.o $toolchain_prefix/$compile_target/lib
+			install csu/crti.o csu/crtn.o csu/crt1.o "$toolchain_prefix/$compile_target/lib"
 			echo "Done."
 		fi
 	fi
@@ -393,7 +382,7 @@ compile_rootfs(){
 		cd "$gcc_dir/build"
 
 		printf "Configuring GCC..."
-		script -qeac "../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap --host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include --with-arch=$specific_arch $extra_flag 2>&1" "$logfile" >/dev/null
+		script -qeac "../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap --host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include $extra_flag 2>&1" "$logfile" >/dev/null
 		printf "Done.\nCompiling GCC..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nInstalling libstdc++..."
@@ -446,11 +435,11 @@ compile_rootfs(){
 		chmod 777 "$output_rootfs/etc/init.d/rcS"
 		echo "Done."
 	fi
-
-	mkdir -p "$output_rootfs/usr/include"
 }
 
 compile_devrfs(){
+	echo "Warning: Currently Unsupported!"
+
 	if [ ! -r "$output_rootfs" ]; then
 		compile_rootfs
 	fi
@@ -518,11 +507,9 @@ compile_kernel(){
 
 rootfs_cleanup(){
 	printf "Deleting unnecessary files..."
-	for i in $(find "$output_rootfs/opt"); do
-		if [ ! -d "$i" ]; then
-			rm -f "$i"
-			printf "."
-		fi
+	for i in $(find "$output_rootfs/opt" -type f); do
+		rm -f "$i"
+		printf "."
 	done
 	echo "Done."
 }
@@ -552,7 +539,8 @@ create_boot_image(){
 	fi
 }
 
-printf "PortaLinux Build System v0.06\n\n"
+echo "PortaLinux Build System v0.07"
+printf "(c) 2022 pocketlinux32 & raisinware, Under GPLv2+\n\n"
 
 if [ $# -eq 0 ]; then
 	echo "Error: No command given. Run $0 --help for a list of supported commands"
@@ -569,7 +557,7 @@ while [ $# -gt 0 ]; do
 				echo "Done."
 			fi
 
-			_get_deps $2 $fetch_args
+			_get_deps $fetch_args
 			mkdir -p $build
 			cd $pldir/tarballs
 			_decompress_all
@@ -579,9 +567,9 @@ while [ $# -gt 0 ]; do
 				fi
 			done
 
-			_get_pkg_names $(echo "$2" | cut -d- -f1)
+			_get_pkg_names
 			mkdir $toolchain_prefix $output -p
-			if [ $(echo $2 | grep "musl" -c) -ne 0 ]; then
+			if [ "$dist" = "musl" ]; then
 				for i in arch crt; do
 					cd "$musl_dir/$i"
 					for j in i486 i586 i686; do
@@ -646,7 +634,7 @@ while [ $# -gt 0 ]; do
 						exit 6
 					fi
 
-					_get_pkg_names $3
+					_get_pkg_names
 					printf "$linux_dir\n$binutils_dir\n$gcc_dir\n$gmp_dir\n$mpc_dir\n$mpfr_dir\n$musl_dir\n$gnu_dir\n$busybox_dir\n$bash_dir\n"
 					;;
 			esac

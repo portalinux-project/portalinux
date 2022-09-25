@@ -4,7 +4,7 @@ module_path=""
 module=""
 
 echo  "Kernel Module Installer v0.01"
-printf "(c)2022 pocketlinux32, Under GPLv2\n\n"
+printf "(c)2022 pocketlinux32, Under GPLv2+\n\n"
 
 while [ $# -gt 0]; do
 	case $1 in

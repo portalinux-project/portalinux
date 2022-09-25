@@ -38,6 +38,5 @@ for i in $(ls / | grep -v init | grep -v linuxrc | grep -v pivot); do
 	cp -r $i /pivot
 	printf "."
 done
-printf "Done.\nExecuting init...\n"
-echo
+printf "Done.\nExecuting init...\n\n\n\n"
 exec switch_root /pivot /sbin/init
