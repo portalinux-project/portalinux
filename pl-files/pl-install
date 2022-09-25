@@ -1,16 +1,27 @@
 #!/bin/sh
 set -e
+pldb_path="/var/pl-install"
 
 #verify_pkg(){}
 
 install_pkg(){
-	if [ ! -f "$1" ]; then
-		echo "Error: $1 does not exist"
+	if [ "$(echo $(basename $1) | grep -xe '[A-Z,a-z,0-9]*.plpak')" = "" ]; then
+		echo "Error: File $(basename $1) is not a valid PortaLinux package"
 		exit 1
 	fi
+
+	pkg_name=$(basename "$1" | cut -d. -f1)
+
+	if [ ! -f "$1" ]; then
+		echo "Error: Package $pkg_name does not exist"
+		exit 2
+	elif [ -f "$pldb_path/$pkg_name" ]; then
+		echo "Error: Package $pkg_name has already been installed"
+		exit 3
+	fi
+
 	untar_dir=$(mktemp -d /tmp/plinstall-XXXXXX)
 	absolute_pkg_path=$(realpath "$1")
-	pkg_name=$(basename "$1" | rev | cut -d. -f2 | rev)
 
 	cd $untar_dir
 	printf "Unpacking package $(basename $absolute_pkg_path)..."
@@ -35,7 +46,6 @@ install_pkg(){
 		./post-install.sh $untar_dir
 	fi
 
-	echo "$pkg_name"
 	echo "$file_list" > /var/pl-install/$pkg_name.pldb
 	if [ -f ./uninstall.sh ]; then
 		mv ./uninstall.sh "/var/pl-install/$pkg_name-uninstall.sh"
@@ -43,6 +53,7 @@ install_pkg(){
 }
 
 uninstall_pkg(){
+	cd /
 	if [ ! -f "/var/pl-install/$1.pldb" ]; then
 		echo "Error: Package $1 is not installed"
 		exit 2
@@ -54,8 +65,8 @@ uninstall_pkg(){
 	else
 		printf "Removing files..."
 		for i in $(cat /var/pl-install/$1.pldb); do
+			rm "$(realpath $i)"
 			printf "."
-			rm "$i"
 		done
 		echo "Done."
 	fi
