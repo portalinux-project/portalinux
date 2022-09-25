@@ -9,7 +9,7 @@ while also being as secure and compatible with as many components as it can.
 - RAM: 128* MiB
 - HDD: 12** MiB
 
-** * These metrics may vary depending on the kernel config and the C library used**
+**These metrics may vary depending on the kernel config and the C library used**
 
 # Build Requirements
 
