@@ -12,6 +12,7 @@ toolchain_prefix="$(echo ~/cross)"
 threads=$(nproc)
 
 kernel_url="http://kernel.org/pub/linux/kernel/v5.x/linux-5.19.8.tar.xz"
+kdefconfig="defconfig"
 compile_target="i486-pocket-linux-gnu"
 linux_arch="i386"
 specific_arch="i486"
@@ -499,10 +500,10 @@ compile_kernel(){
 		exit 4
 	fi
 
-	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads bzImage" "$logfile"
-	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads modules" "$logfile"
+	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads" "$logfile"
 	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch INSTALL_MOD_PATH=$output_rootfs modules_install" "$logfile"
-	cp arch/$linux_arch/boot/bzImage "$output"
+	cp arch/$linux_arch/boot/dts/*.dts 2>/dev/null || true
+	cp arch/$linux_arch/boot/*Image "$output"
 }
 
 rootfs_cleanup(){
@@ -637,6 +638,14 @@ while [ $# -gt 0 ]; do
 					_get_pkg_names
 					printf "$linux_dir\n$binutils_dir\n$gcc_dir\n$gmp_dir\n$mpc_dir\n$mpfr_dir\n$musl_dir\n$gnu_dir\n$busybox_dir\n$bash_dir\n"
 					;;
+				defconfig)
+					if [ "$3" != "" ]; then
+						kdefconfig=$4
+					fi
+
+					echo "Default config is $kdefconfig"
+					;;
+
 			esac
 			exit 0
 			;;
@@ -700,8 +709,12 @@ while [ $# -gt 0 ]; do
 			_get_pkg_names
 			cd "$linux_dir"
 
+			if [ "$3" != "" ]; then
+				kdefconfig=$3
+			fi
+
 			if [ ! -f .config ]; then
-				make ARCH=$linux_arch defconfig
+				make ARCH=$linux_arch $kdefconfig
 			fi
 
 			make ARCH=$linux_arch menuconfig
