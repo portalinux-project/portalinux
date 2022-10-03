@@ -179,6 +179,8 @@ _parse_platform(){
 }
 
 compile_toolchain(){
+	local extra_flags=""
+
 	# binutils
 	if [ ! -r "$toolchain_prefix/bin/$compile_target-as" ]; then
 		mkdir -p "$binutils_dir/build"
@@ -197,7 +199,6 @@ compile_toolchain(){
 
 	# gcc c/c++ compilers
 	if [ ! -r "$toolchain_prefix/bin/$compile_target-gcc" ]; then
-		local extra_flags=""
 		if [ ! -f "$gcc_dir/mpfr" ]; then
 			set +e
 			ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null
@@ -258,12 +259,11 @@ compile_toolchain(){
 
 	# libgcc (libgcc-static for musl)
 	if [ ! -r "$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a" ]; then
-		local extra_flag=""
 		cd "$gcc_dir/build"
 		printf "Compiling libgcc"
 		if [ "$dist" = "musl" ]; then
 			printf "%s" "-static..."
-			extra_flag="enable_shared=no"
+			extra_flags="enable_shared=no"
 		else
 			printf "..."
 			touch "$toolchain_prefix/$compile_target/include/gnu/stubs.h"
@@ -271,7 +271,7 @@ compile_toolchain(){
 			touch "$toolchain_prefix/$compile_target/include/gnu/stubs-64.h"
 			$compile_target-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o "$toolchain_prefix/$compile_target/lib/libc.so"
 		fi
-		script -qeac "make -j$threads $extra_flag all-target-libgcc 2>&1" "$logfile" >/dev/null
+		script -qeac "make -j$threads $extra_flags all-target-libgcc 2>&1" "$logfile" >/dev/null
 		printf "Done.\nInstalling libgcc..."
 		script -qeac "make install-strip-target-libgcc 2>&1" "$logfile" >/dev/null
 		echo "Done."
@@ -324,6 +324,9 @@ compile_rootfs(){
 		echo "Error: You do not have the compiler for system $compile_target installed. Please run $0 --build toolchain and try again"
 		exit 1
 	fi
+	local common_flags="--with-sysroot=/ --host=$compile_target --datarootdir=/opt/share --includedir=/opt/include"
+	local included_comp="--prefix=/usr $common_flags"
+	local main_comp= "$included_comp --disable-multilib"
 
 	printf "Creating rootfs structure..."
 	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin root mnt home tmp; do
@@ -333,18 +336,17 @@ compile_rootfs(){
 	echo "Done."
 
 	if [ ! -r "$output_rootfs/usr/lib/libc.a" ]; then
-		local common_flags="--prefix=/usr --with-sysroot=/ --disable-multilib --host=$compile_target --datarootdir=/opt/share --includedir=/opt/include"
 		if [ "$dist" = "musl" ]; then
 			cd "$musl_dir"
 			printf "Configuring musl..."
-			script -qeac "./configure $common_flags 2>&1" "$logfile" >/dev/null
+			script -qeac "./configure $main_comp 2>&1" "$logfile" >/dev/null
 			printf "Done.\nCompiling musl..."
 		else
 			mkdir -p "$gnu_dir/build"
 			cd "$gnu_dir/build"
 			if [ ! -r "$gnu_dir/build/Makefile" ]; then
 				printf "Configuring glibc..."
-				script -qeac "../configure $common_flags libc_cv_forced_unwind=yes CFLAGS='-s -O2' CXXFLAGS='-s -O2' 2>&1" "$logfile" >/dev/null
+				script -qeac "../configure $main_comp libc_cv_forced_unwind=yes CFLAGS='-s -O2' CXXFLAGS='-s -O2' 2>&1" "$logfile" >/dev/null
 				echo "Done."
 			fi
 			printf "Compiling glibc..."
@@ -383,12 +385,19 @@ compile_rootfs(){
 		cd "$gcc_dir/build"
 
 		printf "Configuring GCC..."
-		script -qeac "../configure --prefix=/usr --with-sysroot=/ --disable-multilib --disable-bootstrap --host=$compile_target --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include $extra_flag 2>&1" "$logfile" >/dev/null
+		script -qeac "../configure $main_comp --disable-bootstrap --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include $extra_flag 2>&1" "$logfile" >/dev/null
 		printf "Done.\nCompiling GCC..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
+		printf "Done.\nInstalling libgcc..."
+		script -qeac "make install-strip-target-libgcc 2>&1" "$logfile" >/dev/null
 		printf "Done.\nInstalling libstdc++..."
 		script -qeac "make install-strip-target-libstdc++-v3 DESTDIR=$output_rootfs 2>&1" "$logfile" >/dev/null
 		echo "Done."
+		if []; then
+			printf "Installing libsanitizer..."
+			script -qeac "make install-strip-target-libsanitizer 2>&1" "$logfile"
+			echo "Done."
+		fi
 
 		rm "$toolchain_prefix/bin/cc" -f
 		rm "$toolchain_prefix/bin/c++" -f
@@ -415,7 +424,7 @@ compile_rootfs(){
 		mkdir -p "$bash_dir/build"
 		cd "$bash_dir/build"
 		printf "Configuring GNU Bash..."
-		script -qeac "../configure --host=$compile_target --prefix=/usr --includedir=/opt/include --datarootdir=/opt/share 2>&1" "$logfile" >/dev/null
+		script -qeac "../configure $included_comp 2>&1" "$logfile" >/dev/null
 		printf "Done.\nCompiling GNU Bash..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nInstalling GNU Bash..."
@@ -436,6 +445,13 @@ compile_rootfs(){
 		chmod 777 "$output_rootfs/etc/init.d/rcS"
 		echo "Done."
 	fi
+
+	if [ ! -r "$output_rootfs/usr/bin/pl-install" ]; then
+		printf "Installing PortaLinux Package Installer..."
+		cp "$plfiles/pl-install" "$output_rootfs/usr/bin"
+		chmod 777 "$output_rootfs/usr/bin/pl-install"
+		echo "Done."
+	fi
 }
 
 compile_devrfs(){
@@ -449,17 +465,17 @@ compile_devrfs(){
 		cd "$linux_dir"
 
 		printf "Installing Linux headers..."
-		script -qeac "make ARCH=$(get_linuxarch) INSTALL_HDR_PATH=$output_rootfs/opt headers_install 2>&1" >/dev/null
+		script -qeac "make ARCH=$linux_arch INSTALL_HDR_PATH=$output_rootfs/opt headers_install 2>&1" >/dev/null
 		echo "Done."
 		cd ..
 	fi
 
 	if [ ! -r "$output_rootfs/opt/bin/as" ]; then
-		cd binutils-2.36
-		mkdir build
-		cd build
+		mkdir -p "$binutils_dir/build"
+		cd "$binutils_dir/build"
 		printf "Configuring Binutils..."
-		script -qeac "../configure --prefix=/usr --bindir=/opt/bin --datarootdir=/opt/share --with-sysroot=/ --with-native-system-header-dir=/opt/include --disable-multilib --host=$compile_target 2>&1" >/dev/null
+#		script -qeac "../configure --prefix=/usr --bindir=/opt/bin --datarootdir=/opt/share --with-sysroot=/ --with-native-system-header-dir=/opt/include --disable-multilib --host=$compile_target 2>&1" >/dev/null
+		script -qeac "../configure --prefix=/opt --with-sysroot=/ --with-build-sysroot=$output_rootfs --with-native-system-header-dir=/opt/include --disable-multilib --host=$compile_target 2>&1" >/dev/null
 		printf "Done.\nCompiling Binutils..."
 		script -qeac "make -j$threads 2>&1" >/dev/null
 		printf "Done.\nInstalling Binutils"
@@ -472,24 +488,22 @@ compile_devrfs(){
 
 		printf "Installing GCC C/C++ Compilers..."
 		script -qeac "make install-strip DESTDIR=$output_rootfs 2>&1" >/dev/null
-		printf "Done.\nInstalling libgcc..."
-		script -qeac "make install-strip-target-libgcc DESTDIR=$output_rootfs 2>&1" "$logfile" >/dev/null
 		echo "Done"
 		cd ../..
 	fi
 
-	if [ ! -r "$output_rootfs/usr/bin/make" ]; then
-		cd make-4.3
-		mkdir build
-		cd build
-		printf "Configuring Make..."
-		script -qeac "../configure --prefix=/opt --host=$compile_target 2>&1" >/dev/null
-		printf "Done.\nCompiling Make..."
-		script -qeac "make -j$threads 2>&1" >/dev/null
-		printf "Done.\nInstalling Make..."
-		script -qeac "make install-strip DESTDIR=$output_rootfs 2>&1" >/dev/null
-		echo "Done."
-	fi
+#	if [ ! -r "$output_rootfs/usr/bin/make" ]; then
+#		cd make-4.3
+#		mkdir build
+#		cd build
+#		printf "Configuring Make..."
+#		script -qeac "../configure --prefix=/opt --host=$compile_target 2>&1" >/dev/null
+#		printf "Done.\nCompiling Make..."
+#		script -qeac "make -j$threads 2>&1" >/dev/null
+#		printf "Done.\nInstalling Make..."
+#		script -qeac "make install-strip DESTDIR=$output_rootfs 2>&1" >/dev/null
+#		echo "Done."
+#	fi
 }
 
 compile_kernel(){
@@ -540,7 +554,7 @@ create_boot_image(){
 	fi
 }
 
-echo "PortaLinux Build System v0.07"
+echo "PortaLinux Build System v0.08"
 printf "(c) 2022 pocketlinux32 & raisinware, Under GPLv2+\n\n"
 
 if [ $# -eq 0 ]; then
