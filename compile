@@ -19,6 +19,7 @@ specific_arch="i486"
 arch="i486"
 abi=""
 dist="gnu"
+enable_cxx=0
 
 linux_dir=""
 binutils_dir=""
@@ -47,28 +48,29 @@ _get_pkg_names(){
 	mpc_dir="$(realpath $(echo $dirlist | grep 'mpc.[0-9,a-z,A-Z,\.]*' -o))"
 	mpfr_dir="$(realpath $(echo $dirlist | grep 'mpfr.[0-9,a-z,A-Z,\.]*' -o))"
 	busybox_dir="$(realpath $(echo $dirlist | grep 'busybox.[0-9,a-z,A-Z,\.]*' -o))"
+	bash_dir="$(realpath $(echo $dirlist | grep 'bash.[0-9,a-z,A-Z,\.]*' -o))"
+	make_dir="$(realpath $(echo $dirlist | grep 'make.[0-9,a-z,A-Z,\.]*' -o))"
 
 	if [ "$dist" = "musl" ]; then
 		musl_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
 	else
 		gnu_dir="$(realpath $(echo $dirlist | grep 'glibc.[0-9,a-z,A-Z,\.]*' -o))"
-		bash_dir="$(realpath $(echo $dirlist | grep 'bash.[0-9,a-z,A-Z,\.]*' -o))"
 	fi
 }
 
 _get_deps(){
 	local URL="$kernel_url http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
-	local PKG="binutils/binutils-2.37.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz"
+	local PKG="binutils/binutils-2.37.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz bash/bash-5.1.tar.gz make/make-4.3.tar.gz"
 
 	if [ "$dist" = "musl" ]; then
 		URL="$URL https://musl.libc.org/releases/musl-1.2.3.tar.gz"
 	else
-		PKG="$PKG libc/glibc-2.31.tar.gz bash/bash-5.1.tar.gz"
+		PKG="$PKG libc/glibc-2.31.tar.gz"
 	fi
 
 	if [ "$skew" = "experimental" ]; then
 		URl="$URL https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2 https://github.com/ghaerr/microwindows/archive/refs/heads/master.tar.gz"
-		PKG="$PKG nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz bison/bison-3.7.6.tar.gz make/make-4.3.tar.gz"
+		PKG="$PKG nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz bison/bison-3.7.6.tar.gz"
 	fi
 
 	for i in $PKG; do
@@ -326,7 +328,7 @@ compile_rootfs(){
 	fi
 	local common_flags="--with-sysroot=/ --host=$compile_target --datarootdir=/opt/share --includedir=/opt/include"
 	local included_comp="--prefix=/usr $common_flags"
-	local main_comp= "$included_comp --disable-multilib"
+	local main_comp="$included_comp --disable-multilib"
 
 	printf "Creating rootfs structure..."
 	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin root mnt home tmp; do
@@ -360,48 +362,10 @@ compile_rootfs(){
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done\nInstalling libc..."
 		script -qeac "make DESTDIR=$output_rootfs install 2>&1" "$logfile" >/dev/null
+		printf "Done.\nPackaging libc headers..."
+		mkdir -p "$output/$dist-libc-headers/files/opt"
+		mv "$output_rootfs/opt/include" "$output/$dist-libc-headers/files/opt"
 		echo "Done."
-		cd "$build"
-	fi
-
-	if [ ! -r "$output_rootfs/usr/lib/libstdc++.a" ]; then
-		local extra_flag=""
-		set +e
-		if [ ! -f "$gcc_dir/mpfr" ]; then
-			ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null
-			ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null
-			ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null
-		fi
-
-		if [ "$dist" = "musl" ]; then
-			extra_flag="--disable-libsanitizer"
-		fi
-
-		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null
-		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null
-		set -e
-
-		mkdir -p "$gcc_dir/build"
-		cd "$gcc_dir/build"
-
-		printf "Configuring GCC..."
-		script -qeac "../configure $main_comp --disable-bootstrap --disable-libstdcxx-debug --enable-languages=c,c++ --with-build-sysroot=$output_rootfs --libexecdir=/opt/libexec --bindir=/opt/bin --includedir=/opt/include --with-gxx-include-dir=/opt/include/c++/10.3.0 --datarootdir=/opt/share --with-native-system-header-dir=/opt/include $extra_flag 2>&1" "$logfile" >/dev/null
-		printf "Done.\nCompiling GCC..."
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done.\nInstalling libgcc..."
-		script -qeac "make install-strip-target-libgcc 2>&1" "$logfile" >/dev/null
-		printf "Done.\nInstalling libstdc++..."
-		script -qeac "make install-strip-target-libstdc++-v3 DESTDIR=$output_rootfs 2>&1" "$logfile" >/dev/null
-		echo "Done."
-		if []; then
-			printf "Installing libsanitizer..."
-			script -qeac "make install-strip-target-libsanitizer 2>&1" "$logfile"
-			echo "Done."
-		fi
-
-		rm "$toolchain_prefix/bin/cc" -f
-		rm "$toolchain_prefix/bin/c++" -f
-		cd ../..
 	fi
 
 	if [ ! -r "$output_rootfs/bin/busybox" ]; then
@@ -420,18 +384,6 @@ compile_rootfs(){
 		echo "Done."
 	fi
 
-	if [ "$dist" = "gnu" ] && [ ! -r "$output_rootfs/bin/bash" ]; then
-		mkdir -p "$bash_dir/build"
-		cd "$bash_dir/build"
-		printf "Configuring GNU Bash..."
-		script -qeac "../configure $included_comp 2>&1" "$logfile" >/dev/null
-		printf "Done.\nCompiling GNU Bash..."
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done.\nInstalling GNU Bash..."
-		script -qeac "make install DESTDIR=$output_rootfs 2>&1" "$logfile" >/dev/null
-		echo "Done."
-	fi
-
 	if [ ! -r "$output_rootfs/init" ]; then
 		printf "Installing init script..."
 		cp "$plfiles/initramfs-init" "$output_rootfs/init"
@@ -443,6 +395,9 @@ compile_rootfs(){
 		printf "Installing etc files..."
 		cp -r "$plfiles/etc" "$output_rootfs"
 		chmod 777 "$output_rootfs/etc/init.d/rcS"
+		if [ "$dist" = "musl" ]; then
+			mv "$output_rootfs/etc/ld.so.conf" "$output_rootfs/etc/ld-musl-$linux_arch.path"
+		fi
 		echo "Done."
 	fi
 
@@ -454,56 +409,123 @@ compile_rootfs(){
 	fi
 }
 
-compile_devrfs(){
+compile_extra_pkgs(){
 	echo "Warning: Currently Unsupported!"
 
 	if [ ! -r "$output_rootfs" ]; then
 		compile_rootfs
 	fi
+	local common_flags="--prefix=/opt --host=$compile_target"
+	local dev_stuff="$common_flags --disable-multilib --with-sysroot=/ --with-build-sysroot=$output_rootfs --with-native-system-header-dir=/opt/include"
 
-	if [ ! -r "$output_rootfs/opt/include/linux" ]; then
+	printf "Creating build folders..."
+	for i in libstdc++ gcc linux-headers binutils bash make; do
+		mkdir -p "$output/$i/files"
+		printf "."
+	done
+	echo "Done"
+
+	if [ ! -d "$output/libstdc++/files/opt" ]; then
+		set +e
+		if [ ! -f "$gcc_dir/mpfr" ]; then
+			ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null
+			ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null
+			ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null
+		fi
+
+		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null
+		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null
+		set -e
+
+		mkdir -p "$gcc_dir/build"
+		cd "$gcc_dir/build"
+
+		if [ ! -r "$gcc_dir/build/Makefile" ]; then
+			printf "Configuring GCC..."
+			script -qeac "../configure $dev_stuff --disable-bootstrap --disable-libstdcxx-debug --enable-languages=c,c++ --disable-libsanitizer 2>&1" "$logfile" >/dev/null
+			echo "Done."
+		fi
+		printf"Compiling GCC..."
+		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
+		printf "Done.\nPackaging GCC C/C++ Compilers..."
+		script -qeac "make install-strip-gcc DESTDIR=$output/gcc/files 2>&1" "logfile" >/dev/null
+		printf "Done.\nPackaging libgcc..."
+		script -qeac "make install-strip-target-libgcc DESTDIR=$output/libstdc++/files 2>&1" "$logfile" >/dev/null
+		printf "Done.\nPackaging libstdc++..."
+		script -qeac "make install-strip-target-libstdc++-v3 DESTDIR=$output/libstdc++/files 2>&1" "$logfile" >/dev/null
+		echo "Done."
+		if [ "$dist" = "gnu" ]; then
+			printf "Packaging libsanitizer..."
+			script -qeac "make install-strip-target-ligsanitizer DESTDIR=$output/libsanitizer/files 2>&1" "$logfile" >/dev/null
+			echo "Done."
+		fi
+
+		rm "$toolchain_prefix/bin/cc" -f
+		rm "$toolchain_prefix/bin/c++" -f
+		cd ../..
+	fi
+
+	if [ ! -d "$output/linux-headers/files/opt" ]; then
 		cd "$linux_dir"
 
-		printf "Installing Linux headers..."
-		script -qeac "make ARCH=$linux_arch INSTALL_HDR_PATH=$output_rootfs/opt headers_install 2>&1" >/dev/null
+		printf "Packaging Linux headers..."
+		script -qeac "make ARCH=$linux_arch INSTALL_HDR_PATH=$output/linux-headers/files/opt headers_install 2>&1" >/dev/null
 		echo "Done."
 		cd ..
 	fi
 
-	if [ ! -r "$output_rootfs/opt/bin/as" ]; then
+	if [ ! -r "$output/binutils/files/opt" ]; then
 		mkdir -p "$binutils_dir/build"
 		cd "$binutils_dir/build"
-		printf "Configuring Binutils..."
-#		script -qeac "../configure --prefix=/usr --bindir=/opt/bin --datarootdir=/opt/share --with-sysroot=/ --with-native-system-header-dir=/opt/include --disable-multilib --host=$compile_target 2>&1" >/dev/null
-		script -qeac "../configure --prefix=/opt --with-sysroot=/ --with-build-sysroot=$output_rootfs --with-native-system-header-dir=/opt/include --disable-multilib --host=$compile_target 2>&1" >/dev/null
+
+		if [ ! -r "$binutils_dir/build/Makefile" ]; then
+			printf "Configuring Binutils..."
+			script -qeac "../configure $dev_stuff 2>&1" >/dev/null
+		fi
 		printf "Done.\nCompiling Binutils..."
 		script -qeac "make -j$threads 2>&1" >/dev/null
-		printf "Done.\nInstalling Binutils"
-		script -qeac "make install-strip DESTDIR=$output_rootfs 2>&1" >/dev/null
+		printf "Done.\nPackaging Binutils"
+		script -qeac "make install-strip DESTDIR=$output/binutils/files 2>&1" >/dev/null
+		echo "Done."
 		cd ../..
 	fi
 
-	if [ ! -r "$output_rootfs/opt/bin/g++" ]; then
-		cd "$gcc_dir/build"
+	if [ ! -r "$output/bash/files/opt" ]; then
+		mkdir -p "$bash_dir/build"
+		cd "$bash_dir/build"
 
-		printf "Installing GCC C/C++ Compilers..."
-		script -qeac "make install-strip DESTDIR=$output_rootfs 2>&1" >/dev/null
-		echo "Done"
-		cd ../..
+		if [ ! -r "$bash_dir/build/Makefile" ]; then
+			printf "Configuring GNU Bash..."
+			script -qeac "../configure $common_flags 2>&1" "$logfile" >/dev/null
+		fi
+		printf "Done.\nCompiling GNU Bash..."
+		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
+		printf "Done.\nPackaging GNU Bash..."
+		script -qeac "make install DESTDIR=$output/bash/files 2>&1" "$logfile" >/dev/null
+		echo "Done."
 	fi
 
-#	if [ ! -r "$output_rootfs/usr/bin/make" ]; then
-#		cd make-4.3
-#		mkdir build
-#		cd build
-#		printf "Configuring Make..."
-#		script -qeac "../configure --prefix=/opt --host=$compile_target 2>&1" >/dev/null
-#		printf "Done.\nCompiling Make..."
-#		script -qeac "make -j$threads 2>&1" >/dev/null
-#		printf "Done.\nInstalling Make..."
-#		script -qeac "make install-strip DESTDIR=$output_rootfs 2>&1" >/dev/null
-#		echo "Done."
-#	fi
+	if [ ! -r "$output/make/files/opt/" ]; then
+		mkdir -p "$make_dir/build"
+		cd "$make_dir/build"
+		printf "Configuring Make..."
+		script -qeac "../configure $common_flags 2>&1" >/dev/null
+		printf "Done.\nCompiling Make..."
+		script -qeac "make -j$threads 2>&1" >/dev/null
+		printf "Done.\nPackaging Make..."
+		script -qeac "make install-strip DESTDIR=$output/make/files 2>&1" >/dev/null
+		echo "Done."
+	fi
+
+	printf "Creating packages..."
+	for i in libstdc++ gcc linux-headers binutils bash make; do
+		cd "$output/$i"
+		tar -cf ../$i.tar *
+		xz ../$i.tar
+		mv ../$i.tar.xz ../$i.plpak
+		printf "."
+	done
+	echo "Done."
 }
 
 compile_kernel(){
@@ -637,6 +659,17 @@ while [ $# -gt 0 ]; do
 			toolchain_prefix="$2"
 			shift
 			;;
+		"--enable-feature")
+			case $2 in
+				cxx)
+					enable_cxx=1
+					;;
+				*)
+					printf "Error: Unknown feature"
+					exit 7
+					;;
+			esac
+			;;
 		"--test")
 			set +e
 			case $2 in
@@ -743,7 +776,7 @@ while [ $# -gt 0 ]; do
 			echo "--hard-clean			Removes any directories created by --init"
 			echo "--threads [n]			Sets the amount of threads to be used in compilation"
 			echo "--config-kernel			Configures the Linux kernel"
-			echo "--build [action]		Compiles toolchain, rootfs, devrfs, kernel or boot-img. The previous list of words are the supported operations."
+			echo "--build [action]		Compiles toolchain, rootfs, extra-pkg, kernel or boot-img. The previous list of words are the supported operations."
 			exit 0
 			;;
 		*)
@@ -766,8 +799,8 @@ case $action in
 	rootfs)
 		compile_rootfs
 		;;
-	devrfs)
-		compile_devrfs
+	extra-pkgs)
+		compile_extra_pkgs
 		;;
 	kernel)
 		compile_kernel

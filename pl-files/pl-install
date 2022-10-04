@@ -4,8 +4,10 @@ pldb_path="/var/pl-install"
 
 #verify_pkg(){}
 
+#compile_pkg(){}
+
 install_pkg(){
-	if [ "$(echo $(basename $1) | grep -xe '[A-Z,a-z,0-9]*.plpak')" = "" ]; then
+	if [ "$(echo $(basename $1) | rev | cut -d. -f1 | rev)" != "plpak" ]; then
 		echo "Error: File $(basename $1) is not a valid PortaLinux package"
 		exit 1
 	fi
@@ -34,19 +36,19 @@ install_pkg(){
 
 	if [ -f ./install.sh ]; then
 		echo "Executing install script..."
-		./install.sh $untar_dir
+		. ./install.sh $untar_dir
 	else
 		printf "Installing files..."
 		cp -r ./files/* /
 		echo "Done."
+		echo "$file_list" > /var/pl-install/$pkg_name.pldb
 	fi
 
 	if [ -f ./post-install.sh ]; then
 		echo "Executing post-install script..."
-		./post-install.sh $untar_dir
+		. ./post-install.sh $untar_dir
 	fi
 
-	echo "$file_list" > /var/pl-install/$pkg_name.pldb
 	if [ -f ./uninstall.sh ]; then
 		mv ./uninstall.sh "/var/pl-install/$pkg_name-uninstall.sh"
 	fi
@@ -61,7 +63,7 @@ uninstall_pkg(){
 
 	if [ -f "/var/pl-install/$1-uninstall.sh" ]; then
 		echo "Running uninstall script..."
-		/var/pl-install/$1-uninstall.sh
+		. /var/pl-install/$1-uninstall.sh
 	else
 		printf "Removing files..."
 		for i in $(cat /var/pl-install/$1.pldb); do
@@ -72,8 +74,13 @@ uninstall_pkg(){
 	fi
 }
 
-echo "PortaLinux Package Installer v0.01"
+echo "PortaLinux Package Installer v0.02"
 printf "(c) 2022 pocketlinux32, Under GPLv2+\n\n"
+
+if [ $(id -u) -ne 0 ]; then
+	echo "Error: You're not root"
+	exit 4
+fi
 
 case $1 in
 	"--install" | "install")
