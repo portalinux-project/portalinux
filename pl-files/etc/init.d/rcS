@@ -118,7 +118,7 @@ if [ -d /usr/share/preinstall ]; then
 	echo "Preinstalled packages detected. Installing..."
 	for i in $(ls /usr/share/preinstall); do
 		printf "	$i..."
-		pl-install --install $i >/dev/null
+		pl-install install $i >/dev/null
 		echo "Done."
 	done
 fi

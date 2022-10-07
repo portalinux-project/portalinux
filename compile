@@ -9,9 +9,11 @@ output="$pldir/output"
 output_rootfs="$output/rootfs"
 output_initramfs="$output/initramfs"
 toolchain_prefix="$(echo ~/cross)"
+compression="bzip2"
 threads=$(nproc)
 
 kernel_url="http://kernel.org/pub/linux/kernel/v5.x/linux-5.19.8.tar.xz"
+
 kdefconfig="defconfig"
 compile_target="i486-pocket-linux-gnu"
 linux_arch="i386"
@@ -19,7 +21,6 @@ specific_arch="i486"
 arch="i486"
 abi=""
 dist="gnu"
-enable_cxx=0
 
 linux_dir=""
 binutils_dir=""
@@ -32,7 +33,6 @@ gnu_dir=""
 busybox_dir=""
 bash_dir=""
 make_dir=""
-
 
 start_time=""
 end_time=""
@@ -58,6 +58,22 @@ _get_pkg_names(){
 	fi
 }
 
+_generate_stuff(){
+	case $1 in
+		"musl")
+			if [ "$arch" != "aarch64" ]; then
+				echo $linux_arch
+			else
+				echo "aarch64"
+			fi
+			;;
+		"pkg_ver")
+			pkg_dir="$(ls $build | grep '$2.[0-9,a-z,A-Z,\.]*' -o))"
+			echo "$pkg_dir" | rev | cut -d- -f1 | rev
+			;;
+	esac
+}
+
 _get_deps(){
 	local URL="$kernel_url http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
 	local PKG="binutils/binutils-2.37.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz bash/bash-5.1.tar.gz make/make-4.3.tar.gz"
@@ -68,8 +84,8 @@ _get_deps(){
 		PKG="$PKG libc/glibc-2.31.tar.gz"
 	fi
 
-	if [ "$skew" = "experimental" ]; then
-		URl="$URL https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2 https://github.com/ghaerr/microwindows/archive/refs/heads/master.tar.gz"
+	if [ "$2" = "experimental" ]; then
+		URl="$URL https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
 		PKG="$PKG nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz bison/bison-3.7.6.tar.gz"
 	fi
 
@@ -83,7 +99,7 @@ _get_deps(){
 	for i in $URL; do
 		if [ ! -f "$(basename $i)" ]; then
 			printf "Downloading $(basename $i)..."
-			wget -q --show-progress --progress=dot:giga "$i" $2
+			wget -q --show-progress --progress=dot:giga "$i" $1
 			local retVar=$?
 			if [ $retVar -ne 0 ]; then
 				echo "Error."
@@ -180,8 +196,19 @@ _parse_platform(){
 	esac
 }
 
+_rootfs_cleanup(){
+	printf "Deleting unnecessary files..."
+	for i in $(find "$output_rootfs/opt" -type f); do
+		rm -f "$i"
+		printf "."
+	done
+	echo "Done."
+}
+
 compile_toolchain(){
 	local extra_flags=""
+	local common_flags="$compile_target --disable-multilib"
+	local gnu_flags="$common_flags --with-arch=$specific_arch --disable-werror"
 
 	# binutils
 	if [ ! -r "$toolchain_prefix/bin/$compile_target-as" ]; then
@@ -189,7 +216,7 @@ compile_toolchain(){
 		cd "$binutils_dir/build"
 		if [ ! -r "$binutils/build/Makefile" ]; then
 			printf "Configuring Binutils..."
-			script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --with-cpu=$specific_arch --disable-werror 2>&1" "$logfile" >/dev/null
+			script -qeac "../configure --prefix=$toolchain_prefix --target=$gnu_flags 2>&1" "$logfile" >/dev/null
 			echo "Done."
 		fi
 		printf "Compiling Binutils..."
@@ -217,14 +244,14 @@ compile_toolchain(){
 		cd "$gcc_dir/build"
 		if [ ! -r "$gcc_dir/build/Makefile" ]; then
 			printf "Configuring GCC..."
-			script -qeac "../configure --prefix=$toolchain_prefix --target=$compile_target --disable-multilib --enable-languages=c,c++ --with-cpu=$specific_arch --disable-libstdcxx-debug --disable-bootstrap $extra_flags" "$logfile" >/dev/null
+			script -qeac "../configure --prefix=$toolchain_prefix --target=$gnu_flags --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap $extra_flags" "$logfile" >/dev/null
 			echo "Done."
 		fi
 		printf "Compiling GCC C/C++ compilers..."
 		script -qeac "make -j$threads all-gcc 2>&1" "$logfile" >/dev/null
 		printf "Done\nInstalling GCC C/C++ compilers..."
 		script -qeac "make install-strip-gcc 2>&1" "$logfile" >/dev/null
-		echo "Done"
+		echo "Done."
 	fi
 
 	# linux headers
@@ -247,7 +274,7 @@ compile_toolchain(){
 			cd "$gnu_dir/build"
 			if [ ! -r "$gnu_dir/build/Makefile" ]; then
 				printf "Configuring glibc..."
-				script -qeac "../configure --prefix=$toolchain_prefix/$compile_target --host=$compile_target --disable-multilib --with-headers=$toolchain_prefix/$compile_target/include libc_cv_forced_unwind=yes 2>&1" "$logfile" >/dev/null
+				script -qeac "../configure --prefix=$toolchain_prefix/$compile_target --host=$gnu_flags --with-headers=$toolchain_prefix/$compile_target/include libc_cv_forced_unwind=yes 2>&1" "$logfile" >/dev/null
 				echo "Done."
 			fi
 			printf "Installing glibc headers..."
@@ -285,7 +312,7 @@ compile_toolchain(){
 		if [ "$dist" = "musl" ]; then
 			cd "$musl_dir"
 			printf "Configuring musl..."
-			script -qeac "ARCH=$arch CC=$compile_target-gcc CROSS_COMPILE=$compile_target- LIBCC=$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a ./configure --host=$compile_target --disable-multilib --prefix=~/cross/$compile_target 2>&1" "$logfile" >/dev/null
+			script -qeac "ARCH=$arch CC=$compile_target-gcc CROSS_COMPILE=$compile_target- LIBCC=$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a ./configure --prefix=$toolchain_prefix/$compile_target --host=$common_flags 2>&1" "$logfile" >/dev/null
 			printf "Done.\nCompiling musl..."
 		else
 			cd "$gnu_dir/build"
@@ -364,7 +391,7 @@ compile_rootfs(){
 		script -qeac "make DESTDIR=$output_rootfs install 2>&1" "$logfile" >/dev/null
 		printf "Done.\nPackaging libc headers..."
 		mkdir -p "$output/$dist-libc-headers/files/opt"
-		mv "$output_rootfs/opt/include" "$output/$dist-libc-headers/files/opt"
+		cp -r "$output_rootfs/opt/include" "$output/$dist-libc-headers/files/opt"
 		echo "Done."
 	fi
 
@@ -396,22 +423,45 @@ compile_rootfs(){
 		cp -r "$plfiles/etc" "$output_rootfs"
 		chmod 777 "$output_rootfs/etc/init.d/rcS"
 		if [ "$dist" = "musl" ]; then
-			mv "$output_rootfs/etc/ld.so.conf" "$output_rootfs/etc/ld-musl-$linux_arch.path"
+			mv "$output_rootfs/etc/ld.so.conf" "$output_rootfs/etc/ld-musl-$(_generate_stuff musl).path"
 		fi
 		echo "Done."
 	fi
 
 	if [ ! -r "$output_rootfs/usr/bin/pl-install" ]; then
 		printf "Installing PortaLinux Package Installer..."
-		cp "$plfiles/pl-install" "$output_rootfs/usr/bin"
+		cp "$plfiles/pl-utils/pl-install" "$output_rootfs/usr/bin"
 		chmod 777 "$output_rootfs/usr/bin/pl-install"
 		echo "Done."
 	fi
 }
 
-compile_extra_pkgs(){
-	echo "Warning: Currently Unsupported!"
+create_boot_image(){
+	_rootfs_cleanup
 
+	if [ $(id -u) -ne 0 ]; then
+		echo "Error: You are not root"
+		exit 3
+	fi
+
+	set +e
+	printf "Creating necessary device nodes..."
+	mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null
+	mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null
+	mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null
+	echo "Done."
+	set -e
+
+	if [ "$1" != "no-create-cpio" ]; then
+		printf "Creating initramfs boot file..."
+		cd "$output_rootfs"
+		find . | cpio -H newc -ov > $output/rootfs.cpio 2>/dev/null
+		$compression $output/rootfs.cpio
+		echo "Done"
+	fi
+}
+
+compile_extra_pkgs(){
 	if [ ! -r "$output_rootfs" ]; then
 		compile_rootfs
 	fi
@@ -445,7 +495,7 @@ compile_extra_pkgs(){
 			script -qeac "../configure $dev_stuff --disable-bootstrap --disable-libstdcxx-debug --enable-languages=c,c++ --disable-libsanitizer 2>&1" "$logfile" >/dev/null
 			echo "Done."
 		fi
-		printf"Compiling GCC..."
+		printf "Compiling GCC..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nPackaging GCC C/C++ Compilers..."
 		script -qeac "make install-strip-gcc DESTDIR=$output/gcc/files 2>&1" "logfile" >/dev/null
@@ -481,8 +531,9 @@ compile_extra_pkgs(){
 		if [ ! -r "$binutils_dir/build/Makefile" ]; then
 			printf "Configuring Binutils..."
 			script -qeac "../configure $dev_stuff 2>&1" >/dev/null
+			echo "Done."
 		fi
-		printf "Done.\nCompiling Binutils..."
+		printf "Compiling Binutils..."
 		script -qeac "make -j$threads 2>&1" >/dev/null
 		printf "Done.\nPackaging Binutils"
 		script -qeac "make install-strip DESTDIR=$output/binutils/files 2>&1" >/dev/null
@@ -497,8 +548,9 @@ compile_extra_pkgs(){
 		if [ ! -r "$bash_dir/build/Makefile" ]; then
 			printf "Configuring GNU Bash..."
 			script -qeac "../configure $common_flags 2>&1" "$logfile" >/dev/null
+			echo "Done."
 		fi
-		printf "Done.\nCompiling GNU Bash..."
+		printf "Compiling GNU Bash..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nPackaging GNU Bash..."
 		script -qeac "make install DESTDIR=$output/bash/files 2>&1" "$logfile" >/dev/null
@@ -508,21 +560,33 @@ compile_extra_pkgs(){
 	if [ ! -r "$output/make/files/opt/" ]; then
 		mkdir -p "$make_dir/build"
 		cd "$make_dir/build"
-		printf "Configuring Make..."
-		script -qeac "../configure $common_flags 2>&1" >/dev/null
-		printf "Done.\nCompiling Make..."
+
+		if [ ! -r "$make_dir/build/Makefile" ]; then
+			printf "Configuring Make..."
+			script -qeac "../configure $common_flags 2>&1" >/dev/null
+			echo "Done."
+		fi
+		printf "Compiling Make..."
 		script -qeac "make -j$threads 2>&1" >/dev/null
 		printf "Done.\nPackaging Make..."
 		script -qeac "make install-strip DESTDIR=$output/make/files 2>&1" >/dev/null
 		echo "Done."
 	fi
 
+	_rootfs_cleanup
+
 	printf "Creating packages..."
-	for i in libstdc++ gcc linux-headers binutils bash make; do
+	for i in musl-libc-headers libstdc++ gcc linux-headers binutils bash make; do
 		cd "$output/$i"
-		tar -cf ../$i.tar *
-		xz ../$i.tar
-		mv ../$i.tar.xz ../$i.plpak
+		tar cf files.tar files
+		sha256sum files.tar > files.tar.sha256sum
+		echo "$i" > pkg_info
+		_generate_stuff pkg_ver $i >> pkg_info
+
+		tar cf ../$i.tar files.tar files.tar.sha256sum
+		bzip2 ../$i.tar
+		mv ../$i.tar.bz2 ../$i.plpak
+		rm -rf files
 		printf "."
 	done
 	echo "Done."
@@ -540,40 +604,6 @@ compile_kernel(){
 	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch INSTALL_MOD_PATH=$output_rootfs modules_install" "$logfile"
 	cp arch/$linux_arch/boot/dts/*.dts 2>/dev/null || true
 	cp arch/$linux_arch/boot/*Image "$output"
-}
-
-rootfs_cleanup(){
-	printf "Deleting unnecessary files..."
-	for i in $(find "$output_rootfs/opt" -type f); do
-		rm -f "$i"
-		printf "."
-	done
-	echo "Done."
-}
-
-create_boot_image(){
-	rootfs_cleanup
-
-	if [ $(id -u) -ne 0 ]; then
-		echo "Error: You are not root"
-		exit 3
-	fi
-
-	set +e
-	printf "Creating necessary device nodes..."
-	mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null
-	mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null
-	mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null
-	echo "Done."
-	set -e
-
-	if [ "" = "" ]; then
-		printf "Creating initramfs boot file..."
-		cd "$output_rootfs"
-		find . | cpio -H newc -ov > $output/rootfs.cpio 2>/dev/null
-		xz --check=crc32 $output/rootfs.cpio
-		echo "Done"
-	fi
 }
 
 echo "PortaLinux Build System v0.08"
@@ -594,7 +624,7 @@ while [ $# -gt 0 ]; do
 				echo "Done."
 			fi
 
-			_get_deps $fetch_args
+			_get_deps $2 $3
 			mkdir -p $build
 			cd $pldir/tarballs
 			_decompress_all
@@ -658,17 +688,6 @@ while [ $# -gt 0 ]; do
 		"--toolchain-prefix")
 			toolchain_prefix="$2"
 			shift
-			;;
-		"--enable-feature")
-			case $2 in
-				cxx)
-					enable_cxx=1
-					;;
-				*)
-					printf "Error: Unknown feature"
-					exit 7
-					;;
-			esac
 			;;
 		"--test")
 			set +e
@@ -750,6 +769,9 @@ while [ $# -gt 0 ]; do
 			;;
 		"--build")
 			action=$2
+			if [ "$2" = "boot-img" ] && [ "$3" != "" ]; then
+				compression = "$3"
+			fi
 			shift
 			;;
 		"--config-kernel")
@@ -773,7 +795,7 @@ while [ $# -gt 0 ]; do
 			echo "--target-system [arch-dist]	Specifies the CPU architecture and the C library to be used. Default: i486-gnu"
 			echo "--toolchain-prefix [path]	Sets the target system's toolchain's install directory. Default: ~/cross"
 			echo "--clean [lvl]			Cleans the build directory"
-			echo "--hard-clean			Removes any directories created by --init"
+			echo "--hard-clean [no-rm-tarballs]	Removes any directories created by --init"
 			echo "--threads [n]			Sets the amount of threads to be used in compilation"
 			echo "--config-kernel			Configures the Linux kernel"
 			echo "--build [action]		Compiles toolchain, rootfs, extra-pkg, kernel or boot-img. The previous list of words are the supported operations."

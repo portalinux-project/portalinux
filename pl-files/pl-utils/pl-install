@@ -2,36 +2,47 @@
 set -e
 pldb_path="/var/pl-install"
 
-#verify_pkg(){}
-
-#compile_pkg(){}
-
-install_pkg(){
+verify_pkg(){
 	if [ "$(echo $(basename $1) | rev | cut -d. -f1 | rev)" != "plpak" ]; then
 		echo "Error: File $(basename $1) is not a valid PortaLinux package"
-		exit 1
+		exit 5
 	fi
 
-	pkg_name=$(basename "$1" | cut -d. -f1)
-
 	if [ ! -f "$1" ]; then
-		echo "Error: Package $pkg_name does not exist"
+		echo "Error: Package $(basename $1) does not exist"
 		exit 2
-	elif [ -f "$pldb_path/$pkg_name" ]; then
-		echo "Error: Package $pkg_name has already been installed"
-		exit 3
 	fi
 
 	untar_dir=$(mktemp -d /tmp/plinstall-XXXXXX)
 	absolute_pkg_path=$(realpath "$1")
 
 	cd $untar_dir
-	printf "Unpacking package $(basename $absolute_pkg_path)..."
-	xzcat "$absolute_pkg_path" | tar -xf -
+	printf "Unpacking file $(basename $absolute_pkg_path)..."
+	bzcat "$absolute_pkg_path" | tar -xf -
 	echo "Done."
 
-	cd files
-	file_list=$(find . -type f)
+	pkg_name=$(cat pkg_info | sed '1q;d')
+	pkg_ver=$(cat pkg_info | sed '2q;d')
+
+	if [ -f "$pldb_path/$pkg_name.pldb" ] | [ $(cat "$pldb_path/$pkg_name.pldb" | sed '2q;d') = "$pkg_ver" ]; then
+		echo "Error: Package $pkg_name is already installed"
+		exit 3
+	fi
+
+	set +e
+	printf "Verifying package integrity..."
+	sha256sum files.tar.sha256sum 2>&1 >/dev/null
+	if [ $? ]; then
+		printf "Error!\nError: Package $1 does not match the hash"
+		exit 6
+	fi
+	set -e
+}
+
+install_pkg(){
+	verify_pkg "$1"
+
+	cd $untar_dir/files
 	cd ..
 
 	if [ -f ./install.sh ]; then
@@ -39,9 +50,10 @@ install_pkg(){
 		. ./install.sh $untar_dir
 	else
 		printf "Installing files..."
+		file_list=$(find . -type f)
 		cp -r ./files/* /
 		echo "Done."
-		echo "$file_list" > /var/pl-install/$pkg_name.pldb
+		echo "$file_list" >> $pldb_dir/$pkg_name.pldb
 	fi
 
 	if [ -f ./post-install.sh ]; then
@@ -50,23 +62,23 @@ install_pkg(){
 	fi
 
 	if [ -f ./uninstall.sh ]; then
-		mv ./uninstall.sh "/var/pl-install/$pkg_name-uninstall.sh"
+		mv ./uninstall.sh "$pldb_dir/$pkg_name-uninstall.sh"
 	fi
 }
 
 uninstall_pkg(){
 	cd /
-	if [ ! -f "/var/pl-install/$1.pldb" ]; then
+	if [ ! -f "$pldb_dir/$1.pldb" ]; then
 		echo "Error: Package $1 is not installed"
 		exit 2
 	fi
 
-	if [ -f "/var/pl-install/$1-uninstall.sh" ]; then
+	if [ -f "$pldb_dir/$1-uninstall.sh" ]; then
 		echo "Running uninstall script..."
-		. /var/pl-install/$1-uninstall.sh
+		. $pldb_dir/$1-uninstall.sh
 	else
 		printf "Removing files..."
-		for i in $(cat /var/pl-install/$1.pldb); do
+		for i in $(cat $pldb_dir/$1.pldb); do
 			rm "$(realpath $i)"
 			printf "."
 		done
