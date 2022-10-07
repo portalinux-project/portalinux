@@ -11,7 +11,8 @@ int silent_printf(const char* string){
 }
 
 int verify_pkg(const char* path){
-	const char* pkg_name = 
+	char* pkg_name;
+	char* pkg_ver;
 
 	if(!plFSExists(path)){
 		silent_printf("Error: File %s doesn't exist", path);
