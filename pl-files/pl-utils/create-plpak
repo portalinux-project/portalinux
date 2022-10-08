@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+
+printf "PortaLinux Package Creator v0.01\n\n"
+
+if [ "$3" != "" ]; then
+	cd "$3"
+fi
+
+printf "Packing files"
+tar cf files.tar files
+printf "Done.\nCreating checksum..."
+sha256sum files.tar > files.tar.sha256sum
+printf "Done.\nCreating package metadata..."
+printf "$1\n$2\n" > pkg_info
+echo "Done."
+
+printf "Packing and compressing everything..."
+tar cf ../$1.tar files.tar files.tar.sha256sum pkg_info
+bzip2 ../$1.tar
+mv ../$1.tar.bz2 ../$1.plpak
+echo "Done."

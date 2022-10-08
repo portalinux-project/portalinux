@@ -47,6 +47,8 @@ gnu_dir=""
 busybox_dir=""
 bash_dir=""
 make_dir=""
+nano_dir=""
+ncurses_dir=""
 
 start_time=""
 end_time=""
@@ -64,6 +66,8 @@ _get_pkg_names(){
 	busybox_dir="$(realpath $(echo $dirlist | grep 'busybox.[0-9,a-z,A-Z,\.]*' -o))"
 	bash_dir="$(realpath $(echo $dirlist | grep 'bash.[0-9,a-z,A-Z,\.]*' -o))"
 	make_dir="$(realpath $(echo $dirlist | grep 'make.[0-9,a-z,A-Z,\.]*' -o))"
+	nano_dir="$(realpath $(echo $dirlist | grep 'nano.[0-9,a-z,A-Z,\.]*' -o))"
+	ncurses_dir="$(realpath $(echo $dirlist | grep 'ncurses.[0-9,a-z,A-Z,\.]*' -o))"
 
 	if [ "$dist" = "musl" ]; then
 		musl_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
@@ -102,7 +106,7 @@ _generate_stuff(){
 }
 
 _get_deps(){
-	local URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $busybox_url $binutils_url $bash_url $make_url"
+	local URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $busybox_url $binutils_url $bash_url $make_url $ncurses_url $nano_url"
 
 	if [ "$dist" = "musl" ]; then
 		URL="$URL $musl_url"
@@ -111,7 +115,7 @@ _get_deps(){
 	fi
 
 	if [ "$2" = "experimental" ]; then
-		URl="$URL $xserver_url $nano_url $ncurses_url $bison_url"
+		URl="$URL $xserver_url $bison_url"
 	fi
 
 	mkdir -p tarballs
@@ -527,7 +531,7 @@ compile_extra_pkgs(){
 		printf "Compiling GCC..."
 		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nPackaging GCC C/C++ Compilers..."
-		script -qeac "make install-strip-gcc DESTDIR=$output/gcc/files 2>&1" "logfile" >/dev/null
+		script -qeac "make install-strip-gcc DESTDIR=$output/gcc/files 2>&1" "$logfile" >/dev/null
 		printf "Done.\nPackaging libgcc..."
 		script -qeac "make install-strip-target-libgcc DESTDIR=$output/libstdc++/files 2>&1" "$logfile" >/dev/null
 		printf "Done.\nPackaging libstdc++..."
@@ -548,7 +552,7 @@ compile_extra_pkgs(){
 		cd "$linux_dir"
 
 		printf "Packaging Linux headers..."
-		script -qeac "make ARCH=$linux_arch INSTALL_HDR_PATH=$output/linux-headers/files/opt headers_install 2>&1" >/dev/null
+		script -qeac "make ARCH=$linux_arch INSTALL_HDR_PATH=$output/linux-headers/files/opt headers_install 2>&1" "$logfile" >/dev/null
 		echo "Done."
 		cd ..
 	fi
@@ -559,13 +563,13 @@ compile_extra_pkgs(){
 
 		if [ ! -r "$binutils_dir/build/Makefile" ]; then
 			printf "Configuring Binutils..."
-			script -qeac "../configure $dev_stuff 2>&1" >/dev/null
+			script -qeac "../configure $dev_stuff 2>&1" "$logfile" >/dev/null
 			echo "Done."
 		fi
 		printf "Compiling Binutils..."
-		script -qeac "make -j$threads 2>&1" >/dev/null
+		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nPackaging Binutils"
-		script -qeac "make install-strip DESTDIR=$output/binutils/files 2>&1" >/dev/null
+		script -qeac "make install-strip DESTDIR=$output/binutils/files 2>&1" "$logfile" >/dev/null
 		echo "Done."
 		cd ../..
 	fi
@@ -576,7 +580,7 @@ compile_extra_pkgs(){
 
 		if [ ! -r "$bash_dir/build/Makefile" ]; then
 			printf "Configuring GNU Bash..."
-			script -qeac "../configure $common_flags 2>&1" "$logfile" >/dev/null
+			script -qeac "../configure $common_flags --disable-bash-malloc 2>&1" "$logfile" >/dev/null
 			echo "Done."
 		fi
 		printf "Compiling GNU Bash..."
@@ -592,13 +596,13 @@ compile_extra_pkgs(){
 
 		if [ ! -r "$make_dir/build/Makefile" ]; then
 			printf "Configuring Make..."
-			script -qeac "../configure $common_flags 2>&1" >/dev/null
+			script -qeac "../configure $common_flags 2>&1" "$logfile" >/dev/null
 			echo "Done."
 		fi
 		printf "Compiling Make..."
-		script -qeac "make -j$threads 2>&1" >/dev/null
+		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
 		printf "Done.\nPackaging Make..."
-		script -qeac "make install-strip DESTDIR=$output/make/files 2>&1" >/dev/null
+		script -qeac "make install-strip DESTDIR=$output/make/files 2>&1" "$logfile" >/dev/null
 		echo "Done."
 	fi
 
@@ -774,7 +778,7 @@ while [ $# -gt 0 ]; do
 				echo "Done."
 			done
 
-			if [ $mode -eq 3 ]; then
+			if [ $mode -gt 3 ]; then
 				printf "Deleting output directory..."
 				rm -rf "$output"
 				echo "Done."
@@ -823,7 +827,7 @@ while [ $# -gt 0 ]; do
 			;;
 		"--help")
 			printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
-			echo "--init [dist]			Initializes the build system by downloading necessary components and unpacking them"
+			echo "--init			Initializes the build system by downloading necessary components and unpacking them"
 			echo "--target-system [arch-dist]	Specifies the CPU architecture and the C library to be used. Default: i486-gnu"
 			echo "--toolchain-prefix [path]	Sets the target system's toolchain's install directory. Default: ~/cross"
 			echo "--clean [lvl]			Cleans the build directory"

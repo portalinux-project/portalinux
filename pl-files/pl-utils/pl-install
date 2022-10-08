@@ -1,13 +1,7 @@
 #!/bin/sh
-set -e
 pldb_path="/var/pl-install"
 
 verify_pkg(){
-	if [ "$(echo $(basename $1) | rev | cut -d. -f1 | rev)" != "plpak" ]; then
-		echo "Error: File $(basename $1) is not a valid PortaLinux package"
-		exit 5
-	fi
-
 	if [ ! -f "$1" ]; then
 		echo "Error: Package $(basename $1) does not exist"
 		exit 2
@@ -18,7 +12,12 @@ verify_pkg(){
 
 	cd $untar_dir
 	printf "Unpacking file $(basename $absolute_pkg_path)..."
-	bzcat "$absolute_pkg_path" | tar -xf -
+	bzcat "$absolute_pkg_path" 2>dev/null | tar -xf - 2>/dev/null
+
+	if [ $? -ne 0 ] || [ ! -f files.tar ] || [ ! -f pkg_info ]; then
+		printf "Error!\nError: File $(basename $1) is not a valid PortaLinux package\n"
+		exit 5
+	fi
 	echo "Done."
 
 	pkg_name=$(cat pkg_info | sed '1q;d')
@@ -30,13 +29,24 @@ verify_pkg(){
 	fi
 
 	set +e
-	printf "Verifying package integrity..."
-	sha256sum -c files.tar.sha256sum 2>&1 >/dev/null
-	if [ $? -ne 0 ]; then
-		printf "Error!\nError: Package $1 does not match the hash\n"
-		exit 6
+	if [ ! -f files.tar.sha256sum ]; then
+		local yn
+		echo "Warning: Checksum not found. Cannot verify package integrity"
+		read -N 1 -p "Still install package? [N/y]: " yn
+		printf '\n'
+		if [ "$yn" != "y" ]; then
+			echo "Install aborted."
+			exit 7
+		fi
+	else
+		printf "Verifying package integrity..."
+		sha256sum -c files.tar.sha256sum 2>&1 >/dev/null
+		if [ $? -ne 0 ]; then
+			printf "Error!\nError: Package $1 does not match the hash\n"
+			exit 6
+		fi
+		echo "Passed!"
 	fi
-	echo "Passed!"
 	set -e
 }
 
