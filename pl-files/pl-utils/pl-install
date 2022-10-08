@@ -24,23 +24,28 @@ verify_pkg(){
 	pkg_name=$(cat pkg_info | sed '1q;d')
 	pkg_ver=$(cat pkg_info | sed '2q;d')
 
-	if [ -f "$pldb_path/$pkg_name.pldb" ] | [ $(cat "$pldb_path/$pkg_name.pldb" | sed '2q;d') = "$pkg_ver" ]; then
+	if [ -f "$pldb_path/$pkg_name.pldb" ] && [ $(cat $pldb_path/$pkg_name.pldb | sed '2q;d') = "$pkg_ver" ]; then
 		echo "Error: Package $pkg_name is already installed"
 		exit 3
 	fi
 
 	set +e
 	printf "Verifying package integrity..."
-	sha256sum files.tar.sha256sum 2>&1 >/dev/null
-	if [ $? ]; then
-		printf "Error!\nError: Package $1 does not match the hash"
+	sha256sum -c files.tar.sha256sum 2>&1 >/dev/null
+	if [ $? -ne 0 ]; then
+		printf "Error!\nError: Package $1 does not match the hash\n"
 		exit 6
 	fi
+	echo "Passed!"
 	set -e
 }
 
 install_pkg(){
 	verify_pkg "$1"
+
+	printf "Unpacking package..."
+	tar -xf files.tar
+	echo "Done"
 
 	cd $untar_dir/files
 	cd ..
@@ -50,10 +55,11 @@ install_pkg(){
 		. ./install.sh $untar_dir
 	else
 		printf "Installing files..."
-		file_list=$(find . -type f)
+		file_list=$(cd files && find . -type f)
 		cp -r ./files/* /
 		echo "Done."
-		echo "$file_list" >> $pldb_dir/$pkg_name.pldb
+		mv pkg_info "$pldb_path/$pkg_name.pldb"
+		echo "$file_list" >> "$pldb_path/$pkg_name.pldb"
 	fi
 
 	if [ -f ./post-install.sh ]; then
@@ -62,23 +68,23 @@ install_pkg(){
 	fi
 
 	if [ -f ./uninstall.sh ]; then
-		mv ./uninstall.sh "$pldb_dir/$pkg_name-uninstall.sh"
+		mv ./uninstall.sh "$pldb_path/$pkg_name-uninstall.sh"
 	fi
 }
 
 uninstall_pkg(){
 	cd /
-	if [ ! -f "$pldb_dir/$1.pldb" ]; then
+	if [ ! -f "$pldb_path/$1.pldb" ]; then
 		echo "Error: Package $1 is not installed"
 		exit 2
 	fi
 
-	if [ -f "$pldb_dir/$1-uninstall.sh" ]; then
+	if [ -f "$pldb_path/$1-uninstall.sh" ]; then
 		echo "Running uninstall script..."
-		. $pldb_dir/$1-uninstall.sh
+		. $pldb_path/$1-uninstall.sh
 	else
 		printf "Removing files..."
-		for i in $(cat $pldb_dir/$1.pldb); do
+		for i in $(cat $pldb_path/$1.pldb); do
 			rm "$(realpath $i)"
 			printf "."
 		done
@@ -92,6 +98,10 @@ printf "(c) 2022 pocketlinux32, Under GPLv2+\n\n"
 if [ $(id -u) -ne 0 ]; then
 	echo "Error: You're not root"
 	exit 4
+fi
+
+if [ ! -d "$pldb_path" ]; then
+	mkdir -p "$pldb_path"
 fi
 
 case $1 in

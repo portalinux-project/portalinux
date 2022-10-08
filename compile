@@ -13,6 +13,20 @@ compression="bzip2"
 threads=$(nproc)
 
 kernel_url="http://kernel.org/pub/linux/kernel/v5.x/linux-5.19.8.tar.xz"
+binutils_url="http://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.gz"
+gcc_url="http://ftp.gnu.org/gnu/gcc/gcc-10.3.0/gcc-10.3.0.tar.gz"
+gmp_url="http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz"
+mpc_url="http://ftp.gnu.org/gnu/mpc/mpc-1.2.1.tar.gz"
+mpfr_url="http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.0.tar.gz"
+glibc_url="http://ftp.gnu.org/gnu/glibc/glibc-2.31.tar.gz"
+musl_url="https://musl.libc.org/releases/musl-1.2.3.tar.gz"
+busybox_url="http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
+bash_url="http://ftp.gnu.org/gnu/bash/bash-5.1.tar.gz"
+make_url="http://ftp.gnu.org/gnu/make/make-4.3.tar.gz"
+nano_url="http://ftp.gnu.org/gnu/nano/nano-6.2.tar.gz"
+ncurses_url="http://ftp.gnu.org/gnu/ncurses/ncurses-6.2.tar.gz"
+bison_url="http://ftp.gnu.org/gnu/bison/bison-3.7.6.tar.gz"
+xserver_url="https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
 
 kdefconfig="defconfig"
 compile_target="i486-pocket-linux-gnu"
@@ -68,30 +82,37 @@ _generate_stuff(){
 			fi
 			;;
 		"pkg_ver")
-			pkg_dir="$(ls $build | grep '$2.[0-9,a-z,A-Z,\.]*' -o))"
+			set +e
+			local pkg=$2
+			if [ "$2" = "musl-libc-headers" ]; then
+				pkg="musl"
+			elif [ "$2" = "gnu-libc-headers" ]; then
+				pkg="glibc"
+			elif [ "$2" = "libstdc++" ]; then
+				pkg="gcc"
+			elif [ "$2" = "linux-headers" ]; then
+				pkg="linux"
+			fi
+			set -e
+
+			pkg_dir=$(ls $build | grep "$pkg")
 			echo "$pkg_dir" | rev | cut -d- -f1 | rev
 			;;
 	esac
 }
 
 _get_deps(){
-	local URL="$kernel_url http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
-	local PKG="binutils/binutils-2.37.tar.gz gcc/gcc-10.3.0/gcc-10.3.0.tar.gz gmp/gmp-6.2.1.tar.xz mpc/mpc-1.2.1.tar.gz mpfr/mpfr-4.1.0.tar.gz bash/bash-5.1.tar.gz make/make-4.3.tar.gz"
+	local URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $busybox_url $binutils_url $bash_url $make_url"
 
 	if [ "$dist" = "musl" ]; then
-		URL="$URL https://musl.libc.org/releases/musl-1.2.3.tar.gz"
+		URL="$URL $musl_url"
 	else
-		PKG="$PKG libc/glibc-2.31.tar.gz"
+		URL="$URL $glibc_url"
 	fi
 
 	if [ "$2" = "experimental" ]; then
-		URl="$URL https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
-		PKG="$PKG nano/nano-5.8.tar.gz ncurses/ncurses-6.2.tar.gz bison/bison-3.7.6.tar.gz"
+		URl="$URL $xserver_url $nano_url $ncurses_url $bison_url"
 	fi
-
-	for i in $PKG; do
-		URL="$URL https://ftp.gnu.org/gnu/$i"
-	done
 
 	mkdir -p tarballs
 	cd tarballs
@@ -172,6 +193,7 @@ _runtime_calc(){
 }
 
 _parse_platform(){
+	set +e
 	case $specific_arch in
 		android32 | earm)
 			specific_arch="armv7"
@@ -190,10 +212,17 @@ _parse_platform(){
 			dist="gnu"
 			;;
 		*)
-			echo "Error: Unknown platform"
-			exit 5
+			if [ -f "$pldir/custom-platforms" ]; then
+				. $pldir/custom-platforms $specific_arch
+			fi
+
+			if [ "$specific_arch" = "$dist" ]; then
+				echo "Error: Unknown platform"
+				exit 5
+			fi
 			;;
 	esac
+	set -e
 }
 
 _rootfs_cleanup(){
@@ -576,17 +605,16 @@ compile_extra_pkgs(){
 	_rootfs_cleanup
 
 	printf "Creating packages..."
-	for i in musl-libc-headers libstdc++ gcc linux-headers binutils bash make; do
+	for i in $dist-libc-headers libstdc++ gcc linux-headers binutils bash make; do
 		cd "$output/$i"
 		tar cf files.tar files
 		sha256sum files.tar > files.tar.sha256sum
 		echo "$i" > pkg_info
 		_generate_stuff pkg_ver $i >> pkg_info
 
-		tar cf ../$i.tar files.tar files.tar.sha256sum
+		tar cf ../$i.tar files.tar files.tar.sha256sum pkg_info
 		bzip2 ../$i.tar
 		mv ../$i.tar.bz2 ../$i.plpak
-		rm -rf files
 		printf "."
 	done
 	echo "Done."
@@ -601,7 +629,11 @@ compile_kernel(){
 	fi
 
 	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads" "$logfile"
-	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch INSTALL_MOD_PATH=$output_rootfs modules_install" "$logfile"
+
+	local modules_support=$(cat .config | grep -w "CONFIG_MODULES")
+	if [ "$(echo modules_support | grep '#')" = "" ]; then
+		script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch INSTALL_MOD_PATH=$output_rootfs modules_install" "$logfile"
+	fi
 	cp arch/$linux_arch/boot/dts/*.dts 2>/dev/null || true
 	cp arch/$linux_arch/boot/*Image "$output"
 }
@@ -770,7 +802,7 @@ while [ $# -gt 0 ]; do
 		"--build")
 			action=$2
 			if [ "$2" = "boot-img" ] && [ "$3" != "" ]; then
-				compression = "$3"
+				compression="$3"
 			fi
 			shift
 			;;
