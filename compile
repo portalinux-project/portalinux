@@ -183,6 +183,8 @@ _decompress_all(){
 			*.xz)
 				xz -dc "$i" | tar xf -
 				;;
+			*.zip)
+				unzip "$i" &>/dev/null
 		esac
 		echo "Done."
 	done
