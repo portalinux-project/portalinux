@@ -814,8 +814,8 @@ while [ $# -gt 0 ]; do
 			_get_pkg_names
 			cd "$linux_dir"
 
-			if [ "$3" != "" ]; then
-				kdefconfig=$3
+			if [ "$2" != "" ]; then
+				kdefconfig=$2
 			fi
 
 			if [ ! -f .config ]; then
