@@ -109,5 +109,5 @@ flags, you'll need to enclose the compression command with the flags in quotes.
 ```
 ./compile --build $compression_tool
 # or
-./compile --build $compression_tool_with_flags
+./compile --build "$compression_tool_with_flags"
 ```
