@@ -29,10 +29,12 @@ bison_url="http://ftp.gnu.org/gnu/bison/bison-3.7.6.tar.gz"
 xserver_url="https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
 
 kdefconfig="defconfig"
+extra_gcc_flags=""
 compile_target="i486-pocket-linux-gnu"
 linux_arch="i386"
 specific_arch="i486"
 arch="i486"
+arch_or_cpu_flag="arch"
 abi=""
 dist="gnu"
 
@@ -54,13 +56,30 @@ start_time=""
 end_time=""
 
 _exit_handler(){
-	errno=$?
+	local exit_num=$?
 
-	if [ $errno -ne 0 ]; then
-		printf "Error!\n\nSomething wrong happened. Please check log.txt for more info.\n"
+	if [ $exit_num -ne 0 ]; then
+		if [ $exit_num -eq 130 ]; then
+			echo "Interrupt!"
+		else
+			printf "\n\nSomething wrong happened. Please check $(basename $logfile) or the output above for more info.\n"
+		fi
 	fi
 
-	exit $errno
+	exit $exit_num
+}
+
+_exec(){
+	set +e
+	printf "$1..."
+	script -qeac "$2 2>&1" "$logfile" >/dev/null
+	local errno=$?
+	if [ $errno -ne 0 ]; then
+		echo "Error!"
+		exit $errno
+	fi
+	echo "Done."
+	set -e
 }
 
 _get_pkg_names(){
@@ -245,28 +264,25 @@ _rootfs_cleanup(){
 		rm -f "$i"
 		printf "."
 	done
+	rm -rf "$output_rootfs/opt/*"
 	echo "Done."
 }
 
 compile_toolchain(){
 	local extra_flags=""
 	local common_flags="$compile_target --disable-multilib"
-	local gnu_flags="$common_flags --with-arch=$specific_arch --disable-werror"
+	local gnu_flags="$common_flags --with-$arch_or_cpu_flag=$specific_arch --disable-werror"
+	_get_pkg_names $dist
 
 	# binutils
 	if [ ! -r "$toolchain_prefix/bin/$compile_target-as" ]; then
 		mkdir -p "$binutils_dir/build"
 		cd "$binutils_dir/build"
 		if [ ! -r "$binutils/build/Makefile" ]; then
-			printf "Configuring Binutils..."
-			script -qeac "../configure --prefix=$toolchain_prefix --target=$gnu_flags 2>&1" "$logfile" >/dev/null
-			echo "Done."
+			_exec "Configuring Binutils" "../configure --prefix=$toolchain_prefix --target=$gnu_flags"
 		fi
-		printf "Compiling Binutils..."
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done\nInstalling Binutils..."
-		script -qeac "make install-strip 2>&1" "$logfile" >/dev/null
-		echo "Done."
+		_exec "Compiling Binutils" "make -j$threads 2>&1"
+		_exec "Installing Binutils" "make install-strip 2>&1"
 	fi
 
 	# gcc c/c++ compilers
@@ -286,67 +302,52 @@ compile_toolchain(){
 		mkdir -p "$gcc_dir/build"
 		cd "$gcc_dir/build"
 		if [ ! -r "$gcc_dir/build/Makefile" ]; then
-			printf "Configuring GCC..."
-			script -qeac "../configure --prefix=$toolchain_prefix --target=$gnu_flags --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap $extra_flags" "$logfile" >/dev/null
-			echo "Done."
+			_exec "Configuring GCC" "../configure --prefix=$toolchain_prefix --target=$gnu_flags --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap $extra_flags $extra_gcc_flags"
 		fi
-		printf "Compiling GCC C/C++ compilers..."
-		script -qeac "make -j$threads all-gcc 2>&1" "$logfile" >/dev/null
-		printf "Done\nInstalling GCC C/C++ compilers..."
-		script -qeac "make install-strip-gcc 2>&1" "$logfile" >/dev/null
-		echo "Done."
+		_exec "Compiling GCC C/C++ compilers" "make -j$threads all-gcc"
+		_exec "Installing GCC C/C++ compilers..." "make install-strip-gcc"
 	fi
 
 	# linux headers
 	if [ ! -r "$toolchain_prefix/$compile_target/include/linux" ]; then
 		cd "$linux_dir"
-		printf "Installing Linux headers..."
-		script -qeac "make ARCH=$linux_arch INSTALL_HDR_PATH=$toolchain_prefix/$compile_target headers_install 2>&1" "$logfile" >/dev/null
-		echo "Done."
+		_exec "Installing Linux headers" "make ARCH=$linux_arch INSTALL_HDR_PATH=$toolchain_prefix/$compile_target headers_install"
 	fi
 
 	# libc headers + start files (glibc-only)
 	if [ ! -r "$toolchain_prefix/$compile_target/include/stdio.h" ]; then
 		if [ "$dist" = "musl" ]; then
 			cd "$musl_dir"
-			printf "Installing musl headers..."
-			script -qeac "make ARCH=$arch prefix=$toolchain_prefix/$compile_target install-headers 2>&1" "$logfile" >/dev/null
-			echo "Done."
+			_exec "Installing musl headers" "make ARCH=$arch prefix=$toolchain_prefix/$compile_target install-headers"
 		else
 			mkdir -p "$gnu_dir/build"
 			cd "$gnu_dir/build"
 			if [ ! -r "$gnu_dir/build/Makefile" ]; then
-				printf "Configuring glibc..."
-				script -qeac "../configure --prefix=$toolchain_prefix/$compile_target --host=$gnu_flags --with-headers=$toolchain_prefix/$compile_target/include libc_cv_forced_unwind=yes 2>&1" "$logfile" >/dev/null
-				echo "Done."
+				_exec "Configuring glibc" "../configure --prefix=$toolchain_prefix/$compile_target --host=$gnu_flags --with-headers=$toolchain_prefix/$compile_target/include libc_cv_forced_unwind=yes"
 			fi
-			printf "Installing glibc headers..."
-			script -qeac "make install-bootstrap-headers=yes install-headers 2>&1" "$logfile" >/dev/null
-			printf "Done.\nCompiling and installing glibc start files..."
-			script -qeac "make -j$threads csu/subdir_lib CFLAGS_FOR_TARGET='-s -O2' CXXFLAGS_FOR_TARGET='-s -O2' 2>&1" "$logfile" >/dev/null
-			install csu/crti.o csu/crtn.o csu/crt1.o "$toolchain_prefix/$compile_target/lib"
-			echo "Done."
+			_exec "Installing glibc headers" "make install-bootstrap-headers=yes install-headers"
+			_exec "Compiling glibc start files..." "make -j$threads csu/subdir_lib CFLAGS_FOR_TARGET='-s -O2' CXXFLAGS_FOR_TARGET='-s -O2'"
+			_exec "Installing glibc start files..." "install csu/crti.o csu/crtn.o csu/crt1.o '$toolchain_prefix/$compile_target/lib'"
 		fi
 	fi
 
 	# libgcc (libgcc-static for musl)
 	if [ ! -r "$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a" ]; then
 		cd "$gcc_dir/build"
-		printf "Compiling libgcc"
+		local name="libgcc"
+		printf "Preparing to compile libgcc..."
 		if [ "$dist" = "musl" ]; then
-			printf "%s" "-static..."
+			name="$name-static"
 			extra_flags="enable_shared=no"
 		else
-			printf "..."
 			touch "$toolchain_prefix/$compile_target/include/gnu/stubs.h"
 			touch "$toolchain_prefix/$compile_target/include/gnu/stubs-32.h"
 			touch "$toolchain_prefix/$compile_target/include/gnu/stubs-64.h"
 			$compile_target-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o "$toolchain_prefix/$compile_target/lib/libc.so"
 		fi
-		script -qeac "make -j$threads $extra_flags all-target-libgcc 2>&1" "$logfile" >/dev/null
-		printf "Done.\nInstalling libgcc..."
-		script -qeac "make install-strip-target-libgcc 2>&1" "$logfile" >/dev/null
 		echo "Done."
+		_exec "Compiling $name" "make -j$threads $extra_flags all-target-libgcc"
+		_exec "Installing libgcc" "make install-strip-target-libgcc"
 		rm -rf "$toolchain_prefix/$compile_target/lib/libc.so"
 	fi
 
@@ -354,40 +355,28 @@ compile_toolchain(){
 	if [ ! -r "$toolchain_prefix/$compile_target/lib/libc.so" ]; then
 		if [ "$dist" = "musl" ]; then
 			cd "$musl_dir"
-			printf "Configuring musl..."
-			script -qeac "ARCH=$arch CC=$compile_target-gcc CROSS_COMPILE=$compile_target- LIBCC=$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a ./configure --prefix=$toolchain_prefix/$compile_target --host=$common_flags 2>&1" "$logfile" >/dev/null
-			printf "Done.\nCompiling musl..."
+			_exec "Configuring musl" "ARCH=$arch CC=$compile_target-gcc CROSS_COMPILE=$compile_target- LIBCC=$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a ./configure --prefix=$toolchain_prefix/$compile_target --host=$common_flags"
 		else
 			cd "$gnu_dir/build"
-			printf "Compiling glibc..."
 		fi
 
-		script -qeac "make -j$threads AR=$compile_target-ar RANLIB=$compile_target-ranlib 2>&1" "$logfile" >/dev/null
-		printf "Done.\nInstalling libc..."
-		script -qeac "make AR=$compile_target-ar RANLIB=$compile_target-ranlib install" "$logfile" >/dev/null
-		echo "Done."
+		_exec "Compiling libc" "make -j$threads AR=$compile_target-ar RANLIB=$compile_target-ranlib"
+		_exec "Installing libc" "make AR=$compile_target-ar RANLIB=$compile_target-ranlib install"
 	fi
 
 	# libgcc-shared (musl-only)
 	if [ ! -r "$toolchain_prefix/$compile_target/lib/libgcc_s.so" ]; then
 		cd "$gcc_dir/build"
-		printf "Cleaning libgcc..."
-		script -qeac "make -C $compile_target/libgcc distclean 2>&1" "$logfile" >/dev/null
-		printf "Done.\nCompiling libgcc-shared..."
-		script -qeac "make enable_shared=yes all-target-libgcc 2>&1" "$logfile" >/dev/null
-		printf "Done.\nInstalling libgcc..."
-		script -qeac "make install-strip-target-libgcc 2>&1" "$logfile" >/dev/null
-		echo "Done."
+		_exec "Cleaning libgcc" "make -C $compile_target/libgcc distclean"
+		_exec "Compiling libgcc-shared" "make enable_shared=yes -j$threads all-target-libgcc"
+		_exec "Installing libgcc" "make install-strip-target-libgcc"
 	fi
 
 	# libstdc++
 	if [ ! -r "$toolchain_prefix/$compile_target/lib/libstdc++.so" ]; then
 		cd "$gcc_dir/build"
-		printf "Compiling libstdc++..."
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done.\nInstalling libstdc++..."
-		script -qeac "make install-strip 2>&1" "$logfile" >/dev/null
-		printf "Done.\n\n"
+		_exec "Compiling libstdc++" "make -j$threads"
+		_exec "Installing libstdc++" "make install-strip"
 	fi
 }
 
@@ -399,9 +388,10 @@ compile_rootfs(){
 	local common_flags="--with-sysroot=/ --host=$compile_target --datarootdir=/opt/share --includedir=/opt/include"
 	local included_comp="--prefix=/usr $common_flags"
 	local main_comp="$included_comp --disable-multilib"
+	_get_pkg_names $dist
 
 	printf "Creating rootfs structure..."
-	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin root mnt home tmp; do
+	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin root mnt home tmp var; do
 		mkdir -p "$output_rootfs/$i"
 		printf "."
 	done
@@ -410,29 +400,25 @@ compile_rootfs(){
 	if [ ! -r "$output_rootfs/usr/lib/libc.a" ]; then
 		if [ "$dist" = "musl" ]; then
 			cd "$musl_dir"
-			printf "Configuring musl..."
-			script -qeac "./configure $main_comp 2>&1" "$logfile" >/dev/null
-			printf "Done.\nCompiling musl..."
+			_exec "Configuring musl..." "./configure $main_comp"
 		else
 			mkdir -p "$gnu_dir/build"
 			cd "$gnu_dir/build"
 			if [ ! -r "$gnu_dir/build/Makefile" ]; then
-				printf "Configuring glibc..."
-				script -qeac "../configure $main_comp libc_cv_forced_unwind=yes CFLAGS='-s -O2' CXXFLAGS='-s -O2' 2>&1" "$logfile" >/dev/null
-				echo "Done."
+				_exec "Configuring glibc" "../configure $main_comp libc_cv_forced_unwind=yes CFLAGS='-s -O2' CXXFLAGS='-s -O2'"
 			fi
-			printf "Compiling glibc..."
 
+			printf "Preparing for compilation..."
 			mkdir -p "$output_rootfs/opt/include/gnu"
 			touch "$output_rootfs/opt/include/gnu/stubs.h"
 			touch "$output_rootfs/opt/include/gnu/stubs-32.h"
 			touch "$output_rootfs/opt/include/gnu/stubs-64.h"
+			echo "Done."
 		fi
 
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done\nInstalling libc..."
-		script -qeac "make DESTDIR=$output_rootfs install 2>&1" "$logfile" >/dev/null
-		printf "Done.\nPackaging libc headers..."
+		_exec "Compiling libc" "make -j$threads"
+		_exec "Installing libc" "make DESTDIR=$output_rootfs install"
+		printf "Packaging libc headers..."
 		mkdir -p "$output/$dist-libc-headers/files/opt"
 		cp -r "$output_rootfs/opt/include" "$output/$dist-libc-headers/files/opt"
 		echo "Done."
@@ -444,13 +430,11 @@ compile_rootfs(){
 		printf "Configuring BusyBox..."
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
 		echo "CONFIG_CROSS_COMPILER_PREFIX=$toolchain_prefix/bin/$compile_target-" >> .config
-		printf "Done.\nCompiling BusyBox..."
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done.\nInstalling Busybox..."
+		echo "Done."
+		_exec "Compiling BusyBox..." "make -j$threads"
+		printf "Installing Busybox..."
 		mv busybox "$output_rootfs/bin"
-		set +e
-		ln -s "/bin/busybox" "$output_rootfs/bin/sh" 2>/dev/null
-		set -e
+		ln -s "/bin/busybox" "$output_rootfs/bin/sh" 2>/dev/null || true
 		echo "Done."
 	fi
 
@@ -487,13 +471,11 @@ create_boot_image(){
 		exit 3
 	fi
 
-	set +e
 	printf "Creating necessary device nodes..."
-	mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null
-	mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null
-	mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null
+	mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null || true
+	mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null || true
+	mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null || true
 	echo "Done."
-	set -e
 
 	if [ "$1" != "no-create-cpio" ]; then
 		printf "Creating initramfs boot file..."
@@ -505,8 +487,10 @@ create_boot_image(){
 }
 
 compile_extra_pkgs(){
-	if [ ! -r "$output_rootfs" ]; then
+	if [ ! -r "$output_rootfs/usr/bin/pl-install" ]; then
 		compile_rootfs
+	else
+		_get_pkg_names $dist
 	fi
 	local common_flags="--prefix=/opt --host=$compile_target"
 	local dev_stuff="$common_flags --disable-multilib --with-sysroot=/ --with-build-sysroot=$output_rootfs --with-native-system-header-dir=/opt/include"
@@ -519,52 +503,37 @@ compile_extra_pkgs(){
 	echo "Done"
 
 	if [ ! -d "$output/libstdc++/files/opt" ]; then
-		set +e
 		if [ ! -f "$gcc_dir/mpfr" ]; then
-			ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null
-			ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null
-			ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null
+			ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
+			ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null || true
+			ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null || true
 		fi
 
-		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null
-		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null
-		set -e
+		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null || true
+		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null || true
 
 		mkdir -p "$gcc_dir/build"
 		cd "$gcc_dir/build"
 
 		if [ ! -r "$gcc_dir/build/Makefile" ]; then
-			printf "Configuring GCC..."
-			script -qeac "../configure $dev_stuff --disable-bootstrap --disable-libstdcxx-debug --enable-languages=c,c++ --disable-libsanitizer 2>&1" "$logfile" >/dev/null
-			echo "Done."
+			_exec "Configuring GCC" "../configure $dev_stuff $extra_gcc_flags --disable-bootstrap --disable-libstdcxx-debug --enable-languages=c,c++ --disable-libsanitizer"
 		fi
-		printf "Compiling GCC..."
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done.\nPackaging GCC C/C++ Compilers..."
-		script -qeac "make install-strip-gcc DESTDIR=$output/gcc/files 2>&1" "$logfile" >/dev/null
-		printf "Done.\nPackaging libgcc..."
-		script -qeac "make install-strip-target-libgcc DESTDIR=$output/libstdc++/files 2>&1" "$logfile" >/dev/null
-		printf "Done.\nPackaging libstdc++..."
-		script -qeac "make install-strip-target-libstdc++-v3 DESTDIR=$output/libstdc++/files 2>&1" "$logfile" >/dev/null
-		echo "Done."
+		_exec "Compiling GCC" "make -j$threads"
+		_exec "Packaging GCC C/C++ Compilers" "make install-strip-gcc DESTDIR=$output/gcc/files"
+		_exec "Packaging libgcc" "make install-strip-target-libgcc DESTDIR=$output/libstdc++/files"
+		_exec "Packaging libstdc++" "make install-strip-target-libstdc++-v3 DESTDIR=$output/libstdc++/files"
 		if [ "$dist" = "gnu" ]; then
-			printf "Packaging libsanitizer..."
-			script -qeac "make install-strip-target-ligsanitizer DESTDIR=$output/libsanitizer/files 2>&1" "$logfile" >/dev/null
-			echo "Done."
+			_exec "Packaging libsanitizer" "make install-strip-target-ligsanitizer DESTDIR=$output/libsanitizer/files"
 		fi
 
 		rm "$toolchain_prefix/bin/cc" -f
 		rm "$toolchain_prefix/bin/c++" -f
-		cd ../..
 	fi
 
 	if [ ! -d "$output/linux-headers/files/opt" ]; then
 		cd "$linux_dir"
 
-		printf "Packaging Linux headers..."
-		script -qeac "make ARCH=$linux_arch INSTALL_HDR_PATH=$output/linux-headers/files/opt headers_install 2>&1" "$logfile" >/dev/null
-		echo "Done."
-		cd ..
+		_exec "Packaging Linux headers" "make ARCH=$linux_arch INSTALL_HDR_PATH=$output/linux-headers/files/opt headers_install"
 	fi
 
 	if [ ! -r "$output/binutils/files/opt" ]; then
@@ -572,16 +541,10 @@ compile_extra_pkgs(){
 		cd "$binutils_dir/build"
 
 		if [ ! -r "$binutils_dir/build/Makefile" ]; then
-			printf "Configuring Binutils..."
-			script -qeac "../configure $dev_stuff 2>&1" "$logfile" >/dev/null
-			echo "Done."
+			_exec "Configuring Binutils" "../configure $dev_stuff"
 		fi
-		printf "Compiling Binutils..."
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done.\nPackaging Binutils"
-		script -qeac "make install-strip DESTDIR=$output/binutils/files 2>&1" "$logfile" >/dev/null
-		echo "Done."
-		cd ../..
+		_exec "Compiling Binutils" "make -j$threads 2>&1"
+		_exec "Packaging Binutils" "make install-strip DESTDIR=$output/binutils/files"
 	fi
 
 	if [ ! -r "$output/bash/files/opt" ]; then
@@ -589,15 +552,10 @@ compile_extra_pkgs(){
 		cd "$bash_dir/build"
 
 		if [ ! -r "$bash_dir/build/Makefile" ]; then
-			printf "Configuring GNU Bash..."
-			script -qeac "../configure $common_flags --disable-bash-malloc 2>&1" "$logfile" >/dev/null
-			echo "Done."
+			_exec "Configuring GNU Bash" "../configure $common_flags --disable-bash-malloc"
 		fi
-		printf "Compiling GNU Bash..."
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done.\nPackaging GNU Bash..."
-		script -qeac "make install DESTDIR=$output/bash/files 2>&1" "$logfile" >/dev/null
-		echo "Done."
+		_exec "Compiling GNU Bash" "make -j$threads"
+		_exec "Packaging GNU Bash" "make install DESTDIR=$output/bash/files"
 	fi
 
 	if [ ! -r "$output/make/files/opt/" ]; then
@@ -605,15 +563,10 @@ compile_extra_pkgs(){
 		cd "$make_dir/build"
 
 		if [ ! -r "$make_dir/build/Makefile" ]; then
-			printf "Configuring Make..."
-			script -qeac "../configure $common_flags --without-guile 2>&1" "$logfile" >/dev/null
-			echo "Done."
+			_exec "Configuring Make" "../configure $common_flags --without-guile"
 		fi
-		printf "Compiling Make..."
-		script -qeac "make -j$threads 2>&1" "$logfile" >/dev/null
-		printf "Done.\nPackaging Make..."
-		script -qeac "make install-strip DESTDIR=$output/make/files 2>&1" "$logfile" >/dev/null
-		echo "Done."
+		_exec "Compiling Make" "make -j$threads"
+		_exec "Packaging Make" "make install-strip DESTDIR=$output/make/files"
 	fi
 
 	_rootfs_cleanup
@@ -635,6 +588,7 @@ compile_extra_pkgs(){
 }
 
 compile_kernel(){
+	_get_pkg_names
 	cd "$linux_dir"
 
 	if [ ! -f .config ]; then
@@ -682,7 +636,7 @@ while [ $# -gt 0 ]; do
 				fi
 			done
 
-			_get_pkg_names
+			_get_pkg_names $dist
 			mkdir $toolchain_prefix $output -p
 			if [ "$dist" = "musl" ]; then
 				for i in arch crt; do
@@ -690,7 +644,6 @@ while [ $# -gt 0 ]; do
 					for j in i486 i586 i686; do
 						ln i386 $j -s
 					done
-					cd ..
 				done
 			else
 				sed -i 's/limits.h/linux\/limits.h/g' "$gcc_dir/libsanitizer/asan/asan_linux.cpp"
@@ -728,6 +681,10 @@ while [ $# -gt 0 ]; do
 				else
 					linux_arch="$arch"
 				fi
+			fi
+
+			if [ "$arch" = "powerpc" ]; then
+				arch_or_cpu_flag="cpu"
 			fi
 
 			compile_target="$arch-pocket-linux-$dist$abi"
@@ -790,7 +747,7 @@ while [ $# -gt 0 ]; do
 				echo "Done."
 			done
 
-			if [ $mode -gt 3 ]; then
+			if [ $mode -gt 2 ]; then
 				printf "Deleting output directory..."
 				rm -rf "$output"
 				echo "Done."
@@ -831,7 +788,7 @@ while [ $# -gt 0 ]; do
 			fi
 
 			if [ ! -f .config ]; then
-				make ARCH=$linux_arch $kdefconfig
+				make CROSS_COMPILE=$compile_target- ARCH=$linux_arch $kdefconfig
 			fi
 
 			make ARCH=$linux_arch menuconfig
@@ -839,14 +796,14 @@ while [ $# -gt 0 ]; do
 			;;
 		"--help")
 			printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
-			echo "--init			Initializes the build system by downloading necessary components and unpacking them"
-			echo "--target-system [arch-dist]	Specifies the CPU architecture and the C library to be used. Default: i486-gnu"
-			echo "--toolchain-prefix [path]	Sets the target system's toolchain's install directory. Default: ~/cross"
-			echo "--clean [lvl]			Cleans the build directory"
-			echo "--hard-clean [no-rm-tarballs]	Removes any directories created by --init"
-			echo "--threads [n]			Sets the amount of threads to be used in compilation"
-			echo "--config-kernel			Configures the Linux kernel"
-			echo "--build [action]		Compiles toolchain, rootfs, extra-pkgs, kernel or boot-img. The previous list of words are the supported operations."
+			echo "--init					Initializes the build system by downloading necessary components and unpacking them"
+			echo "--target-system [arch-dist]		Specifies the CPU architecture and the C library to be used. Default: i486-gnu"
+			echo "--toolchain-prefix [path]		Sets the target system's toolchain's install directory. Default: ~/cross"
+			echo "--clean [lvl]				Cleans the build directory"
+			echo "--hard-clean [no-rm-tarballs]		Removes any directories created by --init"
+			echo "--threads [n]				Sets the amount of threads to be used in compilation"
+			echo "--config-kernel				Configures the Linux kernel"
+			echo "--build [action] [option]		Compiles toolchain, rootfs, extra-pkgs, kernel or boot-img. The previous list of words are the supported operations."
 			exit 0
 			;;
 		*)
@@ -861,7 +818,6 @@ echo "Log file: $logfile"
 echo "Target System: $compile_target"
 printf "Toolchain install directory: $toolchain_prefix\n\n"
 _runtime_calc start
-_get_pkg_names $dist
 case $action in
 	toolchain)
 		compile_toolchain
@@ -884,3 +840,4 @@ case $action in
 		;;
 esac
 _runtime_calc stop
+exit 0

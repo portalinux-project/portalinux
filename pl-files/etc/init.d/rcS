@@ -14,31 +14,30 @@ parse_kcmdline(){
 		fi
 	fi
 
-	if [ $(echo $cmdline | grep -c optdev) -ne ]; then
+	if [ $(echo $cmdline | grep -c optdev) -ne 0 ]; then
 		devscan_timeout=0
 		device=$(echo $cmdline | egrep -o 'optdev.[a-z,0-9,\:]*' | cut -d: -f2)
 	fi
 }
 
 device_scan(){
-	devices=$(blkid | cut -d: -f1 | grep -v loop | grep -v ram)
-
 	for junk in $(seq 1 $devscan_timeout); do
 		printf "."
+		devices=$(blkid | cut -d: -f1 | grep -v loop | grep -v ram)
 		for i in $devices; do
-			if [ $(blkid | grep $i | grep -c ext4) -ne 0 ]; then
+			if [ $(blkid | grep $i | grep -c ext) -ne 0 ]; then
 				mount $i /opt
 
 				if [ -f /opt/.pl-opt-mount ]; then
 					device="$i"
 					break
 				fi
-			fi
 
-			umount /opt
+				umount /opt
+			fi
 		done
 
-		if [ "$devices" = "" ]; then
+		if [ "$device" = "" ]; then
 			sleep 1
 		else
 			echo "Found persistent partition at $device."
@@ -54,7 +53,7 @@ device_scan(){
 echo "Welcome to PortaLinux v0.08, (c) 2022 pocketlinux32"
 printf "Init script. Running on Linux $(uname -m) $(uname -r)\n\n"
 
-printf 'getty $@\nclear\n' > /bin/agetty
+printf '#!/bin/sh\n\ngetty $@\nclear\n' > /bin/agetty
 chmod 777 /bin/agetty
 
 if [ -r /lib/modules ]; then
@@ -81,10 +80,10 @@ if ! mountpoint /opt &>/dev/null; then
 	echo "/opt is not a mountpoint. Running without filesystem persistence."
 else
 	printf "Setting up filesystem persistence..."
-	local first_time=0
+	first_time=0
 
-	if [ ! -d /opt/data ]; then
-		mkdir /opt/data
+	if [ ! -r /opt/data/var ]; then
+		mkdir /opt/data -p
 		for i in etc home var; do
 			if [ ! -d /opt/data/$i ]; then
 				cp -r /$i /opt/data
@@ -98,11 +97,11 @@ else
 	mount --bind /opt/data/var /var
 	echo "Done."
 
-	if [ first_time -eq 1 ]; then
+	if [ $first_time -eq 1 ]; then
 		echo "It seems this is the first time PortaLinux is ran with this persistence storage device."
 
 		while [ "$ans" = "" ]; do
-			read -p "Would you like to set up your system? [y/n]: " -N 1 ans
+			read -p "Would you like to set up your system? [y/n]: " -n 1 ans
 			printf "\n"
 			if [ "$ans" != y ] && [ "$ans" != n ]; then
 				echo "Invalid response!"
