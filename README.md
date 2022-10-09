@@ -66,7 +66,7 @@ option to change the compile target.
 
 ## Root Filesystem
 
-To compile the target root filesystem, run the following
+To compile the target root filesystem, run the following:
 ```
 ./compile --build rootfs
 ```
@@ -74,6 +74,17 @@ If targeting a different system from the default, use the `--target-system`
 option to change the compile target.
 ```
 ./compile --target-system $arch-$dist --build rootfs
+```
+
+# Extra Packages
+To compile some extra packages for development, run the following:
+```
+./compile --build extra-pkgs
+```
+If targeting a different system from the default, use the `--target-system`
+option to change the compile target.
+```
+./compile --target-system $arch-$dist --build extra-pkgs
 ```
 
 ## Kernel

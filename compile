@@ -53,6 +53,16 @@ ncurses_dir=""
 start_time=""
 end_time=""
 
+_exit_handler(){
+	errno=$?
+
+	if [ $errno -ne 0 ]; then
+		printf "Error!\n\nSomething wrong happened. Please check log.txt for more info.\n"
+	fi
+
+	exit $errno
+}
+
 _get_pkg_names(){
 	local dirlist="$(ls $build)"
 	cd "$build"
@@ -649,6 +659,8 @@ if [ $# -eq 0 ]; then
 	echo "Error: No command given. Run $0 --help for a list of supported commands"
 	exit 1
 fi
+
+trap "_exit_handler" EXIT INT HUP
 
 while [ $# -gt 0 ]; do
 	case $1 in
