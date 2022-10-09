@@ -834,7 +834,7 @@ while [ $# -gt 0 ]; do
 			echo "--hard-clean [no-rm-tarballs]	Removes any directories created by --init"
 			echo "--threads [n]			Sets the amount of threads to be used in compilation"
 			echo "--config-kernel			Configures the Linux kernel"
-			echo "--build [action]		Compiles toolchain, rootfs, extra-pkg, kernel or boot-img. The previous list of words are the supported operations."
+			echo "--build [action]		Compiles toolchain, rootfs, extra-pkgs, kernel or boot-img. The previous list of words are the supported operations."
 			exit 0
 			;;
 		*)
