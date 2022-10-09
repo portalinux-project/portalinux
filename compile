@@ -635,7 +635,7 @@ compile_kernel(){
 	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads" "$logfile"
 
 	local modules_support=$(cat .config | grep -w "CONFIG_MODULES")
-	if [ "$(echo modules_support | grep '#')" = "" ]; then
+	if [ "$modules_support" != "" ] && [ "$(echo $modules_support | grep '#')" = "" ]; then
 		script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch INSTALL_MOD_PATH=$output_rootfs modules_install" "$logfile"
 	fi
 	cp arch/$linux_arch/boot/dts/*.dtb "$output" 2>/dev/null || true
