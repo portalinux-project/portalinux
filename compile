@@ -86,7 +86,7 @@ _get_pkg_names(){
 	local dirlist="$(ls $build)"
 	cd "$build"
 
-	linux_dir="$(realpath $(echo $dirlist | grep 'linux.[0-9,a-z,A-Z,\.]*' -o))"
+	linux_dir="$(realpath $(echo $dirlist | grep 'linux.[0-9,a-z,A-Z,\.,\-]*' -o))"
 	binutils_dir="$(realpath $(echo $dirlist | grep 'binutils.[0-9,a-z,A-Z,\.]*' -o))"
 	gcc_dir="$(realpath $(echo $dirlist | grep 'gcc.[0-9,a-z,A-Z,\.]*' -o))"
 	gmp_dir="$(realpath $(echo $dirlist | grep 'gmp.[0-9,a-z,A-Z,\.]*' -o))"
