@@ -71,11 +71,6 @@ verify_pkg(){
 install_pkg(){
 	verify_pkg "$1"
 
-	if [ -f ./pre-install.sh ]; then
-		echo "Executing install script..."
-		. ./install.sh $untar_dir
-	fi
-
 	printf "Unpacking package..."
 	tar -xf files.tar
 	echo "Done"
