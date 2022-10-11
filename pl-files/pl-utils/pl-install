@@ -12,9 +12,9 @@ verify_pkg(){
 
 	cd $untar_dir
 	printf "Unpacking file $(basename $absolute_pkg_path)..."
-	bzcat "$absolute_pkg_path" 2>dev/null | tar -xf - 2>/dev/null
+	bzcat "$absolute_pkg_path" 2>/dev/null | tar -xf - 2>/dev/null
 
-	if [ $? -ne 0 ] || [ ! -f files.tar ] || [ ! -f pkg_info ]; then
+	if [ $? -ne 0 ] || [ ! -f files.tar ] || [ ! -f pkg_info ] || [ $(cat pkg_info | wc -l) -lt 3 ]; then
 		printf "Error!\nError: File $(basename $1) is not a valid PortaLinux package\n"
 		exit 5
 	fi
@@ -22,10 +22,19 @@ verify_pkg(){
 
 	pkg_name=$(cat pkg_info | sed '1q;d')
 	pkg_ver=$(cat pkg_info | sed '2q;d')
+	pkg_arch=$(cat pkg_info | sed '3q;d')
 
 	if [ -f "$pldb_path/$pkg_name.pldb" ] && [ $(cat $pldb_path/$pkg_name.pldb | sed '2q;d') = "$pkg_ver" ]; then
 		echo "Error: Package $pkg_name is already installed"
 		exit 3
+	fi
+
+	if [ $(uname -m | grep "$pkg_arch" -c) -eq 0 ] && [ "$pkg_arch" != "all" ]; then
+		if [ $(uname -m | grep 86 -c) -eq 0 ] || [ $(echo "$pkg_arch" | grep 86) -eq 0 ] || [ "$(uname -m)" = "x86_64" ]; then
+			echo "Error: Package $pkg_name is not compatible with host architecture ($(uname -m))"
+			echo "Package architecture: $pkg_arch"
+			exit 8
+		fi
 	fi
 
 	set +e

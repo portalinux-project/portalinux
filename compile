@@ -290,11 +290,9 @@ compile_toolchain(){
 	# gcc c/c++ compilers
 	if [ ! -r "$toolchain_prefix/bin/$compile_target-gcc" ]; then
 		if [ ! -f "$gcc_dir/mpfr" ]; then
-			set +e
-			ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null
-			ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null
-			ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null
-			set -e
+			ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
+			ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null || true
+			ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null || true
 		fi
 
 		if [ "$dist" = "musl" ]; then
@@ -580,6 +578,7 @@ compile_extra_pkgs(){
 		sha256sum files.tar > files.tar.sha256sum
 		echo "$i" > pkg_info
 		_generate_stuff pkg_ver $i >> pkg_info
+		echo $arch >> pkg_info
 
 		tar cf ../$i.tar files.tar files.tar.sha256sum pkg_info
 		bzip2 ../$i.tar
