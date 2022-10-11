@@ -50,7 +50,7 @@ device_scan(){
 	fi
 }
 
-echo "Welcome to PortaLinux v0.08, (c) 2022 pocketlinux32"
+echo "Welcome to PortaLinux v0.08, (c) 2022 pocketlinux32 & raisinware"
 printf "Init script. Running on Linux $(uname -m) $(uname -r)\n\n"
 
 printf '#!/bin/sh\n\ngetty $@\nclear\n' > /bin/agetty

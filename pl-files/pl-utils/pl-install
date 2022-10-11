@@ -30,7 +30,16 @@ verify_pkg(){
 	fi
 
 	if [ $(uname -m | grep "$pkg_arch" -c) -eq 0 ] && [ "$pkg_arch" != "all" ]; then
-		if [ $(uname -m | grep 86 -c) -eq 0 ] || [ $(echo "$pkg_arch" | grep 86) -eq 0 ] || [ "$(uname -m)" = "x86_64" ]; then
+		if [ $(uname -m | grep 86 -c) -ne 0 ] && [ $(uname -m) != "x86_64" ]; then
+			pkg_arch_lvl="$(expr substr $pkg_arch 2 1)"
+			host_arch_lvl="$(expr substr $(uname -m) 2 1)"
+
+			if [ $pkg_arch_lvl -gt $host_arch ]; then
+				echo "Error: Package $pkg_name is not compatible with host architecture ($(uname -m))"
+				echo "Package architecture: $pkg_arch"
+				exit 8
+			fi
+		else
 			echo "Error: Package $pkg_name is not compatible with host architecture ($(uname -m))"
 			echo "Package architecture: $pkg_arch"
 			exit 8

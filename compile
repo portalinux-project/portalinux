@@ -30,7 +30,7 @@ xserver_url="https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.t
 
 kdefconfig="defconfig"
 extra_gcc_flags=""
-compile_target="i486-pocket-linux-gnu"
+compile_target="i486-pocket-linux-musl"
 linux_arch="i386"
 specific_arch="i486"
 arch="i486"
@@ -44,8 +44,7 @@ gcc_dir=""
 gmp_dir=""
 mpc_dir=""
 mpfr_dir=""
-musl_dir=""
-gnu_dir=""
+libc_dir=""
 busybox_dir=""
 bash_dir=""
 make_dir=""
@@ -62,7 +61,7 @@ _exit_handler(){
 		if [ $exit_num -eq 130 ]; then
 			echo "Interrupt!"
 		else
-			printf "\n\nSomething wrong happened. Please check $(basename $logfile) or the output above for more info.\n"
+			printf "\nSomething wrong happened. Please check $(basename $logfile) or the output above for more info.\n"
 		fi
 	fi
 
@@ -98,10 +97,10 @@ _get_pkg_names(){
 	nano_dir="$(realpath $(echo $dirlist | grep 'nano.[0-9,a-z,A-Z,\.]*' -o))"
 	ncurses_dir="$(realpath $(echo $dirlist | grep 'ncurses.[0-9,a-z,A-Z,\.]*' -o))"
 
-	if [ "$dist" = "musl" ]; then
-		musl_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
+	if [ "$dist" = "gnu" ]; then
+		libc_dir="$(realpath $(echo $dirlist | grep 'glibc.[0-9,a-z,A-Z,\.]*' -o))"
 	else
-		gnu_dir="$(realpath $(echo $dirlist | grep 'glibc.[0-9,a-z,A-Z,\.]*' -o))"
+		libc_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
 	fi
 }
 
@@ -134,13 +133,26 @@ _generate_stuff(){
 	esac
 }
 
+_setup_gcc(){
+	if [ ! -f "$gcc_dir/mpfr" ]; then
+		ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
+		ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null || true
+		ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null || true
+	fi
+
+	if [ "$1" = "rfs" ]; then
+		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null || true
+		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null || true
+	fi
+}
+
 _get_deps(){
 	local URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $busybox_url $binutils_url $bash_url $make_url $ncurses_url $nano_url"
 
-	if [ "$dist" = "musl" ]; then
-		URL="$URL $musl_url"
-	else
+	if [ "$dist" = "gnu" ]; then
 		URL="$URL $glibc_url"
+	else
+		URL="$URL $musl_url"
 	fi
 
 	if [ "$2" = "experimental" ]; then
@@ -231,7 +243,7 @@ _parse_platform(){
 	set +e
 	case $specific_arch in
 		android32 | earm)
-			specific_arch="armv7"
+			specific_arch="armv7l"
 			dist="musl"
 			;;
 		android64 | earm64)
@@ -289,11 +301,7 @@ compile_toolchain(){
 
 	# gcc c/c++ compilers
 	if [ ! -r "$toolchain_prefix/bin/$compile_target-gcc" ]; then
-		if [ ! -f "$gcc_dir/mpfr" ]; then
-			ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
-			ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null || true
-			ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null || true
-		fi
+		_setup_gcc cross
 
 		if [ "$dist" = "musl" ]; then
 			extra_flags="--disable-libsanitizer --enable-initfini-array"
@@ -316,18 +324,17 @@ compile_toolchain(){
 
 	# libc headers + start files (glibc-only)
 	if [ ! -r "$toolchain_prefix/$compile_target/include/stdio.h" ]; then
-		if [ "$dist" = "musl" ]; then
-			cd "$musl_dir"
-			_exec "Installing musl headers" "make ARCH=$arch prefix=$toolchain_prefix/$compile_target install-headers"
-		else
-			mkdir -p "$gnu_dir/build"
-			cd "$gnu_dir/build"
-			if [ ! -r "$gnu_dir/build/Makefile" ]; then
+		cd "$libc_dir"
+		if [ "$dist" = "gnu" ]; then
+			mkdir -p "build" && cd "build"
+			if [ ! -r "$libc_dir/build/Makefile" ]; then
 				_exec "Configuring glibc" "../configure --prefix=$toolchain_prefix/$compile_target --host=$gnu_flags --with-headers=$toolchain_prefix/$compile_target/include libc_cv_forced_unwind=yes"
 			fi
 			_exec "Installing glibc headers" "make install-bootstrap-headers=yes install-headers"
 			_exec "Compiling glibc start files..." "make -j$threads csu/subdir_lib CFLAGS_FOR_TARGET='-s -O2' CXXFLAGS_FOR_TARGET='-s -O2'"
 			_exec "Installing glibc start files..." "install csu/crti.o csu/crtn.o csu/crt1.o '$toolchain_prefix/$compile_target/lib'"
+		else
+			_exec "Installing musl headers" "make ARCH=$arch prefix=$toolchain_prefix/$compile_target install-headers"
 		fi
 	fi
 
@@ -353,11 +360,11 @@ compile_toolchain(){
 
 	# libc
 	if [ ! -r "$toolchain_prefix/$compile_target/lib/libc.so" ]; then
-		if [ "$dist" = "musl" ]; then
-			cd "$musl_dir"
-			_exec "Configuring musl" "ARCH=$arch CC=$compile_target-gcc CROSS_COMPILE=$compile_target- LIBCC=$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a ./configure --prefix=$toolchain_prefix/$compile_target --host=$common_flags"
+		cd "$libc_dir"
+		if [ "$dist" = "gnu" ]; then
+			cd "build"
 		else
-			cd "$gnu_dir/build"
+			_exec "Configuring musl" "ARCH=$arch CC=$compile_target-gcc CROSS_COMPILE=$compile_target- LIBCC=$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a ./configure --prefix=$toolchain_prefix/$compile_target --host=$common_flags"
 		fi
 
 		_exec "Compiling libc" "make -j$threads AR=$compile_target-ar RANLIB=$compile_target-ranlib"
@@ -398,13 +405,10 @@ compile_rootfs(){
 	echo "Done."
 
 	if [ ! -r "$output_rootfs/usr/lib/libc.a" ]; then
-		if [ "$dist" = "musl" ]; then
-			cd "$musl_dir"
-			_exec "Configuring musl..." "./configure $main_comp"
-		else
-			mkdir -p "$gnu_dir/build"
-			cd "$gnu_dir/build"
-			if [ ! -r "$gnu_dir/build/Makefile" ]; then
+		cd "$libc_dir"
+		if [ "$dist" = "gnu" ]; then
+			mkdir -p "build" && cd "build"
+			if [ ! -r "$libc_dir/build/Makefile" ]; then
 				_exec "Configuring glibc" "../configure $main_comp libc_cv_forced_unwind=yes CFLAGS='-s -O2' CXXFLAGS='-s -O2'"
 			fi
 
@@ -414,6 +418,8 @@ compile_rootfs(){
 			touch "$output_rootfs/opt/include/gnu/stubs-32.h"
 			touch "$output_rootfs/opt/include/gnu/stubs-64.h"
 			echo "Done."
+		else
+			_exec "Configuring musl..." "./configure $main_comp"
 		fi
 
 		_exec "Compiling libc" "make -j$threads"
@@ -503,14 +509,7 @@ compile_extra_pkgs(){
 	echo "Done"
 
 	if [ ! -d "$output/libstdc++/files/opt" ]; then
-		if [ ! -f "$gcc_dir/mpfr" ]; then
-			ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
-			ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null || true
-			ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null || true
-		fi
-
-		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null || true
-		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null || true
+		_setup_gcc rfs
 
 		mkdir -p "$gcc_dir/build"
 		cd "$gcc_dir/build"
@@ -552,7 +551,7 @@ compile_extra_pkgs(){
 		cd "$bash_dir/build"
 
 		if [ ! -r "$bash_dir/build/Makefile" ]; then
-			_exec "Configuring GNU Bash" "../configure $common_flags --disable-bash-malloc"
+			_exec "Configuring GNU Bash" "../configure $common_flags --disable-gnu-malloc"
 		fi
 		_exec "Compiling GNU Bash" "make -j$threads"
 		_exec "Packaging GNU Bash" "make install DESTDIR=$output/bash/files"
@@ -639,16 +638,16 @@ while [ $# -gt 0 ]; do
 
 			_get_pkg_names $dist
 			mkdir $toolchain_prefix $output -p
-			if [ "$dist" = "musl" ]; then
+			if [ "$dist" = "gnu" ]; then
+				sed -i 's/limits.h/linux\/limits.h/g' "$gcc_dir/libsanitizer/asan/asan_linux.cpp"
+				sed -i '20 i #include <bits/xopen_lim.h>' "$busybox_dir/include/libbb.h"
+			else
 				for i in arch crt; do
-					cd "$musl_dir/$i"
+					cd "$libc_dir/$i"
 					for j in i486 i586 i686; do
 						ln i386 $j -s
 					done
 				done
-			else
-				sed -i 's/limits.h/linux\/limits.h/g' "$gcc_dir/libsanitizer/asan/asan_linux.cpp"
-				sed -i '20 i #include <bits/xopen_lim.h>' "$busybox_dir/include/libbb.h"
 			fi
 			_runtime_calc stop
 			exit 0
@@ -708,7 +707,7 @@ while [ $# -gt 0 ]; do
 					fi
 
 					_get_pkg_names
-					printf "$linux_dir\n$binutils_dir\n$gcc_dir\n$gmp_dir\n$mpc_dir\n$mpfr_dir\n$musl_dir\n$gnu_dir\n$busybox_dir\n$bash_dir\n"
+					printf "$linux_dir\n$binutils_dir\n$gcc_dir\n$gmp_dir\n$mpc_dir\n$mpfr_dir\n$libc_dir\n$busybox_dir\n$bash_dir\n"
 					;;
 				defconfig)
 					if [ "$3" != "" ]; then
