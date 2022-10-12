@@ -112,7 +112,7 @@ uninstall_pkg(){
 		. $pldb_path/$1-uninstall.sh
 	else
 		printf "Removing files..."
-		for i in $(cat $pldb_path/$1.pldb); do
+		for i in $(cat $pldb_path/$1.pldb | sed '1;3d'); do
 			rm "$(realpath $i)"
 			printf "."
 		done
