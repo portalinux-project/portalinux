@@ -400,7 +400,7 @@ compile_toolchain(){
 		cd "$ncurses_dir/build"
 		_exec "Configuring Ncurses" "../configure --prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared"
 		_exec "Compiling Ncurses" "make -j$threads"
-		_exec "Installing Ncurses" "make install INSTALL_PROG='/usr/bin/install --strip-program=$compile_target -c -s'"
+		_exec "Installing Ncurses" "make install INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
 	fi
 }
 
