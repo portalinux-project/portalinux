@@ -1,0 +1,12 @@
+#!/bin/sh
+
+echo "PortaLinux Setup v0.01"
+printf "(c) 2022 pocketlinux32, Under GPLv2+\n\n"
+
+read -n 1 -p "Set root password? [Y/n]" yn
+
+if [ "$yn" = "n" ]; then
+	echo "Exiting..."
+	exit 0
+fi
+

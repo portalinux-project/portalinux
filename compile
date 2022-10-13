@@ -34,9 +34,10 @@ compile_target="i486-pocket-linux-musl"
 linux_arch="i386"
 specific_arch="i486"
 arch="i486"
-arch_or_cpu_flag="arch"
-abi=""
 dist="musl"
+libdir="lib"
+abi=""
+with_aoc=""
 
 linux_dir=""
 binutils_dir=""
@@ -130,11 +131,18 @@ _generate_stuff(){
 			pkg_dir=$(ls $build | grep "$pkg")
 			echo "$pkg_dir" | rev | cut -d- -f1 | rev
 			;;
+		"libdir")
+			set +e
+			if [ $(echo "$arch" | grep -c 64) -ne 0 ]
+				libdir="lib64"
+			fi
+			set -e
+			;;
 	esac
 }
 
 _setup_gcc(){
-	if [ ! -f "$gcc_dir/mpfr" ]; then
+	if [ ! -r "$gcc_dir/mpfr" ]; then
 		ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
 		ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null || true
 		ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null || true
@@ -285,7 +293,7 @@ _rootfs_cleanup(){
 compile_toolchain(){
 	local extra_flags=""
 	local common_flags="$compile_target --disable-multilib"
-	local gnu_flags="$common_flags --with-$arch_or_cpu_flag=$specific_arch --disable-werror"
+	local gnu_flags="$common_flags $with_aoc --disable-werror"
 	_get_pkg_names $dist
 
 	# binutils
@@ -343,14 +351,14 @@ compile_toolchain(){
 		cd "$gcc_dir/build"
 		local name="libgcc"
 		printf "Preparing to compile libgcc..."
-		if [ "$dist" = "musl" ]; then
-			name="$name-static"
-			extra_flags="enable_shared=no"
-		else
+		if [ "$dist" = "gnu" ]; then
 			touch "$toolchain_prefix/$compile_target/include/gnu/stubs.h"
 			touch "$toolchain_prefix/$compile_target/include/gnu/stubs-32.h"
 			touch "$toolchain_prefix/$compile_target/include/gnu/stubs-64.h"
 			$compile_target-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o "$toolchain_prefix/$compile_target/lib/libc.so"
+		else
+			name="$name-static"
+			extra_flags="enable_shared=no"
 		fi
 		echo "Done."
 		_exec "Compiling $name" "make -j$threads $extra_flags all-target-libgcc"
@@ -372,7 +380,7 @@ compile_toolchain(){
 	fi
 
 	# libgcc-shared (musl-only)
-	if [ ! -r "$toolchain_prefix/$compile_target/lib/libgcc_s.so" ]; then
+	if [ ! -r "$toolchain_prefix/$compile_target/$libdir/libgcc_s.so" ]; then
 		cd "$gcc_dir/build"
 		_exec "Cleaning libgcc" "make -C $compile_target/libgcc distclean"
 		_exec "Compiling libgcc-shared" "make enable_shared=yes -j$threads all-target-libgcc"
@@ -380,10 +388,19 @@ compile_toolchain(){
 	fi
 
 	# libstdc++
-	if [ ! -r "$toolchain_prefix/$compile_target/lib/libstdc++.so" ]; then
+	if [ ! -r "$toolchain_prefix/$compile_target/$libdir/libstdc++.so" ]; then
 		cd "$gcc_dir/build"
 		_exec "Compiling libstdc++" "make -j$threads"
 		_exec "Installing libstdc++" "make install-strip"
+	fi
+
+	# ncurses
+	if [ ! -r "$toolchain_prefix/$compile_target/lib/libncurses.so" ]; then
+		mkdir -p "$ncurses_dir/build"
+		cd "$ncurses_dir/build"
+		_exec "Configuring Ncurses" "../configure --prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared"
+		_exec "Compiling Ncurses" "make -j$threads"
+		_exec "Installing Ncurses" "make install INSTALL_PROG='/usr/bin/install --strip-program=$compile_target -c -s'"
 	fi
 }
 
@@ -502,7 +519,7 @@ compile_extra_pkgs(){
 	local dev_stuff="$common_flags --disable-multilib --with-sysroot=/ --with-build-sysroot=$output_rootfs --with-native-system-header-dir=/opt/include"
 
 	printf "Creating build folders..."
-	for i in libstdc++ gcc linux-headers binutils bash make; do
+	for i in libstdc++ gcc linux-headers binutils bash make ncurses nano; do
 		mkdir -p "$output/$i/files"
 		printf "."
 	done
@@ -568,10 +585,26 @@ compile_extra_pkgs(){
 		_exec "Packaging Make" "make install-strip DESTDIR=$output/make/files"
 	fi
 
+	if [ ! -r "$otuput/ncurses/files/opt" ]; then
+		mkdir -p "$ncurses_dir/build"
+		cd "$ncurses_dir/build"
+		_exec "Configuring Ncurses" "../configure --prefix=/opt --host=$compile_target --with-cxx-shared --with-shared"
+		_exec "Compiling Ncurses" "make -j$threads"
+		_exec "Installing Ncurses" "make install DESTDIR=$output/ncurses/files"
+	fi
+
+	if [ ! -r "$output/nano/files/opt" ]; then
+		mkdir -p "$nano_dir/build"
+		cd "$nano_dir/build"
+		_exec "Compiling Nano" "../configure --prefix=/opt --host=$compile_target"
+		_exec "Compiling Nano" "make -j$threads"
+		_exec "Installing Nano" "make install DESTDIR=$output/ncurses/files"
+	fi
+
 	_rootfs_cleanup
 
 	printf "Creating packages..."
-	for i in $dist-libc-headers libstdc++ gcc linux-headers binutils bash make; do
+	for i in $dist-libc-headers libstdc++ gcc linux-headers binutils bash make ncurses nano; do
 		cd "$output/$i"
 		tar cf files.tar files
 		sha256sum files.tar > files.tar.sha256sum
@@ -664,6 +697,7 @@ while [ $# -gt 0 ]; do
 				arch="arm"
 				abi="eabi"
 				linux_arch="$arch"
+				with_aoc="--with-arch=$specific_arch"
 				if [ $(echo "$specific_arch" | grep -c 7) -ne 0 ]; then
 					abi="eabihf"
 				fi
@@ -681,11 +715,12 @@ while [ $# -gt 0 ]; do
 				else
 					linux_arch="$arch"
 				fi
+
+				if [ "$arch" = "powerpc" ]; then
+					with_aoc="--with-cpu=$specific_arch"
+				fi
 			fi
 
-			if [ "$arch" = "powerpc" ]; then
-				arch_or_cpu_flag="cpu"
-			fi
 
 			compile_target="$arch-pocket-linux-$dist$abi"
 			shift
