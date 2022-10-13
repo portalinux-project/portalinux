@@ -109,7 +109,7 @@ else
 			fi
 		done
 
-		/bin/pl-setup
+		/usr/bin/pl-setup
 	fi
 fi
 

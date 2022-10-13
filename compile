@@ -484,6 +484,13 @@ compile_rootfs(){
 		chmod 777 "$output_rootfs/usr/bin/pl-install"
 		echo "Done."
 	fi
+
+	if [ ! -r "$output_rootfs/usr/bin/pl-setup" ]; then
+		printf "Installing PortaLinux Package Installer..."
+		cp "$plfiles/pl-utils/pl-setup" "$output_rootfs/usr/bin"
+		chmod 777 "$output_rootfs/usr/bin/pl-setup"
+		echo "Done."
+	fi
 }
 
 create_boot_image(){
