@@ -592,12 +592,12 @@ compile_extra_pkgs(){
 		_exec "Packaging Make" "make install-strip DESTDIR=$output/make/files"
 	fi
 
-	if [ ! -r "$otuput/ncurses/files/opt" ]; then
+	if [ ! -r "$output/ncurses/files/opt" ]; then
 		mkdir -p "$ncurses_dir/build"
 		cd "$ncurses_dir/build"
 		_exec "Configuring Ncurses" "../configure --prefix=/opt --host=$compile_target --with-cxx-shared --with-shared"
 		_exec "Compiling Ncurses" "make -j$threads"
-		_exec "Installing Ncurses" "make install DESTDIR=$output/ncurses/files"
+		_exec "Installing Ncurses" "make install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
 	fi
 
 	if [ ! -r "$output/nano/files/opt" ]; then
