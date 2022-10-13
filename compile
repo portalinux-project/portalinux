@@ -133,7 +133,7 @@ _generate_stuff(){
 			;;
 		"libdir")
 			set +e
-			if [ $(echo "$arch" | grep -c 64) -ne 0 ]
+			if [ $(echo "$arch" | grep -c 64) -ne 0 ]; then
 				libdir="lib64"
 			fi
 			set -e
