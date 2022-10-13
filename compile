@@ -546,7 +546,7 @@ compile_extra_pkgs(){
 		_exec "Packaging libgcc" "make install-strip-target-libgcc DESTDIR=$output/libstdc++/files"
 		_exec "Packaging libstdc++" "make install-strip-target-libstdc++-v3 DESTDIR=$output/libstdc++/files"
 		if [ "$dist" = "gnu" ]; then
-			_exec "Packaging libsanitizer" "make install-strip-target-ligsanitizer DESTDIR=$output/libsanitizer/files"
+			_exec "Packaging libsanitizer" "make install-strip-target-libsanitizer DESTDIR=$output/libsanitizer/files"
 		fi
 
 		rm "$toolchain_prefix/bin/cc" -f
