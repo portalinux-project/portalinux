@@ -774,14 +774,14 @@ while [ $# -gt 0 ]; do
 					;;
 				build-all-toolchains)
 					for i in pc earm earm64; do
-						./compile --log-file "$pldir/log-$i.txt" --toolchain-prefix $HOME/test --target-system $i --threads=$threads --build toolchain
+						./compile --log-file "$pldir/log-$i.txt" --toolchain-prefix $HOME/test --target-system $i --threads $threads --build toolchain
 						./compile --clean
 					done
 
 					./compile --target-system i486-gnu --init
 
 					for i in pc64 aarch64-gnu i686-gnu armv7-gnu; do
-						./compile --log-file "$pldir/log-$i.txt" --toolchain-prefix $HOME/test --target-system $i --threads=$threads --build toolchain
+						./compile --log-file "$pldir/log-$i.txt" --toolchain-prefix $HOME/test --target-system $i --threads $threads --build toolchain
 						./compile --clean
 					done
 					;;
