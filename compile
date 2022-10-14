@@ -398,9 +398,21 @@ compile_toolchain(){
 	if [ ! -r "$toolchain_prefix/$compile_target/lib/libncurses.so" ]; then
 		mkdir -p "$ncurses_dir/build"
 		cd "$ncurses_dir/build"
-		_exec "Configuring Ncurses" "../configure --prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared"
+		_exec "Configuring Ncurses" "../configure --prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib"
 		_exec "Compiling Ncurses" "make -j$threads"
 		_exec "Installing Ncurses" "make install INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
+	fi
+
+	# ncursesw
+	if [ ! -r "$toolchain_prefix/$compile_target/lib/libncursesw.so" ]; then
+		if [ -r "$ncurses_dir/build" ]; then
+			_exec "Cleaning Ncurses" "rm -rf $ncurses_dir/build"
+		fi
+		mkdir -p "$ncurses_dir/build"
+		cd "$ncurses_dir/build"
+		_exec "Configuring NcursesW" "../configure --prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec"
+		_exec "Compiling NcursesW" "make -j$threads"
+		_exec "Installing NcursesW" "make install INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
 	fi
 }
 
@@ -595,15 +607,19 @@ compile_extra_pkgs(){
 	if [ ! -r "$output/ncurses/files/opt" ]; then
 		mkdir -p "$ncurses_dir/build"
 		cd "$ncurses_dir/build"
-		_exec "Configuring Ncurses" "../configure --prefix=/opt --host=$compile_target --with-cxx-shared --with-shared"
+		_exec "Configuring Ncurses" "../configure --prefix=/opt --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib"
 		_exec "Compiling Ncurses" "make -j$threads"
-		_exec "Installing Ncurses" "make install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
+		_exec "Packaging Ncurses" "make install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
+		_exec "Cleaning Ncurses" "rm -rf *"
+		_exec "Configuring NcursesW" "../configure --prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec"
+		_exec "Compiling NcursesW" "make -j$threads"
+		_exec "Packaging NcursesW" "make install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
 	fi
 
 	if [ ! -r "$output/nano/files/opt" ]; then
 		mkdir -p "$nano_dir/build"
 		cd "$nano_dir/build"
-		_exec "Compiling Nano" "../configure --prefix=/opt --host=$compile_target"
+		_exec "Configuring Nano" "../configure --prefix=/opt --host=$compile_target --enable-tiny --enable-utf8"
 		_exec "Compiling Nano" "make -j$threads"
 		_exec "Installing Nano" "make install DESTDIR=$output/ncurses/files"
 	fi
@@ -646,7 +662,7 @@ compile_kernel(){
 	cp arch/$linux_arch/boot/*Image "$output"
 }
 
-echo "PortaLinux Build System v0.08"
+echo "PortaLinux Build System v0.08.1"
 printf "(c) 2022 pocketlinux32 & raisinware, Under GPLv2+\n\n"
 
 if [ $# -eq 0 ]; then
@@ -758,7 +774,19 @@ while [ $# -gt 0 ]; do
 
 					echo "Default config is $kdefconfig"
 					;;
+				build-all-toolchains)
+					for i in pc earm earm64; do
+						./compile --log-file "$pldir/log-$i.txt" --toolchain-prefix $HOME/test --target-system $i --build toolchain
+						./compile --clean
+					done
 
+					./compile --target-system i486-gnu --init
+
+					for i in pc64 aarch64-gnu i686-gnu armv7-gnu; do
+						./compile --log-file "$pldir/log-$i.txt" --toolchain-prefix $HOME/test --target-system $i --build toolchain
+						./compile --clean
+					done
+					;;
 			esac
 			exit 0
 			;;
@@ -835,6 +863,10 @@ while [ $# -gt 0 ]; do
 
 			make ARCH=$linux_arch menuconfig
 			exit 0
+			;;
+		"--log-file")
+			logfile=$2
+			shift
 			;;
 		"--help")
 			printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
