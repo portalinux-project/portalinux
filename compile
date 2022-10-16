@@ -158,7 +158,6 @@ _setup_gcc(){
 }
 
 _init(){
-	_runtime_calc start
 	if [ -d $build ]; then
 		_exec "Detected old build files, removing" "rm -rf $build"
 	fi
@@ -184,12 +183,9 @@ _init(){
 			done
 		done
 	fi
-	_runtime_calc stop
-	exit 0
 }
 
 _pl_clean(){
-	_runtime_calc start
 	set +e
 	local mode=2
 
@@ -231,8 +227,6 @@ _pl_clean(){
 			rm -rfv "$pldir/tarballs"
 		fi
 	fi
-	_runtime_calc stop
-	exit 0
 }
 
 _get_deps(){
@@ -450,8 +444,8 @@ compile_toolchain(){
 			if [ ! -r "$libc_dir/build/Makefile" ]; then
 				_exec "Configuring glibc" "../configure --prefix=$toolchain_prefix/$compile_target --host=$gnu_flags --with-headers=$toolchain_prefix/$compile_target/include libc_cv_forced_unwind=yes"
 			fi
-			_exec "Compiling glibc start files..." "make -j$threads csu/subdir_lib CFLAGS_FOR_TARGET='-s -O2' CXXFLAGS_FOR_TARGET='-s -O2'"
-			_exec "Installing glibc start files..." "install csu/crti.o csu/crtn.o csu/crt1.o '$toolchain_prefix/$compile_target/lib'"
+			_exec "Compiling glibc start files" "make -j$threads csu/subdir_lib CFLAGS_FOR_TARGET='-s -O2' CXXFLAGS_FOR_TARGET='-s -O2'"
+			_exec "Installing glibc start files" "install csu/crti.o csu/crtn.o csu/crt1.o '$toolchain_prefix/$compile_target/lib'"
 			_exec "Installing glibc headers" "make install-bootstrap-headers=yes install-headers"
 		else
 			_exec "Installing musl headers" "make ARCH=$arch prefix=$toolchain_prefix/$compile_target install-headers"
@@ -544,7 +538,7 @@ compile_rootfs(){
 			touch "$output_rootfs/opt/include/gnu/stubs-64.h"
 			echo "Done."
 		else
-			_exec "Configuring musl..." "./configure $main_comp"
+			_exec "Configuring musl" "./configure $main_comp"
 		fi
 
 		_exec "Compiling libc" "make -j$threads"
@@ -562,7 +556,7 @@ compile_rootfs(){
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
 		echo "CONFIG_CROSS_COMPILER_PREFIX=$toolchain_prefix/bin/$compile_target-" >> .config
 		echo "Done."
-		_exec "Compiling BusyBox..." "make -j$threads"
+		_exec "Compiling BusyBox" "make -j$threads"
 		printf "Installing Busybox..."
 		mv busybox "$output_rootfs/bin"
 		ln -s "/bin/busybox" "$output_rootfs/bin/sh" 2>/dev/null || true
@@ -721,7 +715,10 @@ trap "_exit_handler" EXIT INT HUP
 while [ $# -gt 0 ]; do
 	case $1 in
 		"--init")
+			_runtime_calc start
 			_init $@
+			_runtime_calc stop
+			exit 0
 			;;
 		"--target-system")
 			_target_system $2
@@ -777,10 +774,16 @@ while [ $# -gt 0 ]; do
 			exit 0
 			;;
 		"--clean")
+			_runtime_calc start
 			_pl_clean soft $2
+			_runtime_calc stop
+			exit 0
 			;;
 		"--hard-clean")
+			_runtime_calc start
 			_pl_clean hard $2
+			_runtime_calc stop
+			exit 0
 			;;
 		"--threads")
 			threads=$2

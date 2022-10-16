@@ -3,7 +3,7 @@
 ::ctrlaltdel:/sbin/reboot
 ::shutdown:/bin/umount -a -r
 ::shutdown:/sbin/swapoff -a
-::respawn:/bin/agetty 0 tty1
-::respawn:/bin/agetty 0 tty2
-::respawn:/bin/agetty 0 tty3
-::respawn:/bin/agetty 0 tty4
+tty1::respawn:/bin/agetty 38400 tty1
+tty2::respawn:/bin/agetty 38400 tty2
+tty3::respawn:/bin/agetty 38400 tty3
+tty4::respawn:/bin/agetty 38400 tty4
