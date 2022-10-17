@@ -12,7 +12,7 @@ toolchain_prefix="$(echo ~/cross)"
 compression="bzip2"
 threads=$(nproc)
 
-kernel_url="http://kernel.org/pub/linux/kernel/v5.x/linux-5.15.72.tar.xz"
+kernel_url="http://kernel.org/pub/linux/kernel/v5.x/linux-5.15.74.tar.xz"
 binutils_url="http://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.gz"
 gcc_url="http://ftp.gnu.org/gnu/gcc/gcc-10.3.0/gcc-10.3.0.tar.gz"
 gmp_url="http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz"
