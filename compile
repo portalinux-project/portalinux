@@ -312,7 +312,7 @@ _runtime_calc(){
 
 _parse_platform(){
 	set +e
-	case $specific_arch in
+	case $1 in
 		android32 | earm)
 			specific_arch="armv7"
 			dist="musl"
@@ -343,12 +343,12 @@ _parse_platform(){
 	set -e
 }
 
-_target_platform(){
+_target_system(){
 	specific_arch=$(echo $2 | cut -d- -f1)
 	dist=$(echo $2 | cut -d- -f2)
 
 	if [ "$specific_arch" = "$dist" ]; then
-		_parse_platform $2
+		_parse_platform $1
 	fi
 
 	if [ $(echo "$specific_arch" | grep -c arm) -ne 0 ]; then
