@@ -23,10 +23,12 @@ musl_url="https://musl.libc.org/releases/musl-1.2.3.tar.gz"
 busybox_url="http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
 bash_url="http://ftp.gnu.org/gnu/bash/bash-5.1.tar.gz"
 make_url="http://ftp.gnu.org/gnu/make/make-4.3.tar.gz"
+python_url="https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tar.xz"
 nano_url="http://ftp.gnu.org/gnu/nano/nano-6.2.tar.gz"
 ncurses_url="http://ftp.gnu.org/gnu/ncurses/ncurses-6.2.tar.gz"
-bison_url="http://ftp.gnu.org/gnu/bison/bison-3.7.6.tar.gz"
+grub_url="https://ftp.gnu.org/gnu/grub/grub-2.06.tar.xz"
 xserver_url="https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
+bison_url="http://ftp.gnu.org/gnu/bison/bison-3.7.6.tar.gz"
 
 kdefconfig="defconfig"
 extra_gcc_flags=""
@@ -157,6 +159,16 @@ _setup_gcc(){
 	fi
 }
 
+_setup_glibc(){
+	mkdir -p "$output_rootfs/opt/include/gnu"
+	touch "$output_rootfs/opt/include/gnu/stubs.h"
+	touch "$output_rootfs/opt/include/gnu/stubs-32.h"
+	touch "$output_rootfs/opt/include/gnu/stubs-64.h"
+	if [ "$1" = "tc" ]; then
+		$compile_target-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o "$toolchain_prefix/$compile_target/lib/libc.so"
+	fi
+}
+
 _init(){
 	if [ -d $build ]; then
 		_exec "Detected old build files, removing" "rm -rf $build"
@@ -230,7 +242,7 @@ _pl_clean(){
 }
 
 _get_deps(){
-	local URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $busybox_url $binutils_url $bash_url $make_url $ncurses_url $nano_url"
+	local URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $busybox_url $binutils_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
 
 	if [ "$dist" = "gnu" ]; then
 		URL="$URL $glibc_url"
@@ -458,10 +470,7 @@ compile_toolchain(){
 		local name="libgcc"
 		printf "Preparing to compile libgcc..."
 		if [ "$dist" = "gnu" ]; then
-			touch "$toolchain_prefix/$compile_target/include/gnu/stubs.h"
-			touch "$toolchain_prefix/$compile_target/include/gnu/stubs-32.h"
-			touch "$toolchain_prefix/$compile_target/include/gnu/stubs-64.h"
-			$compile_target-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o "$toolchain_prefix/$compile_target/lib/libc.so"
+			_setup_glibc tc
 		else
 			name="$name-static"
 			extra_flags="enable_shared=no"
@@ -531,12 +540,7 @@ compile_rootfs(){
 				_exec "Configuring glibc" "../configure $main_comp libc_cv_forced_unwind=yes CFLAGS='-s -O2' CXXFLAGS='-s -O2'"
 			fi
 
-			printf "Preparing for compilation..."
-			mkdir -p "$output_rootfs/opt/include/gnu"
-			touch "$output_rootfs/opt/include/gnu/stubs.h"
-			touch "$output_rootfs/opt/include/gnu/stubs-32.h"
-			touch "$output_rootfs/opt/include/gnu/stubs-64.h"
-			echo "Done."
+			_exec "Preparing for compilation" "_setup_gcc"
 		else
 			_exec "Configuring musl" "./configure $main_comp"
 		fi
@@ -580,15 +584,10 @@ compile_rootfs(){
 		echo "Done."
 	fi
 
-	if [ ! -r "$output_rootfs/usr/bin/pl-install" ]; then
-		printf "Installing PortaLinux Package Installer..."
+	if [ ! -r "$output_rootfs/usr/bin/pl-setup" ]; then
+		printf "Installing PortaLinux Package Installer & Setup..."
 		cp "$plfiles/pl-utils/pl-install" "$output_rootfs/usr/bin"
 		chmod 777 "$output_rootfs/usr/bin/pl-install"
-		echo "Done."
-	fi
-
-	if [ ! -r "$output_rootfs/usr/bin/pl-setup" ]; then
-		printf "Installing PortaLinux Setup..."
 		cp "$plfiles/pl-utils/pl-setup" "$output_rootfs/usr/bin"
 		chmod 777 "$output_rootfs/usr/bin/pl-setup"
 		echo "Done."
