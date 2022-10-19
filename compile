@@ -434,7 +434,11 @@ _compile_pkg(){
 	fi
 }
 
-compile_toolchain(){
+setup_toolchain(){
+	compile_gcc_toolchain
+}
+
+compile_gcc_toolchain(){
 	local extra_flags=""
 	local common_flags="$compile_target --disable-multilib"
 	local gnu_flags="$common_flags $with_aoc --disable-werror --disable-doc"
@@ -770,7 +774,7 @@ while [ $# -gt 0 ]; do
 					for i in pc earm earm64; do
 						logfile="$pldir/log-$i/"
 						_target_system $i
-						_compile_toolchain
+						setup_toolchain
 						_pl_clean soft
 					done
 
@@ -780,7 +784,7 @@ while [ $# -gt 0 ]; do
 					for i in pc64 aarch64-gnu i686-gnu armv7-gnu; do
 						logfile="$pldir/log-$i/"
 						_target_system $i
-						_compile_toolchain
+						setup_toolchain
 						_pl_clean soft
 					done
 					;;
@@ -855,7 +859,7 @@ printf "Toolchain install directory: $toolchain_prefix\n\n"
 _runtime_calc start
 case $action in
 	toolchain)
-		compile_toolchain
+		setup_toolchain
 		;;
 	rootfs)
 		compile_rootfs
