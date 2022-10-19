@@ -38,6 +38,7 @@ specific_arch="i486"
 arch="i486"
 dist="musl"
 libdir="lib"
+grub_platform="efi"
 abi=""
 with_aoc=""
 
@@ -53,6 +54,8 @@ bash_dir=""
 make_dir=""
 nano_dir=""
 ncurses_dir=""
+python_dir=""
+grub_dir=""
 
 start_time=""
 end_time=""
@@ -74,7 +77,11 @@ _exit_handler(){
 _exec(){
 	set +e
 	printf "$1..."
-	script -qeac "$2 2>&1" "$logfile" >/dev/null
+	if [ "$4" = "no-silent" ] || [ "$3" = "no-silent" ]; then
+		script -qeac "$2" "$logfile"
+	else
+		script -qeac "$2 2>&1" "$logfile" >/dev/null
+	fi
 	local errno=$?
 	if [ $errno -ne 0 ]; then
 		echo "Error!"
@@ -102,6 +109,8 @@ _get_pkg_names(){
 	make_dir="$(realpath $(echo $dirlist | grep 'make.[0-9,a-z,A-Z,\.]*' -o))"
 	nano_dir="$(realpath $(echo $dirlist | grep 'nano.[0-9,a-z,A-Z,\.]*' -o))"
 	ncurses_dir="$(realpath $(echo $dirlist | grep 'ncurses.[0-9,a-z,A-Z,\.]*' -o))"
+	grub_dir="$(realpath $(echo $dirlist | grep 'grub.[0-9,a-z,A-Z,\.]*' -o))"
+#	python_dir="$(realpath $(echo $dirlist | grep 'python.[0-9,a-z,A-Z,\.]*' -o))"
 
 	if [ "$dist" = "gnu" ]; then
 		libc_dir="$(realpath $(echo $dirlist | grep 'glibc.[0-9,a-z,A-Z,\.]*' -o))"
@@ -258,7 +267,7 @@ _get_deps(){
 
 	for i in $URL; do
 		if [ ! -f "$(basename $i)" ]; then
-			_exec "Downloading $(basename $i)" "wget -q --show-progress --progress=dot:giga '$i' $1" "cd .. && rm -rf tarballs"
+			_exec "Downloading $(basename $i)" "wget -q --show-progress --progress=dot:giga '$i' $1" "cd .. && rm -rf tarballs" "no-silent"
 		else
 			echo "$(basename $i) has already been downloaded. Skipping..."
 		fi
@@ -376,7 +385,7 @@ _target_system(){
 		if [ $(echo "$specific_arch" | grep -c i) -ne 0 ]; then
 			linux_arch="i386"
 		else
-			linux_arch="x86"
+			linux_arch="x86_64"
 		fi
 	else
 		arch="$specific_arch"
@@ -699,6 +708,12 @@ compile_kernel(){
 	fi
 	cp arch/$linux_arch/boot/dts/*.dtb "$output" 2>/dev/null || true
 	cp arch/$linux_arch/boot/*Image "$output"
+}
+
+compile_bootloader(){
+	_get_pkg_names
+
+	_compile_pkg "$toolchain_prefix/sbin/$compile_target-grub-install" "$grub_dir" "Configuring GRUB" "--prefix=$toolchain_prefix --target=$compile_target --program-prefix=$compile_target- --with-platform=$grub_platform" "Compiling GRUB" "" "Installing GRUB Tools" "make install"
 }
 
 echo "PortaLinux Build System v0.08.1"
