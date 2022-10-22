@@ -717,7 +717,8 @@ compile_kernel(){
 compile_bootloader(){
 	_get_pkg_names
 
-	_compile_pkg "$toolchain_prefix/sbin/$compile_target-grub-install" "$grub_dir" "Configuring GRUB" "--prefix=$toolchain_prefix --target=$compile_target --program-prefix=$compile_target- --with-platform=$grub_platform" "Compiling GRUB" "" "Installing GRUB Tools" "make install"
+	_compile_pkg "$toolchain_prefix/sbin/$compile_target-grub-install" "$grub_dir" "Configuring GRUB" "--prefix=$toolchain_prefix --target=$compile_target --program-prefix=$compile_target- --with-platform=$grub_platform" "Compiling GRUB" "" "Installing GRUB Tools" "install"
+	cp $grub_dir/build/grub-install ~/cross/bin/toolchain-grub-install
 }
 
 echo "PortaLinux Build System v0.08.1"
@@ -833,6 +834,9 @@ while [ $# -gt 0 ]; do
 			logfile=$2
 			shift
 			;;
+		"--install-bootloader")
+			
+			;;
 		"--help")
 			printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
 			echo "--init					Initializes the build system by downloading necessary components and unpacking them"
@@ -872,6 +876,9 @@ case $action in
 		;;
 	boot-img)
 		create_boot_image
+		;;
+	bootloader)
+		compile_bootloader
 		;;
 	*)
 		echo "Error: Unknown build command. Run $0 --help for a list of supported commands."

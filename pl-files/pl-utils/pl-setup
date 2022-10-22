@@ -7,21 +7,26 @@ _check_ans(){
 	fi
 }
 
-echo "PortaLinux Setup v0.01"
+echo "PortaLinux Setup v0.02"
 printf "(c) 2022 pocketlinux32, Under GPLv2+\n\n"
 
 read -n 1 -p "Set root password? [Y/n]" yn
+printf "\n"
 
 _check_ans
 
 passwd root
 
 read -n 1 -p "Create a new user? [Y/n]" yn
+printf "\n"
 
 _check_ans
 
 while [ "$user" = "" ]; do
 	read -p "Username: " user
 done
+
+adduser -h /home/$user $user
+adduser $user $user
 
 echo "Setup done!"
