@@ -21,6 +21,7 @@ mpfr_url="http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.0.tar.gz"
 glibc_url="http://ftp.gnu.org/gnu/glibc/glibc-2.31.tar.gz"
 musl_url="https://musl.libc.org/releases/musl-1.2.3.tar.gz"
 busybox_url="http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
+toybox_url="http://landley.net/toybox/downloads/toybox-0.8.8.tar.gz"
 bash_url="http://ftp.gnu.org/gnu/bash/bash-5.1.tar.gz"
 make_url="http://ftp.gnu.org/gnu/make/make-4.3.tar.gz"
 python_url="https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tar.xz"
@@ -49,7 +50,7 @@ gmp_dir=""
 mpc_dir=""
 mpfr_dir=""
 libc_dir=""
-busybox_dir=""
+coreutils_dir=""
 bash_dir=""
 make_dir=""
 nano_dir=""
@@ -104,7 +105,7 @@ _get_pkg_names(){
 	gmp_dir="$(realpath $(echo $dirlist | grep 'gmp.[0-9,a-z,A-Z,\.]*' -o))"
 	mpc_dir="$(realpath $(echo $dirlist | grep 'mpc.[0-9,a-z,A-Z,\.]*' -o))"
 	mpfr_dir="$(realpath $(echo $dirlist | grep 'mpfr.[0-9,a-z,A-Z,\.]*' -o))"
-	busybox_dir="$(realpath $(echo $dirlist | grep 'busybox.[0-9,a-z,A-Z,\.]*' -o))"
+	coreutils_dir="$(realpath $(echo $dirlist | grep '[0-9,a-z,A-Z,\.]*.box.[0-9,a-z,A-Z,\.]*' -o))"
 	bash_dir="$(realpath $(echo $dirlist | grep 'bash.[0-9,a-z,A-Z,\.]*' -o))"
 	make_dir="$(realpath $(echo $dirlist | grep 'make.[0-9,a-z,A-Z,\.]*' -o))"
 	nano_dir="$(realpath $(echo $dirlist | grep 'nano.[0-9,a-z,A-Z,\.]*' -o))"
@@ -195,7 +196,7 @@ _init(){
 	_get_pkg_names $dist
 	if [ "$dist" = "gnu" ]; then
 		sed -i 's/limits.h/linux\/limits.h/g' "$gcc_dir/libsanitizer/asan/asan_linux.cpp"
-		sed -i '20 i #include <bits/xopen_lim.h>' "$busybox_dir/include/libbb.h"
+		sed -i '20 i #include <bits/xopen_lim.h>' "$coreutils_dir/include/libbb.h"
 	else
 		for i in arch crt; do
 			cd "$libc_dir/$i"
@@ -251,12 +252,18 @@ _pl_clean(){
 }
 
 _get_deps(){
-	local URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $busybox_url $binutils_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
+	local URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
 
 	if [ "$dist" = "gnu" ]; then
 		URL="$URL $glibc_url"
 	else
 		URL="$URL $musl_url"
+	fi
+
+	if [ "$toybox" = "y" ]; then
+		
+	else
+		
 	fi
 
 	if [ "$2" = "experimental" ]; then
@@ -567,7 +574,7 @@ compile_rootfs(){
 	fi
 
 	if [ ! -r "$output_rootfs/bin/busybox" ]; then
-		cd "$busybox_dir"
+		cd "$coreutils_dir"
 
 		printf "Configuring BusyBox..."
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
@@ -760,7 +767,7 @@ while [ $# -gt 0 ]; do
 					fi
 
 					_get_pkg_names
-					printf "$linux_dir\n$binutils_dir\n$gcc_dir\n$gmp_dir\n$mpc_dir\n$mpfr_dir\n$libc_dir\n$busybox_dir\n$bash_dir\n"
+					printf "$linux_dir\n$binutils_dir\n$gcc_dir\n$gmp_dir\n$mpc_dir\n$mpfr_dir\n$libc_dir\n$coreutils_dir\n$bash_dir\n"
 					;;
 				defconfig)
 					if [ "$3" != "" ]; then
