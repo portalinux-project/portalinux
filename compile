@@ -261,9 +261,9 @@ _get_deps(){
 	fi
 
 	if [ "$toybox" = "y" ]; then
-		
+		URL="$URL $toybox_url"
 	else
-		
+		URL="$URL $busybox_url"
 	fi
 
 	if [ "$2" = "experimental" ]; then
