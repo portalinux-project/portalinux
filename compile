@@ -184,7 +184,7 @@ _init(){
 		_exec "Detected old build files, removing" "rm -rf $build"
 	fi
 
-	_get_deps $2 $3
+	_get_deps $1 $2
 	mkdir -p $build $toolchain_prefix $output
 	cd $pldir/tarballs && _decompress_all
 	for i in $(ls); do
@@ -742,7 +742,7 @@ while [ $# -gt 0 ]; do
 	case $1 in
 		"--init")
 			_runtime_calc start
-			_init $@
+			_init "$2" $3
 			_runtime_calc stop
 			exit 0
 			;;
