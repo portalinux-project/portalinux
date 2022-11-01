@@ -1,0 +1,13 @@
+NAME="PortaLinux"
+ID="portalinux"
+PRETTY_NAME="PortaLinux v0.09"
+DEFAULT_HOSTNAME="portalinux"
+
+HOME_URL="https://github.com/pocketlinux32/portalinux"
+DOCUMENTATION_URL="https://github.com/pocketlinux32/portalinux/wiki"
+
+IMAGE_VERSION="v0.09"
+IMAGE_ID="0.09"
+VARIANT="SED_HERE"
+VARIANT_ID="SED_ALSO_HERE"
+BUILD_ID="SED_THE_LAST_REPLACMENT"
