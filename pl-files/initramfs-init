@@ -1,9 +1,11 @@
 #!/bin/sh
-/bin/busybox --install -s
+
+PUT_DYN_SYMLINK_TO_BOX_HERE
+
 dmesg -n 1
 
-echo "Welcome to PortaLinux v0.08, (c) 2022 pocketlinux32 & raisinware"
-printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\n\n"
+echo "Welcome to PortaLinux v0.09, (c) 2022 pocketlinux32 & raisinware"
+printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\\n\\n"
 
 printf "Mounting pseudo-filesystems..."
 mount -t devtmpfs devtmpfs /dev
@@ -13,7 +15,7 @@ echo "Done."
 
 if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
 	echo "Running in chroot. Aborting boot and dropping to shell..."
-	/bin/ash
+	/bin/sh
 	for i in dev proc sys; do
 		umount /$i
 	done
@@ -26,17 +28,22 @@ if [ -r /proc/sys/kernel/hotplug ]; then
 else
 	mdev -s
 fi
-printf "Done.\nSwitching from ramfs to tmpfs..."
-mkdir /pivot
-mount -t tmpfs tmpfs /pivot
-mkdir -p /pivot/dev /pivot/sys /pivot/proc
-for i in dev sys proc; do
-	mount -o move /$i /pivot/$i
-	printf "."
-done
-for i in $(ls / | grep -v init | grep -v linuxrc | grep -v pivot); do
-	cp -r $i /pivot
-	printf "."
-done
-printf "Done.\nExecuting init...\n\n\n\n"
-exec switch_root /pivot /sbin/init
+
+#printf "Done.\\nSwitching from ramfs to tmpfs..."
+#mkdir /pivot
+#mount -t tmpfs tmpfs /pivot
+#mkdir -p /pivot/dev /pivot/sys /pivot/proc
+#for i in dev sys proc; do
+#	mount -o move /$i /pivot/$i
+#	printf "."
+#done
+#for i in $(ls / | grep -v init | grep -v linuxrc | grep -v pivot | grep -v dev); do
+#	cp -ar $i /pivot
+#	printf "."
+#done
+
+printf '#!/bin/sh\\n\\ngetty $@\\nclear\\n' > /bin/agetty
+chmod 777 /bin/agetty
+
+printf "Done.\\nExecuting init...\\n\\n"
+exec /sbin/init #/sbin/switch_root /pivot /bin/BOX init

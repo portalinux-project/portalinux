@@ -62,7 +62,7 @@ start_time=""
 end_time=""
 
 _exit_handler(){
-	local exit_num=$?
+	exit_num=$?
 
 	if [ $exit_num -ne 0 ]; then
 		if [ $exit_num -eq 130 ]; then
@@ -83,7 +83,7 @@ _exec(){
 	else
 		script -qeac "$2 2>&1" "$logfile" >/dev/null
 	fi
-	local errno=$?
+	errno=$?
 	if [ $errno -ne 0 ]; then
 		echo "Error!"
 		if [ "$3" = "" ]; then
@@ -96,7 +96,7 @@ _exec(){
 }
 
 _get_pkg_names(){
-	local dirlist="$(ls $build)"
+	dirlist="$(ls $build)"
 	cd "$build"
 
 	linux_dir="$(realpath $(echo $dirlist | grep 'linux.[0-9,a-z,A-Z,\.,\-]*' -o))"
@@ -131,7 +131,7 @@ _generate_stuff(){
 			;;
 		"pkg_ver")
 			set +e
-			local pkg=$2
+			pkg=$2
 			if [ "$2" = "musl-libc-headers" ]; then
 				pkg="musl"
 			elif [ "$2" = "gnu-libc-headers" ]; then
@@ -209,7 +209,7 @@ _init(){
 
 _pl_clean(){
 	set +e
-	local mode=2
+	mode=2
 
 	if [ "$1" = "soft" ]; then
 		if [ "$2" != "" ]; then
@@ -217,7 +217,7 @@ _pl_clean(){
 		fi
 
 		for i in $(ls "$build"); do
-			printf "Cleaninig $i..."
+			printf "Cleaning $i..."
 			if [ -d "$build/$i/build" ]; then
 				if [ $mode -eq 1 ]; then
 					cd "$build/$i/build"
@@ -252,7 +252,7 @@ _pl_clean(){
 }
 
 _get_deps(){
-	local URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
+	URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
 
 	if [ "$dist" = "gnu" ]; then
 		URL="$URL $glibc_url"
@@ -311,9 +311,9 @@ _runtime_calc(){
 			;;
 		stop)
 			end_time="$(date +%s)"
-			local runtime="$(expr $end_time - $start_time)"
-			local hours="$(expr $runtime / 3600)"
-			local minutes=0
+			runtime="$(expr $end_time - $start_time)"
+			hours="$(expr $runtime / 3600)"
+			minutes=0
 			printf "Operation took "
 
 			if [ $hours -ne 0 ]; then
@@ -446,10 +446,10 @@ setup_toolchain(){
 }
 
 compile_gcc_toolchain(){
-	local extra_flags=""
-	local common_flags="$compile_target --disable-multilib"
-	local gnu_flags="$common_flags $with_aoc --disable-werror --disable-doc"
-	local libc_flags=""
+	extra_flags=""
+	common_flags="$compile_target --disable-multilib"
+	gnu_flags="$common_flags $with_aoc --disable-werror --disable-doc"
+	libc_flags=""
 	_get_pkg_names $dist
 
 	# binutils
@@ -487,7 +487,7 @@ compile_gcc_toolchain(){
 	# libgcc (libgcc-static for musl)
 	if [ ! -r "$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a" ]; then
 		cd "$gcc_dir/build"
-		local name="libgcc"
+		name="libgcc"
 		printf "Preparing to compile libgcc..."
 		if [ "$dist" = "gnu" ]; then
 			_setup_glibc tc
@@ -540,9 +540,9 @@ compile_rootfs(){
 		echo "Error: You do not have the compiler for system $compile_target installed. Please run $0 --build toolchain and try again"
 		exit 1
 	fi
-	local common_flags="--with-sysroot=/ --host=$compile_target --datarootdir=/opt/share --includedir=/opt/include"
-	local included_comp="--prefix=/usr $common_flags"
-	local main_comp="$included_comp --disable-multilib"
+	common_flags="--with-sysroot=/ --host=$compile_target --datarootdir=/opt/share --includedir=/opt/include"
+	included_comp="--prefix=/usr $common_flags"
+	main_comp="$included_comp --disable-multilib"
 	_get_pkg_names $dist
 
 	printf "Creating rootfs structure..."
@@ -573,17 +573,19 @@ compile_rootfs(){
 		echo "Done."
 	fi
 
-	if [ ! -r "$output_rootfs/bin/busybox" ]; then
+	if [ ! -r "$output_rootfs/bin/$(basename $(echo $coreutils_dir | cut -d- -f1))" ]; then
 		cd "$coreutils_dir"
 
-		printf "Configuring BusyBox..."
+		printf "Configuring Coreutils..."
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
-		echo "CONFIG_CROSS_COMPILER_PREFIX=$toolchain_prefix/bin/$compile_target-" >> .config
+		if [ $(echo $coreutils_dir | grep "toybox") ]; then
+			printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_INIT=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config
+		fi
 		echo "Done."
-		_exec "Compiling BusyBox" "make -j$threads"
-		printf "Installing Busybox..."
-		mv busybox "$output_rootfs/bin"
-		ln -s "/bin/busybox" "$output_rootfs/bin/sh" 2>/dev/null || true
+		_exec "Compiling Coreutils" "make CROSS_COMPILE=$toolchain_prefix/bin/$compile_target- CC=gcc -j$threads"
+		printf "Installing Coreutils..."
+		mv *box "$output_rootfs/bin"
+		ln -s "/bin/$(basename $(echo $coreutils_dir | cut -d- -f1))" "$output_rootfs/bin/sh" 2>/dev/null || true
 		echo "Done."
 	fi
 
@@ -591,6 +593,13 @@ compile_rootfs(){
 		printf "Installing init script..."
 		cp "$plfiles/initramfs-init" "$output_rootfs/init"
 		chmod 777 "$output_rootfs/init"
+		if [ -f "$output_rootfs/bin/toybox" ]; then
+			sed -i 's/PUT_DYN_SYMLINK_TO_BOX_HERE/for i in $(toybox --long); do toybox ln -s \/bin\/toybox \/$i 2>\/dev\/null; done/g' "$output_rootfs/init"
+			sed -i 's/BOX/toybox/g' "$output_rootfs/init"
+		else
+			sed -i 's/PUT_DYN_SYMLINK_TO_BOX_HERE/\/bin\/busybox --install -s/g' "$output_rootfs/init"
+			sed -i 's/BOX/busybox/g' "$output_rootfs/init"
+		fi
 		echo "Done."
 	fi
 
@@ -628,13 +637,11 @@ create_boot_image(){
 	mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null || true
 	echo "Done."
 
-	if [ "$1" != "no-create-cpio" ]; then
-		printf "Creating initramfs boot file..."
-		cd "$output_rootfs"
-		find . | cpio -H newc -ov > $output/rootfs.cpio 2>/dev/null
-		$compression $output/rootfs.cpio
-		echo "Done"
-	fi
+	printf "Creating initramfs boot file..."
+	cd "$output_rootfs"
+	find . | cpio -H newc -ov > $output/rootfs.cpio 2>/dev/null
+	$compression $output/rootfs.cpio
+	echo "Done"
 }
 
 compile_extra_pkgs(){
@@ -643,8 +650,8 @@ compile_extra_pkgs(){
 	else
 		_get_pkg_names $dist
 	fi
-	local common_flags="--prefix=/opt --host=$compile_target"
-	local dev_stuff="$common_flags --disable-multilib --with-sysroot=/ --with-build-sysroot=$output_rootfs --with-native-system-header-dir=/opt/include"
+	common_flags="--prefix=/opt --host=$compile_target"
+	dev_stuff="$common_flags --disable-multilib --with-sysroot=/ --with-build-sysroot=$output_rootfs --with-native-system-header-dir=/opt/include"
 
 	printf "Creating build folders..."
 	for i in libstdc++ gcc linux-headers binutils bash make ncurses nano; do
@@ -713,7 +720,7 @@ compile_kernel(){
 
 	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads" "$logfile"
 
-	local modules_support=$(cat .config | grep -w "CONFIG_MODULES")
+	modules_support=$(grep -w "CONFIG_MODULES" .config)
 	if [ "$modules_support" != "" ] && [ "$(echo $modules_support | grep '#')" = "" ]; then
 		script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch INSTALL_MOD_PATH=$output_rootfs modules_install" "$logfile"
 	fi
@@ -728,7 +735,7 @@ compile_bootloader(){
 	cp $grub_dir/build/grub-install ~/cross/bin/toolchain-grub-install
 }
 
-echo "PortaLinux Build System v0.08.1"
+echo "PortaLinux Build System v0.09"
 printf "(c) 2022 pocketlinux32 & raisinware, Under GPLv2+\n\n"
 
 if [ $# -eq 0 ]; then

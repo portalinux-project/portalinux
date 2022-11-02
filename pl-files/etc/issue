@@ -1,7 +1,7 @@
-PortaLinux v0.08
+PortaLinux v0.09
 
 ports: https://github.com/raisinware/portalinux
-mainline: https://github.com/porcketlinux32/portalinux
+mainline: https://github.com/pocketlinux32/portalinux
 
 PortaLinux is a Free and Open Source hobby project. We are only doing this on
 our free time. WE ARE GIVING THIS SOFTWARE AS-IS AND WE ARE NOT RESPONSIBLE FOR

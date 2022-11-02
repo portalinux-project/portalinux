@@ -1,6 +1,6 @@
-#include <pl32-memory.h>
-#include <pl32-shell.h>
-#include <pl32-filesystem.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <tar.h>
 
 bool silent = false;
 const char compressionMagic[6];

@@ -3,12 +3,12 @@ device=""
 devscan_timeout=10
 
 parse_kcmdline(){
-	cmdline=$(cat /proc/cmdline | egrep -o 'plflags.[a-z,0-9,\:,\,]*' | cut -d'=' -f2)
+	cmdline=$(grep -E -o 'plflags.[a-z,0-9,\:,\,]*' /proc/cmdline | cut -d'=' -f2)
 
 	if [ $(echo $cmdline | grep -c nodevscan) -ne 0 ]; then
 		devscan_timeout=0
 	elif [ $(echo $cmdline | grep -c dstimeout) -ne 0 ]; then
-		devscan_timeout=$(echo $cmdline | egrep -o 'dstimeout.[0-9,\:]*' | cut -d: -f2)
+		devscan_timeout=$(echo $cmdline | grep -E -o 'dstimeout.[0-9,\:]*' | cut -d: -f2)
 		if [ "$devscan_timeout" = "" ]; then
 			devscan_timeout=10
 		fi
@@ -16,7 +16,7 @@ parse_kcmdline(){
 
 	if [ $(echo $cmdline | grep -c optdev) -ne 0 ]; then
 		devscan_timeout=0
-		device=$(echo $cmdline | egrep -o 'optdev.[a-z,0-9,\:]*' | cut -d: -f2)
+		device=$(echo $cmdline | grep -E -o 'optdev.[a-z,0-9,\:]*' | cut -d: -f2)
 	fi
 }
 
@@ -45,16 +45,13 @@ device_scan(){
 		fi
 	done
 
-	if ! mountpoint /opt &>/dev/null; then
+	if ! mountpoint /opt 2>/dev/null; then
 		echo "None found"
 	fi
 }
 
 echo "Welcome to PortaLinux v0.08, (c) 2022 pocketlinux32 & raisinware"
 printf "Init script. Running on Linux $(uname -m) $(uname -r)\n\n"
-
-printf '#!/bin/sh\n\ngetty $@\nclear\n' > /bin/agetty
-chmod 777 /bin/agetty
 
 if [ -r /lib/modules ]; then
 	printf "Loading kernel modules..."
@@ -76,7 +73,7 @@ else
 	fi
 fi
 
-if ! mountpoint /opt &>/dev/null; then
+if ! mountpoint /opt 2>/dev/null; then
 	echo "/opt is not a mountpoint. Running without filesystem persistence."
 else
 	printf "Setting up filesystem persistence..."
