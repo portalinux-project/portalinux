@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+alias source="." # make source work on posix shells
+
 pldir="$(dirname $(realpath $0))"
 plfiles="$pldir/pl-files"
 logfile="$pldir/log.txt"
@@ -12,24 +14,7 @@ toolchain_prefix="$(echo ~/cross)"
 compression="bzip2"
 threads=$(nproc)
 
-kernel_url="http://kernel.org/pub/linux/kernel/v5.x/linux-5.15.77.tar.xz"
-binutils_url="http://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.gz"
-gcc_url="http://ftp.gnu.org/gnu/gcc/gcc-10.3.0/gcc-10.3.0.tar.gz"
-gmp_url="http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz"
-mpc_url="http://ftp.gnu.org/gnu/mpc/mpc-1.2.1.tar.gz"
-mpfr_url="http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.0.tar.gz"
-glibc_url="http://ftp.gnu.org/gnu/glibc/glibc-2.31.tar.gz"
-musl_url="https://musl.libc.org/releases/musl-1.2.3.tar.gz"
-busybox_url="http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
-toybox_url="http://landley.net/toybox/downloads/toybox-0.8.8.tar.gz"
-bash_url="http://ftp.gnu.org/gnu/bash/bash-5.1.tar.gz"
-make_url="http://ftp.gnu.org/gnu/make/make-4.3.tar.gz"
-python_url="https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tar.xz"
-nano_url="http://ftp.gnu.org/gnu/nano/nano-6.2.tar.gz"
-ncurses_url="http://ftp.gnu.org/gnu/ncurses/ncurses-6.2.tar.gz"
-grub_url="https://ftp.gnu.org/gnu/grub/grub-2.06.tar.xz"
-xserver_url="https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
-bison_url="http://ftp.gnu.org/gnu/bison/bison-3.7.6.tar.gz"
+source "$plfiles/compile-modules/urls.sh"
 
 kdefconfig="defconfig"
 extra_gcc_flags=""
@@ -179,128 +164,8 @@ _setup_glibc(){
 	fi
 }
 
-_init(){
-	if [ -d $build ]; then
-		_exec "Detected old build files, removing" "rm -rf $build"
-	fi
-
-	_get_deps $1 $2
-	mkdir -p $build $toolchain_prefix $output
-	cd $pldir/tarballs && _decompress_all
-	for i in $(ls); do
-		if [ -d $i ]; then
-			mv $i $build
-		fi
-	done
-
-	_get_pkg_names $dist
-	if [ "$dist" = "gnu" ]; then
-		sed -i 's/limits.h/linux\/limits.h/g' "$gcc_dir/libsanitizer/asan/asan_linux.cpp"
-		sed -i '20 i #include <bits/xopen_lim.h>' "$coreutils_dir/include/libbb.h"
-	else
-		for i in arch crt; do
-			cd "$libc_dir/$i"
-			for j in i486 i586 i686; do
-				ln i386 $j -s
-			done
-		done
-	fi
-}
-
-_pl_clean(){
-	set +e
-	mode=2
-
-	if [ "$1" = "soft" ]; then
-		if [ "$2" != "" ]; then
-			mode="$2"
-		fi
-
-		for i in $(ls "$build"); do
-			printf "Cleaning $i..."
-			if [ -d "$build/$i/build" ]; then
-				if [ $mode -eq 1 ]; then
-					cd "$build/$i/build"
-					make -s clean >/dev/null 2>&1
-					shift
-				else
-					rm -rf $build/$i/build
-				fi
-			elif [ -r $build/$i/Makefile ]; then
-				cd $build/$i
-				make -s clean >/dev/null 2>&1
-				make -s distclean >/dev/null 2>&1
-			fi
-			echo "Done."
-		done
-
-		if [ $mode -gt 2 ]; then
-			printf "Deleting output directory..."
-			rm -rf "$output"
-			echo "Done."
-			shift
-		fi
-		rm -f "$logfile"
-	else
-		rm -rfv "$build" "$output" "$logfile"
-		if [ $(echo "$2" | grep "no-rm-t" -c) -ne 0 ]; then
-			shift
-		else
-			rm -rfv "$pldir/tarballs"
-		fi
-	fi
-}
-
-_get_deps(){
-	URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
-
-	if [ "$dist" = "gnu" ]; then
-		URL="$URL $glibc_url"
-	else
-		URL="$URL $musl_url"
-	fi
-
-	if [ "$toybox" = "y" ]; then
-		URL="$URL $toybox_url"
-	else
-		URL="$URL $busybox_url"
-	fi
-
-	if [ "$2" = "experimental" ]; then
-		URl="$URL $xserver_url $bison_url"
-	fi
-
-	mkdir -p tarballs && cd tarballs
-
-	for i in $URL; do
-		if [ ! -f "$(basename $i)" ]; then
-			_exec "Downloading $(basename $i)" "wget -q --show-progress --progress=dot:giga '$i' $1" "cd .. && rm -rf tarballs" "no-silent"
-		else
-			echo "$(basename $i) has already been downloaded. Skipping..."
-		fi
-	done
-}
-
-_decompress_all(){
-	for i in $(ls | grep .tar); do
-		printf "Unpacking archive $i..."
-		case $i in
-			*.gz)
-				gunzip -c "$i" | tar xf -
-				;;
-			*.bz2)
-				bunzip2 -c "$i" | tar xf -
-				;;
-			*.xz)
-				xz -dc "$i" | tar xf -
-				;;
-			*.zip)
-				unzip "$i" &>/dev/null
-		esac
-		echo "Done."
-	done
-	echo "Decompressed all files successfully"
-}
+source "$plfiles/compile-modules/init.sh"
+source "$plfiles/compile-modules/clean.sh"
 
 _runtime_calc(){
 	set +e
