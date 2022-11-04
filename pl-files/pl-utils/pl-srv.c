@@ -7,6 +7,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int main(){
+int main(int argc, const char* argv[]){
 	
 }
