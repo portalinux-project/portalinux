@@ -25,9 +25,10 @@ compile_rootfs(){
 		mkdir -p "$output_rootfs/$i"
 		printf "."
 	done
-	for i in bin sbin lib usr/sbin; do
+	for i in bin sbin usr/sbin; do
 		ln -s /usr/bin "$output_rootfs/$i"
 	done
+	ln -s /usr/lib /lib
 	echo "Done."
 
 	if [ ! -r "$output_rootfs/usr/lib/libc.a" ]; then
