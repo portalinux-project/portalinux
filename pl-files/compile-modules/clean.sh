@@ -1,3 +1,5 @@
+## SPDX-License-Identifier: GPL-2.0-or-later
+
 _pl_clean(){
 	set +e
 	mode=2

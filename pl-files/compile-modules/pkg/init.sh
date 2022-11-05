@@ -1,3 +1,5 @@
+## SPDX-License-Identifier: GPL-2.0-or-later
+
 _init(){
 	if [ -d $build ]; then
 		_exec "Detected old build files, removing" "rm -rf $build"

@@ -1,3 +1,14 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+## Default Directory and Logfile Locations
+build="$pldir/build"
+output="$pldir/output"
+output_rootfs="$output/rootfs"
+output_initramfs="$output/initramfs"
+toolchain_prefix="$(echo ~/cross)"
+logfile="$pldir/log.txt"
+
+## Default URLS
 kernel_url="https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.77.tar.xz"
 binutils_url="http://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.gz"
 gcc_url="http://ftp.gnu.org/gnu/gcc/gcc-10.3.0/gcc-10.3.0.tar.gz"
@@ -16,3 +27,20 @@ ncurses_url="http://ftp.gnu.org/gnu/ncurses/ncurses-6.2.tar.gz"
 grub_url="https://ftp.gnu.org/gnu/grub/grub-2.06.tar.xz"
 xserver_url="https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
 bison_url="http://ftp.gnu.org/gnu/bison/bison-3.7.6.tar.gz"
+
+## Default Target
+compile_target="i486-pocket-linux-musl"
+linux_arch="i386"
+specific_arch="i486"
+arch="i486"
+dist="musl"
+libdir="lib"
+grub_platform="efi"
+abi=""
+with_aoc=""
+
+## Default Configs
+kdefconfig="defconfig"
+extra_gcc_flags=""
+compression="bzip2"
+threads=$(nproc)
