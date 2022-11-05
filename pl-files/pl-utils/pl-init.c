@@ -6,10 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+
+// Linux-specific headers
+#include <sys/mount.h>
+#include <sys/reboot.h>
 
 int safeMount(char* source, char* dest, char* fstype, int mountflags, char* data){
 	struct stat root;
@@ -60,12 +63,16 @@ int main(int argc, const char* argv[]){
 	pid_t shell = fork();
 	if(shell == 0){
 		sleep(1);
-		execl("/bin/toybox", "/bin/sh", NULL);
+		char buffer[64];
+		char* args[] = { "sh", NULL };
+		execv(realpath("/bin/sh", buffer), args);
 	}else{
 		int status;
 		waitpid(shell, &status, 0);
 		printf("* Shell has exited with code %d\n", status);
 	}
 
-	while(1);
+	printf("* Powering off...\n");
+	sync();
+	reboot(RB_POWER_OFF);
 }
