@@ -21,9 +21,12 @@ compile_rootfs(){
 	_get_pkg_names $dist
 
 	printf "Creating rootfs structure..."
-	for i in bin dev sys proc lib opt sbin usr/bin usr/lib usr/sbin root mnt home tmp var; do
+	for i in dev sys proc opt usr/bin usr/lib root mnt home tmp var; do
 		mkdir -p "$output_rootfs/$i"
 		printf "."
+	done
+	for i in bin sbin lib usr/sbin; do
+		ln -s /usr/bin "$output_rootfs/$i"
 	done
 	echo "Done."
 
