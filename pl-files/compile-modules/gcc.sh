@@ -104,11 +104,11 @@ compile_toolchain(){
 	_compile_pkg "$toolchain_prefix/$compile_target/$libdir/libstdc++.so" "$gcc_dir" "" "" "Compiling libstdc++" "" "Installing libstdc++" "install-strip-target-libstdc++-v3"
 
 	# ncurses
-	_compile_pkg "$toolchain_prefix/$compile_target/lib/libncurses.so" "$ncurses_dir" "Configuring Ncurses" "--prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib" "Compiling Ncurses" "" "Installing Ncurses" "install INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
+	_compile_pkg "$toolchain_prefix/$compile_target/lib/libncurses.so" "$ncurses_dir" "Configuring Ncurses" "--prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib" "Compiling Ncurses" "" "Installing Ncurses" "install INSTALL_PROG='/usr/bin/env install --strip-program=$compile_target-strip -c -s'"
 
 	# ncursesw
 	if [ -r "$ncurses_dir/build" ]; then
 		_exec "Cleaning Ncurses" "rm -rf $ncurses_dir/build"
 	fi
-	_compile_pkg "$toolchain_prefix/$compile_target/lib/libncursesw.so" "$ncurses_dir" "Configuring NcursesW" "--prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec" "Compiling NcursesW" "" "Installing NcursesW" "install INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
+	_compile_pkg "$toolchain_prefix/$compile_target/lib/libncursesw.so" "$ncurses_dir" "Configuring NcursesW" "--prefix=$toolchain_prefix/$compile_target --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec" "Compiling NcursesW" "" "Installing NcursesW" "install INSTALL_PROG='/usr/bin/env install --strip-program=$compile_target-strip -c -s'"
 }

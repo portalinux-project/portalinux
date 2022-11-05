@@ -235,11 +235,11 @@ compile_extra_pkgs(){
 	_compile_pkg "$output/make/files/opt" "$make_dir" "Configuring GNU Make" "$common_flags --without-guile" "Compiling GNU Make" "" "Packaging GNU Make" "install-strip DESTDIR=$output/make/files"
 
 	# ncurses
-	_compile_pkg "$output/ncurses/files/opt/lib/libncurses.so" "$ncurses_dir" "Configuring Ncurses" "$common_flags --with-cxx-shared --with-shared --enable-overwrite --with-termlib" "Compiling Ncurses" "" "Packaging Ncurses" "install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
+	_compile_pkg "$output/ncurses/files/opt/lib/libncurses.so" "$ncurses_dir" "Configuring Ncurses" "$common_flags --with-cxx-shared --with-shared --enable-overwrite --with-termlib" "Compiling Ncurses" "" "Packaging Ncurses" "install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/env install --strip-program=$compile_target-strip -c -s'"
 	if [ -r "$ncurses_dir/build" ]; then
 		_exec "Cleaning Ncurses" "rm -rf $ncurses_dir/build"
 	fi
-	_compile_pkg "$output/ncurses/files/opt/lib/libncursesw.so" "$ncurses_dir" "Configuring NcursesW" "$common_flags --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec" "Compiling NcursesW" "" "Packaging NcursesW" "install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/install --strip-program=$compile_target-strip -c -s'"
+	_compile_pkg "$output/ncurses/files/opt/lib/libncursesw.so" "$ncurses_dir" "Configuring NcursesW" "$common_flags --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec" "Compiling NcursesW" "" "Packaging NcursesW" "install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/env install --strip-program=$compile_target-strip -c -s'"
 
 	# nano
 	_compile_pkg "$output/nano/files/opt" "$nano_dir" "Configuring Nano" "$common_flags --enable-tiny --enable-utf8" "Compiling Nano" "" "Installing Nano" "install DESTDIR=$output/ncurses/files"
