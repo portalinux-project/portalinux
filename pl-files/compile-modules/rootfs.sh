@@ -64,7 +64,7 @@ compile_rootfs(){
 		_exec "Compiling Coreutils" "make CROSS_COMPILE=$toolchain_prefix/bin/$compile_target- CC=gcc -j$threads"
 		printf "Installing Coreutils..."
 		mv *box "$output_rootfs/bin"
-		ln -s "/bin/$(basename $(echo $coreutils_dir | cut -d- -f1))" "$output_rootfs/bin/sh" 2>/dev/null || true
+		ln -s "/bin/$(basename $coreutils_dir | cut -d- -f1)" "$output_rootfs/bin/sh" 2>/dev/null || true
 		echo "Done."
 	fi
 
