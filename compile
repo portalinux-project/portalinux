@@ -184,9 +184,9 @@ _target_system(){
 
 setup_toolchain(){
 	if [ "$LLVM" = "1" ]; then
-		source "$pldir/compile_modules/llvm.sh"
+		source "$plfiles/compile-modules/llvm.sh"
 	else
-		source "$pldir/compile_modules/gcc.sh"
+		source "$plfiles/compile-modules/gcc.sh"
 	fi
 
 	compile_toolchain
@@ -400,7 +400,7 @@ while [ $# -gt 0 ]; do
 			shift
 			;;
 		"--install-bootloader")
-			
+			#
 			;;
 		"--help")
 			printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
