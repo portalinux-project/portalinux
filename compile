@@ -7,6 +7,8 @@ set -e
 # TODO: maybe make a _timed_exec() and/or _timed_run() function to potentialy remove some additional redundant lines of code
 # TODO: document the usage and params of every function
 # TODO: document every modules needed dependencies in comments
+# TODO: finish llvm support
+# TODO: remove GCC dependency in compile_extra_pkgs()
 
 alias source="." # make source work on posix shells
 pldir="$(dirname $(realpath $0))"
@@ -434,6 +436,7 @@ case $action in
 		compile_rootfs
 		;;
 	extra-pkgs)
+		source "$plfiles/compile-modules/gcc.sh" # TODO: remove GCC dependency
 		compile_extra_pkgs
 		;;
 	kernel)
