@@ -575,17 +575,19 @@ compile_rootfs(){
 
 	if [ ! -r "$output_rootfs/bin/$(basename $(echo $coreutils_dir | cut -d- -f1))" ]; then
 		cd "$coreutils_dir"
+		compile_flags="CROSS_COMPILE=$toolchain_prefix/bin/$compile_target-"
 
 		printf "Configuring Coreutils..."
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
 		if [ $(echo $coreutils_dir | grep "toybox") ]; then
 			printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_INIT=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config
+			compile_flags="$compile_flags CC=gcc"
 		fi
 		echo "Done."
-		_exec "Compiling Coreutils" "make CROSS_COMPILE=$toolchain_prefix/bin/$compile_target- CC=gcc -j$threads"
+		_exec "Compiling Coreutils" "make $compile_flags -j$threads"
 		printf "Installing Coreutils..."
 		mv *box "$output_rootfs/bin"
-		ln -s "/bin/$(basename $(echo $coreutils_dir | cut -d- -f1))" "$output_rootfs/bin/sh" 2>/dev/null || true
+		ln -s "/bin/$(basename $coreutils_dir | cut -d- -f1)" "$output_rootfs/bin/sh" 2>/dev/null || true
 		echo "Done."
 	fi
 
