@@ -38,7 +38,7 @@ compile_toolchain(){
 	if [ "$dist" = "musl" ]; then
 		extra_flags="--disable-libsanitizer --enable-initfini-array"
 	fi
-	_compile_pkg "$toolchain_prefix/bin/$compile_target-gcc" "$gcc_dir" "Configuring GCC" "--prefix=$toolchain_prefix --target=$gnu_flags --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap $extra_flags $extra_gcc_flags" "Compiling GCC C/C++ compilers" "all-gcc" "Installing GCC C/C++ compilers" "install-strip-gcc"
+	_compile_pkg "$toolchain_prefix/bin/$compile_target-gcc" "$gcc_dir" "Configuring GCC" "--prefix=$toolchain_prefix --target=$gnu_flags --enable-languages=c,c++,$extra_gcc_langs --disable-libstdcxx-debug --disable-bootstrap $extra_flags $extra_gcc_flags" "Compiling GCC C/C++ compilers" "all-gcc" "Installing GCC C/C++ compilers" "install-strip-gcc"
 
 	# linux headers
 	if [ ! -r "$toolchain_prefix/$compile_target/include/linux" ]; then
