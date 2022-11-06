@@ -11,7 +11,7 @@ logfile="$pldir/log.txt"
 ## Default URLS
 kernel_url="https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.77.tar.xz"
 binutils_url="http://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.gz"
-gcc_url="http://ftp.gnu.org/gnu/gcc/gcc-10.3.0/gcc-10.3.0.tar.gz"
+gcc_url="http://ftp.gnu.org/gnu/gcc/gcc-10.3.0/gcc-10.3.0.tar.gz" # update to 10.4? ver num is hardcoded in some places
 gmp_url="http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz"
 mpc_url="http://ftp.gnu.org/gnu/mpc/mpc-1.2.1.tar.gz"
 mpfr_url="http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.0.tar.gz"
@@ -20,7 +20,7 @@ musl_url="https://musl.libc.org/releases/musl-1.2.3.tar.gz"
 busybox_url="http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
 toybox_url="http://landley.net/toybox/downloads/toybox-0.8.8.tar.gz"
 bash_url="http://ftp.gnu.org/gnu/bash/bash-5.1.tar.gz"
-make_url="http://ftp.gnu.org/gnu/make/make-4.3.tar.gz"
+make_url="http://ftp.gnu.org/gnu/make/make-4.3.tar.gz" # update to 4.4?
 python_url="https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tar.xz"
 nano_url="http://ftp.gnu.org/gnu/nano/nano-6.2.tar.gz"
 ncurses_url="http://ftp.gnu.org/gnu/ncurses/ncurses-6.2.tar.gz"
