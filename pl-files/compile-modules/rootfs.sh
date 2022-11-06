@@ -11,7 +11,7 @@ _rootfs_cleanup(){
 }
 
 compile_rootfs(){
-	if [ ! -r "$toolchain_prefix/bin/$compile_target-gcc" ]; then
+	if ! command -v $compile_target-gcc > /dev/null; then
 		echo "Error: You do not have the compiler for system $compile_target installed. Please run $0 --build toolchain and try again"
 		exit 1
 	fi
