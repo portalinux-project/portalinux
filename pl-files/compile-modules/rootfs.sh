@@ -26,9 +26,9 @@ compile_rootfs(){
 		printf "."
 	done
 	for i in bin sbin usr/sbin; do
-		ln -s /usr/bin "$output_rootfs/$i"
+		ln -s "$output_rootfs/usr/bin" "$output_rootfs/$i"
 	done
-	ln -s /usr/lib /lib
+	ln -s "$output_rootfs/usr/lib" "$output_rootfs/lib"
 	echo "Done."
 
 	if [ ! -r "$output_rootfs/usr/lib/libc.a" ]; then

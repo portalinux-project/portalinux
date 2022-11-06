@@ -23,6 +23,7 @@ _get_deps(){
 
 	for i in $URL; do
 		if [ ! -f "$(basename $i)" ]; then
+			printf "\n$i\n" >> $logfile
 			_exec "Downloading $(basename $i)" "wget -q --show-progress --progress=dot:giga '$i' $1" "cd .. && rm -rf tarballs" "no-silent"
 		else
 			echo "$(basename $i) has already been downloaded. Skipping..."
