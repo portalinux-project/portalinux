@@ -9,6 +9,8 @@ set -e
 # TODO: document every modules needed dependencies in comments
 # TODO: finish llvm support
 # TODO: remove GCC dependency in compile_extra_pkgs()
+# TODO: look into updating some of the packages (gcc and gnu make are some candidates)
+# TODO: make script to check for new package releases (maybe even update some of the urls for us)
 
 alias source="." # make source work on posix shells
 pldir="$(dirname $(realpath $0))"
