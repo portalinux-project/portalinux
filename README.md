@@ -20,6 +20,7 @@ while also being as secure and compatible with as many components as it can.
 - Flex >= 2.x
 - Bison >= 3.x
 - Gawk >= 3.x/Busybox Awk >= 1.30.1
+- Rsync (for Linux kernel headers)
 
 ## System Requirements
 
@@ -30,7 +31,7 @@ least 16GiB of storage, it will work
 
 # Build instructions
 
-Before building PortaLinux, you must initialize the script by running the 
+Before building PortaLinux, you must initialize the script by running the
 following:
 ```
 ./compile --init
