@@ -14,6 +14,27 @@
 #include <sys/mount.h>
 #include <sys/reboot.h>
 
+void parseInitTabLine(char* line){
+	char parsedLine[4][128];
+
+	strtok()
+}
+
+int parseInitTab(){
+	FILE* inittabFile = open("/etc/inittab", "r");
+
+	if(!inittabFile){
+		printf("	Could not load inittab. Running pl-srv instead");
+		return 1;
+	}
+
+	char buffer[64];
+	while(fgets(buffer, 64, inittabFile) != NULL){
+		parseInitTabLine(buffer);
+	}
+}
+
+
 int safeMount(char* source, char* dest, char* fstype, int mountflags, char* data){
 	struct stat root;
 	struct stat mountpoint;
@@ -58,6 +79,9 @@ int main(int argc, const char* argv[]){
 	safeMountBootFS("/sys", "sysfs");
 	safeMountBootFS("/proc", "proc");
 	safeMountBootFS("/dev", "devtmpfs");
+
+	printf("* Parsing and executing inittab:\n");
+	parseInitTab();
 
 	printf("* Executing shell\n\n");
 	pid_t shell = fork();
