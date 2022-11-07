@@ -22,7 +22,7 @@ _parse_platform(){
 			;;
 		*)
 			if [ -f "$pldir/custom-platforms" ]; then
-				. $pldir/custom-platforms $specific_arch
+				source "$plfiles/compile-modules/custom-platforms.sh" $specific_arch
 			fi
 
 			if [ "$specific_arch" = "$dist" ]; then
