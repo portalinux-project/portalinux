@@ -15,6 +15,7 @@ pkgs.mkShell.override { stdenv = pkgs.gcc7Stdenv; } {
 		pkgs.which
 		pkgs.unixtools.script
 		pkgs.rsync
+		pkgs.ncurses
 
 		pkgs.gnumake
 		pkgs.flex
