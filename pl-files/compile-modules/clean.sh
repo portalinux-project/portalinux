@@ -4,11 +4,11 @@ _pl_clean(){
 	set +e
 	mode=2
 
-	if [ "$1" = "soft" ]; then
-		if [ "$2" != "" ]; then
-			mode="$2"
-		fi
+	if [ "$1" != "" ]; then
+		mode="$1"
+	fi
 
+	if [ $mode -lt 4 ]; then
 		for i in $(ls "$build"); do
 			printf "Cleaning $i..."
 			if [ -d "$build/$i/build" ]; then

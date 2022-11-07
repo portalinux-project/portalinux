@@ -111,7 +111,19 @@ _generate_stuff(){
 	esac
 }
 
-source "$plfiles/compile-modules/clean.sh"
+_setup_gcc(){
+	if [ ! -r "$gcc_dir/mpfr" ]; then
+		ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
+		ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null || true
+		ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null || true
+	fi
+
+	if [ "$1" = "rfs" ]; then
+		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null || true
+		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null || true
+	fi
+}
+
 source "$plfiles/compile-modules/runtime_calc.sh"
 
 _parse_platform(){
@@ -195,8 +207,6 @@ setup_toolchain(){
 
 	compile_toolchain
 }
-
-source "$plfiles/compile-modules/rootfs.sh"
 
 compile_kernel(){
 	_get_pkg_names
@@ -296,15 +306,14 @@ while [ $# -gt 0 ]; do
 			esac
 			exit 0
 			;;
-		"--clean")
+		"--clean" | "--hard-clean")
 			_runtime_calc start
-			_pl_clean soft $2
-			_runtime_calc stop
-			exit 0
-			;;
-		"--hard-clean")
-			_runtime_calc start
-			_pl_clean hard $2
+			source "$plfiles/compile-modules/clean.sh"
+			args="$2 $3"
+			if [ "$1" = "--hard-clean" ]; then
+				args="4 $2"
+			fi
+			_pl_clean $args
 			_runtime_calc stop
 			exit 0
 			;;
@@ -369,19 +378,19 @@ case $action in
 	toolchain)
 		setup_toolchain
 		;;
-	rootfs)
+	rootfs | boot-img)
+		source "$plfiles/compile-modules/rootfs.sh"
 		compile_rootfs
+		if [ "$action" = "boot-img" ]; then
+			create_boot_image
+		fi
 		;;
 	extra-pkgs)
-		source "$plfiles/compile-modules/gcc.sh" # TODO: remove GCC dependency
 		source "$plfiles/compile-modules/pkg/extra.sh"
 		compile_extra_pkgs
 		;;
 	kernel)
 		compile_kernel
-		;;
-	boot-img)
-		create_boot_image
 		;;
 	bootloader)
 		compile_bootloader

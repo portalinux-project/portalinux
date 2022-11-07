@@ -1,18 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-_setup_gcc(){
-	if [ ! -r "$gcc_dir/mpfr" ]; then
-		ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
-		ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null || true
-		ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null || true
-	fi
-
-	if [ "$1" = "rfs" ]; then
-		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null || true
-		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null || true
-	fi
-}
-
 _setup_glibc(){
 	mkdir -p "$output_rootfs/opt/include/gnu"
 	touch "$output_rootfs/opt/include/gnu/stubs.h"
@@ -85,7 +72,7 @@ compile_toolchain(){
 		if [ "$dist" = "gnu" ]; then
 			cd "build"
 		else
-			_exec "Configuring libc" "ARCH=$arch CC=$compile_target-gcc CROSS_COMPILE=$compile_target- LIBCC=$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a ./configure --prefix=$toolchain_prefix/$compile_target --host=$common_flags"
+			_exec "Configuring libc" "ARCH=$arch CC=$compile_target-gcc CROSS_COMPILE=$compile_target- LIBCC=$toolchain_prefix/lib/gcc/$compile_target/$(_generate_stuff pkg_ver gcc)/libgcc.a ./configure --prefix=$toolchain_prefix/$compile_target --host=$common_flags"
 		fi
 
 		_exec "Compiling libc" "make -j$threads AR=$compile_target-ar RANLIB=$compile_target-ranlib"
