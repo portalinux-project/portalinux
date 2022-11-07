@@ -15,12 +15,15 @@ pkgs.mkShell.override { stdenv = pkgs.gcc7Stdenv; } {
 		pkgs.which
 		pkgs.unixtools.script
 		pkgs.rsync
-		pkgs.ncurses
-
 		pkgs.gnumake
 		pkgs.flex
 		pkgs.bison
 		pkgs.gawk
+
+		# kernel build deps
+		pkgs.ncurses
+		pkgs.libressl
+		pkgs.bc
 	];
 
 }
