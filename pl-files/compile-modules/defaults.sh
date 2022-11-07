@@ -10,6 +10,7 @@ logfile="$pldir/log.txt"
 
 ## Default URLS
 kernel_url="https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.77.tar.xz"
+llvm_url="https://github.com/llvm/llvm-project/archive/refs/tags/llvmorg-14.0.6.tar.gz"
 binutils_url="http://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.gz"
 gcc_url="http://ftp.gnu.org/gnu/gcc/gcc-10.3.0/gcc-10.3.0.tar.gz" # update to 10.4? ver num is hardcoded in some places
 gmp_url="http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz"

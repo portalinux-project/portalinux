@@ -1,7 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 _get_deps(){
-	URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
+	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
+
+	if [ "$LLVM" = "1" ]; then
+		URL="$llvm_url $URL"
+	else
+		URL="$gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $URL"
+	fi
 
 	if [ "$dist" = "gnu" ]; then
 		URL="$URL $glibc_url"
