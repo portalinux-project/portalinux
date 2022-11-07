@@ -22,7 +22,6 @@ pkgs.mkShell.override { stdenv = pkgs.gcc7Stdenv; } {
 
 		# kernel build deps
 		pkgs.ncurses
-		pkgs.flex
 		pkgs.libressl
 		pkgs.bc
 		pkgs.perl
