@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 compile_extra_pkgs(){
 	if [ ! -r "$output_rootfs/usr/bin/pl-install" ]; then
 		compile_rootfs
