@@ -18,7 +18,12 @@ compile_extra_pkgs(){
 
 	# libgcc and libstdc++
 	_setup_gcc rfs
-	_compile_pkg "$output/libstdc++/files/opt" "$gcc_dir" "Configuring GCC" "$dev_stuff $extra_gcc_flags --disable-bootstrap --disable-libstdcxx-debug --enable-languages=c,c++ --disable-libsanitizer" "Compiling GCC" "" "Packaging GCC C/C++ Compilers" "install-strip-gcc DESTDIR=$output/gcc/files" "Packaging libgcc" "install-strip-target-libgcc DESTDIR=$output/libstdc++/files" "Packaging libstdc++" "install-strip-target-libstdc++-v3 DESTDIR=$output/libstdc++/files"
+	_compile_pkg "$output/libstdc++/files/opt" "$gcc_dir" \
+				"Configuring GCC" "$dev_stuff $extra_gcc_flags --disable-bootstrap --disable-libstdcxx-debug --enable-languages=c,c++ --disable-libsanitizer" \
+				"Compiling GCC" "" \
+				"Packaging GCC C/C++ Compilers" "install-strip-gcc DESTDIR=$output/gcc/files" \
+				"Packaging libgcc" "install-strip-target-libgcc DESTDIR=$output/libstdc++/files" \
+				"Packaging libstdc++" "install-strip-target-libstdc++-v3 DESTDIR=$output/libstdc++/files"
 	rm "$toolchain_prefix/bin/cc" -f
 	rm "$toolchain_prefix/bin/c++" -f
 
@@ -30,23 +35,41 @@ compile_extra_pkgs(){
 	fi
 
 	# binutils
-	_compile_pkg "$output/binutils/files/opt" "$binutils_dir" "Configuring Binutils" "$dev_stuff" "Compiling Binutils" "" "Packaging Binutils" "install-strip DESTDIR=$output/binutils/files"
+	_compile_pkg "$output/binutils/files/opt" "$binutils_dir" \
+				"Configuring Binutils" "$dev_stuff" \
+				"Compiling Binutils" "" \
+				"Packaging Binutils" "install-strip DESTDIR=$output/binutils/files"
 
 	# bash
-	_compile_pkg "$output/bash/files/opt" "$bash_dir" "Configuring GNU Bash" "$common_flags --disable-gnu-malloc" "Compiling GNU Bash" "" "Packaging GNU Bash" "install-strip DESTDIR=$output/bash/files"
+	_compile_pkg "$output/bash/files/opt" "$bash_dir" \
+				"Configuring GNU Bash" "$common_flags --disable-gnu-malloc" \
+				"Compiling GNU Bash" "" \
+				"Packaging GNU Bash" "install-strip DESTDIR=$output/bash/files"
 
 	# make
-	_compile_pkg "$output/make/files/opt" "$make_dir" "Configuring GNU Make" "$common_flags --without-guile" "Compiling GNU Make" "" "Packaging GNU Make" "install-strip DESTDIR=$output/make/files"
+	_compile_pkg "$output/make/files/opt" "$make_dir" \
+				"Configuring GNU Make" "$common_flags --without-guile" \
+				"Compiling GNU Make" "" \
+				"Packaging GNU Make" "install-strip DESTDIR=$output/make/files"
 
 	# ncurses
-	_compile_pkg "$output/ncurses/files/opt/lib/libncurses.so" "$ncurses_dir" "Configuring Ncurses" "$common_flags --with-cxx-shared --with-shared --enable-overwrite --with-termlib" "Compiling Ncurses" "" "Packaging Ncurses" "install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/env install --strip-program=$compile_target-strip -c -s'"
+	_compile_pkg "$output/ncurses/files/opt/lib/libncurses.so" "$ncurses_dir" \
+				"Configuring Ncurses" "$common_flags --with-cxx-shared --with-shared --enable-overwrite --with-termlib" \
+				"Compiling Ncurses" "" \
+				"Packaging Ncurses" "install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/env install --strip-program=$compile_target-strip -c -s'"
 	if [ -r "$ncurses_dir/build" ]; then
 		_exec "Cleaning Ncurses" "rm -rf $ncurses_dir/build"
 	fi
-	_compile_pkg "$output/ncurses/files/opt/lib/libncursesw.so" "$ncurses_dir" "Configuring NcursesW" "$common_flags --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec" "Compiling NcursesW" "" "Packaging NcursesW" "install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/env install --strip-program=$compile_target-strip -c -s'"
+	_compile_pkg "$output/ncurses/files/opt/lib/libncursesw.so" "$ncurses_dir" \
+				"Configuring NcursesW" "$common_flags --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec" \
+				"Compiling NcursesW" "" \
+				"Packaging NcursesW" "install DESTDIR=$output/ncurses/files INSTALL_PROG='/usr/bin/env install --strip-program=$compile_target-strip -c -s'"
 
 	# nano
-	_compile_pkg "$output/nano/files/opt" "$nano_dir" "Configuring Nano" "$common_flags --enable-tiny --enable-utf8" "Compiling Nano" "" "Installing Nano" "install DESTDIR=$output/ncurses/files"
+	_compile_pkg "$output/nano/files/opt" "$nano_dir" \
+				"Configuring Nano" "$common_flags --enable-tiny --enable-utf8" \
+				"Compiling Nano" "" \
+				"Installing Nano" "install DESTDIR=$output/ncurses/files"
 
 	_rootfs_cleanup
 
