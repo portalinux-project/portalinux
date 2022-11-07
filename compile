@@ -18,6 +18,19 @@ plfiles="$pldir/pl-files"
 
 source "$plfiles/compile-modules/defaults.sh"
 
+_print_help(){ # TODO: Make sure this is up to date
+	printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
+	echo "--init					Initializes the build system by downloading necessary components and unpacking them"
+	echo "--target-system [arch-dist]		Specifies the CPU architecture and the C library to be used. Default: i486-musl"
+	echo "--toolchain-prefix [path]		Sets the target system's toolchain's install directory. Default: ~/cross"
+	echo "--clean [lvl]				Cleans the build directory"
+	echo "--hard-clean [no-rm-tarballs]		Removes any directories created by $0"
+	echo "--threads [n]				Sets the amount of threads to be used in compilation"
+	echo "--config-kernel				Configures the Linux kernel"
+	echo "--build [action] [option]		Compiles toolchain, rootfs, extra-pkgs, kernel or boot-img. The previous list of words are the supported operations."
+}
+
+
 _exit_handler(){
 	exit_num=$?
 
@@ -275,19 +288,12 @@ while [ $# -gt 0 ]; do
 			#
 			;;
 		"--help")
-			printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
-			echo "--init					Initializes the build system by downloading necessary components and unpacking them"
-			echo "--target-system [arch-dist]		Specifies the CPU architecture and the C library to be used. Default: i486-musl"
-			echo "--toolchain-prefix [path]		Sets the target system's toolchain's install directory. Default: ~/cross"
-			echo "--clean [lvl]				Cleans the build directory"
-			echo "--hard-clean [no-rm-tarballs]		Removes any directories created by $0"
-			echo "--threads [n]				Sets the amount of threads to be used in compilation"
-			echo "--config-kernel				Configures the Linux kernel"
-			echo "--build [action] [option]		Compiles toolchain, rootfs, extra-pkgs, kernel or boot-img. The previous list of words are the supported operations."
+			_print_help
 			exit 0
 			;;
 		*)
-			echo "Error: Unrecognized command. Run $0 --help for a list of supported commands."
+			echo "Error: Unrecognized command."
+			_print_help
 			exit 2
 			;;
 	esac
@@ -322,7 +328,8 @@ case $action in
 		compile_bootloader
 		;;
 	*)
-		echo "Error: Unknown build command. Run $0 --help for a list of supported commands."
+		echo "Error: Unknown build command."
+		_print_help
 		exit 4
 		;;
 esac
