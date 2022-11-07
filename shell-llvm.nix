@@ -1,5 +1,10 @@
 { pkgs ? import <nixpkgs> {} }:
-pkgs.mkShell.override { stdenv = pkgs.llvmPackages_14.libcxxStdenv; } {
+let
+  fullLlvm14Stdenv = pkgs.overrideCC pkgs.stdenv
+    (pkgs.llvmPackages_14.libcxxStdenv.cc.override {
+      inherit (pkgs.llvmPackages_14) bintools;
+    });
+in pkgs.mkShell.override { stdenv = fullLlvm14Stdenv; } {
 	name = "pl-nix-llvm";
 
 	shellHook=''
