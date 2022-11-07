@@ -17,6 +17,8 @@ pldir="$(dirname $(realpath $0))"
 plfiles="$pldir/pl-files"
 
 source "$plfiles/compile-modules/defaults.sh"
+source "$plfiles/compile-modules/pkg/get_names.sh"
+source "$plfiles/compile-modules/runtime_calc.sh"
 
 _print_help(){ # TODO: Make sure this is up to date
 	printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
@@ -29,7 +31,6 @@ _print_help(){ # TODO: Make sure this is up to date
 	echo "--config-kernel				Configures the Linux kernel"
 	echo "--build [action] [option]		Compiles toolchain, rootfs, extra-pkgs, kernel or boot-img. The previous list of words are the supported operations."
 }
-
 
 _exit_handler(){
 	exit_num=$?
@@ -86,8 +87,6 @@ _compile_pkg(){
 	fi
 }
 
-source "$plfiles/compile-modules/pkg/get_names.sh"
-
 _generate_stuff(){
 	case $1 in
 		"musl")
@@ -136,8 +135,6 @@ _setup_gcc(){
 		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null || true
 	fi
 }
-
-source "$plfiles/compile-modules/runtime_calc.sh"
 
 setup_toolchain(){
 	if [ "$LLVM" = "1" ]; then
