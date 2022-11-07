@@ -24,6 +24,8 @@ pkgs.mkShell.override { stdenv = pkgs.gcc7Stdenv; } {
 		pkgs.ncurses
 		pkgs.libressl
 		pkgs.bc
+		pkgs.perl
+		pkgs.kmod
 	];
 
 }
