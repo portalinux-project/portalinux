@@ -34,6 +34,7 @@ int parseInitTab(){
 	}
 }
 
+
 int safeMount(char* source, char* dest, char* fstype, int mountflags, char* data){
 	struct stat root;
 	struct stat mountpoint;
