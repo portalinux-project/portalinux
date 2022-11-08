@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 _generate_llvm_wrappers(){
+	mkdir -p "$sysroot"
 	cat <<EOF > "$sysroot/cross_clang.cmake"
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR $arch)
@@ -33,24 +34,24 @@ compile_toolchain(){
 	llvm_targets="AArch64;ARM;Mips;PowerPC;RISCV;Sparc;SystemZ;X86"
 	cmake_flags="-GNinja -DCMAKE_BUILD_TYPE=Release"
 	cmake_cross_flags="$cmake_flags -DCMAKE_INSTALL_PREFIX='$sysroot' -DCMAKE_TOOLCHAIN_FILE='$sysroot/cross_clang.cmake'"
-	cross_cc="clang --target=$compile_target -fuse-ld=lld --rtlib=compiler-rt"
+	cross_cc="clang --target=$compile_target --sysroot='$sysroot' -fuse-ld=lld --rtlib=compiler-rt"
 
 	_get_pkg_names $dist
 	_generate_llvm_wrappers
 
-	# LLVM C/C++ compilers
+	# linux headers
+	if [ ! -r "$sysroot/include/linux" ]; then
+		cd "$linux_dir"
+		_exec "Installing Linux headers" "make ARCH=$linux_arch INSTALL_HDR_PATH='$sysroot' headers_install"
+	fi
+
+	# LLVM C/C++ compilers # TODO: skip this and use system clang when possible
 	if [ ! -r "$toolchain_prefix/bin/clang" ]; then
 		cd "$llvm_dir"
 		_exec "Configuring LLVM" "cmake -S ./ -B build_toolchain $cmake_flags -DCMAKE_INSTALL_PREFIX='$toolchain_prefix' -DLLVM_TARGETS_TO_BUILD='$llvm_targets' -DLLVM_USE_LINKER=lld \
 						-DLLVM_LINK_LLVM_DYLIB=on -DCLANG_LINK_CLANG_DYLIB=on -DLLVM_ENABLE_PROJECTS=clang\;lld -DLLVM_ENABLE_RUNTIMES='' -DLLVM_HAVE_LIBXAR=0"
 		_exec "Compiling LLVM...\n" "cmake --build build_toolchain  -j$threads" no-silent
 		_exec "Installing LLVM" "cmake --install build_toolchain  --strip"
-	fi
-
-	# linux headers
-	if [ ! -r "$sysroot/include/linux" ]; then
-		cd "$linux_dir"
-		_exec "Installing Linux headers" "make ARCH=$linux_arch INSTALL_HDR_PATH=$sysroot headers_install"
 	fi
 
 	# libc headers
