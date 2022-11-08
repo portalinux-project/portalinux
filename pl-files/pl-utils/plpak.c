@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <tar.h>
 
 bool silent = false;
@@ -13,11 +14,14 @@ int silent_printf(const char* string){
 int verify_pkg(const char* path){
 	char* pkg_name;
 	char* pkg_ver;
+	struct stat
 
 	if(!plFSExists(path)){
 		silent_printf("Error: File %s doesn't exist", path);
 		return 1;
 	}
+
+	unpack_pkg()
 }
 
 int remove_pkg(const char* pkgname){

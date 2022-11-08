@@ -4,6 +4,8 @@
  pl-init.c: Simplified clone of sysvinit
 \****************************************************************************/
 #include <stdio.h>
+#include <signal.h>
+#include <spawn.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -14,14 +16,63 @@
 #include <sys/mount.h>
 #include <sys/reboot.h>
 
+void signalHandler(int signal){
+	printf("* Syncing cached file ops...\n");
+	sync();
+
+	switch(signal){
+		case SIGTERM: ;
+			printf("* Rebooting...\n");
+			reboot(RB_AUTOBOOT);
+		case SIGINT: ;
+		case SIGUSR1: ;
+			printf("* Halting system...\n");
+			reboot(RB_HALT_SYSTEM);
+		case SIGPWR: ;
+		case SIGUSR2: ;
+			printf("* Powering off...\n");
+			reboot(RB_POWER_OFF);
+	}
+}
+
+void setSignal(int signal, struct sigaction* newHandler){
+	struct sigaction oldHandler;
+	sigaction(signal, NULL, &oldHandler);
+	if(oldHandler.sa_handler != SIG_IGN)
+		sigaction(signal, newHandler, NULL);
+}
+
+pid_t spawnShell(){
+	pid_t shell = fork();
+	if(shell == 0){
+		sleep(1);
+		char buffer[64];
+		char* args[] = { "sh", NULL };
+		execv(realpath("/bin/sh", buffer), args);
+	}else{
+		return shell;
+	}
+}
+
+void shellRespawner(){
+	pid_t shell = spawnShell();
+	int status;
+
+	while(1){
+		waitpid(shell, &status, 0);
+		printf("* Shell has exited, respawning...\n\n");
+		shell = spawnShell();
+	}
+}
+
 void parseInitTabLine(char* line){
 	char parsedLine[4][128];
 
-	strtok()
+	// TODO: add proper line parser here
 }
 
 int parseInitTab(){
-	FILE* inittabFile = open("/etc/inittab", "r");
+	FILE* inittabFile = fopen("/etc/inittab", "r");
 
 	if(!inittabFile){
 		printf("	Could not load inittab. Running pl-srv instead");
@@ -33,7 +84,6 @@ int parseInitTab(){
 		parseInitTabLine(buffer);
 	}
 }
-
 
 int safeMount(char* source, char* dest, char* fstype, int mountflags, char* data){
 	struct stat root;
@@ -80,23 +130,17 @@ int main(int argc, const char* argv[]){
 	safeMountBootFS("/proc", "proc");
 	safeMountBootFS("/dev", "devtmpfs");
 
-	printf("* Parsing and executing inittab:\n");
-	parseInitTab();
+	struct sigaction newSigAction;
+	newSigAction.sa_handler = signalHandler;
+	sigemptyset(&newSigAction.sa_mask);
+	newSigAction.sa_flags = 0;
+
+	setSignal(SIGPWR, &newSigAction);
+	setSignal(SIGTERM, &newSigAction);
+	setSignal(SIGINT, &newSigAction);
+	setSignal(SIGUSR1, &newSigAction);
+	setSignal(SIGUSR2, &newSigAction);
 
 	printf("* Executing shell\n\n");
-	pid_t shell = fork();
-	if(shell == 0){
-		sleep(1);
-		char buffer[64];
-		char* args[] = { "sh", NULL };
-		execv(realpath("/bin/sh", buffer), args);
-	}else{
-		int status;
-		waitpid(shell, &status, 0);
-		printf("* Shell has exited with code %d\n", status);
-	}
-
-	printf("* Powering off...\n");
-	sync();
-	reboot(RB_POWER_OFF);
+	shellRespawner();
 }

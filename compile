@@ -235,9 +235,10 @@ case $action in
 		;;
 	rootfs | boot-img)
 		source "$plfiles/compile-modules/rootfs.sh"
-		compile_rootfs
 		if [ "$action" = "boot-img" ]; then
 			create_boot_image
+		else
+			compile_rootfs
 		fi
 		;;
 	extra-pkgs)

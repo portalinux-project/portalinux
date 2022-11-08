@@ -9,7 +9,7 @@ _get_deps(){
 		URL="$URL $musl_url"
 	fi
 
-	if [ "$toybox" = "y" ]; then
+	if [ "$toybox" = "y" ] || [ "$LLVM" = "1" ]; then
 		URL="$URL $toybox_url"
 	else
 		URL="$URL $busybox_url"

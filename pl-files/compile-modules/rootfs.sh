@@ -25,10 +25,13 @@ compile_rootfs(){
 		mkdir -p "$output_rootfs/$i"
 		printf "."
 	done
+	cd "$output_rootfs"
 	for i in bin sbin usr/sbin; do
-		ln -s "$output_rootfs/usr/bin" "$output_rootfs/$i"
+		ln -s "./usr/bin" "$output_rootfs/$i" 2>/dev/null || true
+		printf "."
 	done
-	ln -s "$output_rootfs/usr/lib" "$output_rootfs/lib"
+	ln -s "./usr/lib" "$output_rootfs/lib" 2>/dev/null || true
+	cd "$pldir"
 	echo "Done."
 
 	if [ ! -r "$output_rootfs/usr/lib/libc.a" ]; then
@@ -41,7 +44,7 @@ compile_rootfs(){
 
 			_exec "Preparing for compilation" "_setup_gcc"
 		else
-			_exec "Configuring musl" "./configure $main_comp"
+			_exec "Configuring musl" "./configure $main_comp --syslibdir=/usr/lib"
 		fi
 
 		_exec "Compiling libc" "make -j$threads"
@@ -52,7 +55,7 @@ compile_rootfs(){
 		echo "Done."
 	fi
 
-	if [ ! -r "$output_rootfs/bin/$(basename $(echo $coreutils_dir | cut -d- -f1))" ]; then
+	if [ ! -r "$output_rootfs/usr/bin/$(basename $coreutils_dir | cut -d- -f1)" ]; then
 		cd "$coreutils_dir"
 		compile_flags="CROSS_COMPILE=$toolchain_prefix/bin/$compile_target-"
 
@@ -65,19 +68,20 @@ compile_rootfs(){
 		echo "Done."
 		_exec "Compiling Coreutils" "make $compile_flags -j$threads"
 		printf "Installing Coreutils..."
-		mv *box "$output_rootfs/bin"
-		ln -s "/bin/$(basename $coreutils_dir | cut -d- -f1)" "$output_rootfs/bin/sh" 2>/dev/null || true
+		mv *box "$output_rootfs/usr/bin"
+		ln -s "/bin/$(basename $coreutils_dir | cut -d- -f1)" "$output_rootfs/usr/bin/sh" 2>/dev/null || true
 		echo "Done."
 	fi
 
 	if [ ! -r "$output_rootfs/init" ]; then
 		printf "Installing init script..."
-		cp "$plfiles/initramfs-init" "$output_rootfs/init"
-		chmod 777 "$output_rootfs/init"
-		if [ -f "$output_rootfs/bin/toybox" ]; then
-			sed -i 's/PUT_DYN_SYMLINK_TO_BOX_HERE/for i in $(toybox --long); do toybox ln -s \/bin\/toybox \/$i 2>\/dev\/null; done/g' "$output_rootfs/init"
-			sed -i 's/BOX/toybox/g' "$output_rootfs/init"
+		if [ -f "$output_rootfs/usr/bin/toybox" ]; then
+			#sed -i 's/PUT_DYN_SYMLINK_TO_BOX_HERE/for i in $(toybox --long); do toybox ln -s \/bin\/toybox \/$i 2>\/dev\/null; done/g' "$output_rootfs/init"
+			#sed -i 's/BOX/toybox/g' "$output_rootfs/init"
+			$compile_target-gcc "$plfiles/pl-utils/pl-init.c" -o "$output_rootfs/init"
 		else
+			cp "$plfiles/initramfs-init" "$output_rootfs/init"
+			chmod 777 "$output_rootfs/init"
 			sed -i 's/PUT_DYN_SYMLINK_TO_BOX_HERE/\/bin\/busybox --install -s/g' "$output_rootfs/init"
 			sed -i 's/BOX/busybox/g' "$output_rootfs/init"
 		fi
