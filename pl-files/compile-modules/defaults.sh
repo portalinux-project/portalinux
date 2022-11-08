@@ -42,5 +42,4 @@ with_aoc=""
 ## Default Configs
 kdefconfig="defconfig"
 extra_gcc_flags=""
-compression="bzip2"
-threads=$(nproc)
+compression="gzip"

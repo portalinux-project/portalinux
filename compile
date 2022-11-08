@@ -14,6 +14,15 @@ set -e
 alias source="." # make source work on posix shells
 pldir="$(dirname $(realpath $0))"
 plfiles="$pldir/pl-files"
+threads=$(nproc)
+
+if [ $threads -gt 4 ]; then
+	if [ $threads -lt 8 ]; then
+		threads=4
+	else
+		threads=$(expr $(nproc) / 2)
+	fi
+fi
 
 source "$plfiles/compile-modules/defaults.sh"
 source "$plfiles/compile-modules/pkg/get_names.sh"
