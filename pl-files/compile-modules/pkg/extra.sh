@@ -81,7 +81,7 @@ compile_extra_pkgs(){
 		printf "$i\n$(_generate_stuff pkg_ver $i)\n$arch\n" > pkg_info
 
 		tar cf ../$i.tar files.tar files.tar.sha256sum pkg_info
-		bzip2 ../$i.tar
+		gzip ../$i.tar
 		mv ../$i.tar.bz2 ../$i.plpak
 		printf "."
 	done
