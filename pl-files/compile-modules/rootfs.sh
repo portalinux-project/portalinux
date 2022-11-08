@@ -76,8 +76,6 @@ compile_rootfs(){
 	if [ ! -r "$output_rootfs/init" ]; then
 		printf "Installing init script..."
 		if [ -f "$output_rootfs/usr/bin/toybox" ]; then
-			#sed -i 's/PUT_DYN_SYMLINK_TO_BOX_HERE/for i in $(toybox --long); do toybox ln -s \/bin\/toybox \/$i 2>\/dev\/null; done/g' "$output_rootfs/init"
-			#sed -i 's/BOX/toybox/g' "$output_rootfs/init"
 			$compile_target-gcc "$plfiles/pl-utils/pl-init.c" -o "$output_rootfs/init"
 		else
 			cp "$plfiles/initramfs-init" "$output_rootfs/init"
