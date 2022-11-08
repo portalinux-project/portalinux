@@ -71,4 +71,5 @@ _target_system(){
 	fi
 
 	compile_target="$arch-pocket-linux-$dist$abi"
+	sysroot="$toolchain_prefix/$compile_target"
 }

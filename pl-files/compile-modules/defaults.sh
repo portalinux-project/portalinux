@@ -41,6 +41,7 @@ libdir="lib"
 grub_platform="efi"
 abi=""
 with_aoc=""
+sysroot="$toolchain_prefix/$compile_target"
 
 ## Default Configs
 kdefconfig="defconfig"

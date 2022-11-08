@@ -146,7 +146,7 @@ _setup_gcc(){
 
 setup_toolchain(){
 	if [ "$LLVM" = "1" ]; then
-		source "$plfiles/compile-modules/llvm.sh"  
+		source "$plfiles/compile-modules/llvm.sh"
 	else
 		source "$plfiles/compile-modules/gcc.sh"
 	fi
@@ -180,6 +180,7 @@ while [ $# -gt 0 ]; do
 			;;
 		"--toolchain-prefix")
 			toolchain_prefix="$2"
+			sysroot="$toolchain_prefix/$compile_target"
 			shift
 			;;
 		"--test")
