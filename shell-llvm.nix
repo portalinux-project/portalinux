@@ -1,10 +1,5 @@
-{ pkgs ? import <nixpkgs> {} }:
-let
-  fullLlvm14Stdenv = pkgs.overrideCC pkgs.stdenv
-    (pkgs.llvmPackages_14.libcxxStdenv.cc.override {
-      inherit (pkgs.llvmPackages_14) bintools;
-    });
-in pkgs.mkShell.override { stdenv = fullLlvm14Stdenv; } {
+with import <nixpkgs> {};
+mkShell.override { stdenv = pkgsLLVM.stdenv; } {
 	name = "pl-nix-llvm";
 
 	shellHook=''
@@ -14,22 +9,27 @@ in pkgs.mkShell.override { stdenv = fullLlvm14Stdenv; } {
 
 	hardeningDisable = [ "format" ]; # fixes errors trying to build the gcc toolchain
 	nativeBuildInputs = [
-		#pkgs.busybox
-		pkgs.cacert
-		pkgs.wget
-		pkgs.which
-		pkgs.unixtools.script
-		pkgs.rsync
-		pkgs.gnumake
-		pkgs.flex
-		pkgs.bison
-		pkgs.gawk
+		#busybox
+		cacert
+		wget
+		which
+		unixtools.script
+		rsync
+		gnumake
+		flex
+		bison
+		gawk
+
+		# llvm deps
+		cmake
+		ninja
+		python3
 
 		# kernel build deps
-		pkgs.ncurses
-		pkgs.libressl
-		pkgs.bc
-		pkgs.perl
-		pkgs.kmod
+		ncurses
+		libressl
+		bc
+		perl
+		kmod
 	];
 }
