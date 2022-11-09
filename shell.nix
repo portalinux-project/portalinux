@@ -1,5 +1,5 @@
-{ pkgs ? import <nixpkgs> {} }:
-pkgs.mkShell.override { stdenv = pkgs.gcc7Stdenv; } {
+with import <nixpkgs> {};
+mkShell.override { stdenv = gcc7Stdenv; } {
 	name = "pl-nix";
 
 	shellHook=''
@@ -9,23 +9,23 @@ pkgs.mkShell.override { stdenv = pkgs.gcc7Stdenv; } {
 
 	hardeningDisable = [ "format" ]; # fixes errors trying to build the gcc toolchain
 	nativeBuildInputs = [
-		#pkgs.busybox
-		pkgs.cacert
-		pkgs.wget
-		pkgs.which
-		pkgs.unixtools.script
-		pkgs.rsync
-		pkgs.gnumake
-		pkgs.flex
-		pkgs.bison
-		pkgs.gawk
+		#busybox
+		cacert
+		wget
+		which
+		unixtools.script
+		rsync
+		gnumake
+		flex
+		bison
+		gawk
 
 		# kernel build deps
-		pkgs.ncurses
-		pkgs.libressl
-		pkgs.bc
-		pkgs.perl
-		pkgs.kmod
+		ncurses
+		libressl
+		bc
+		perl
+		kmod
 	];
 
 }
