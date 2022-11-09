@@ -1,10 +1,10 @@
 with import <nixpkgs> {};
-mkShell.override { stdenv = gcc7Stdenv; } {
+mkShell.override { stdenv = gcc8Stdenv; } {
 	name = "pl-nix";
 
 	shellHook=''
-	export PATH="$HOME/cross/bin:$PATH" # add default toolchain location to path
 	echo "PortaLinux nix-shell Development Environment"
+	echo "NOTE: When using the GCC PortaLinux toolchain, please remember to add the toolchain prefix bin to your path."
 	'';
 
 	hardeningDisable = [ "format" ]; # fixes errors trying to build the gcc toolchain
@@ -20,6 +20,11 @@ mkShell.override { stdenv = gcc7Stdenv; } {
 		bison
 		gawk
 
+		# llvm deps
+		cmake
+		ninja
+		python3
+
 		# kernel build deps
 		ncurses
 		libressl
@@ -27,5 +32,4 @@ mkShell.override { stdenv = gcc7Stdenv; } {
 		perl
 		kmod
 	];
-
 }
