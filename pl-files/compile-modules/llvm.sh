@@ -72,8 +72,9 @@ compile_toolchain(){
 						-DCOMPILER_RT_BUILD_SANITIZERS=OFF -DCOMPILER_RT_BUILD_XRAY=OFF -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON"
 		_exec "Compiling compiler-rt builtins" "cmake --build build/builtins -j$threads"
 		_exec "Installing compiler-rt builtins" "cmake --install build/builtins --strip"
-		# fix linking errors
+		# fix linking errors TODO: stop hardcoding LLVM versions
 		for i in begin end; do ln -sf "./linux/clang_rt.crt$i-$linux_arch.o" "$sysroot/lib/crt"$i"S.o"; done
+		mkdir -p "$toolchain_prefix/lib/clang/14.0.6/lib/linux/"
 		ln -sf "../../../../../$compile_target/lib/linux/libclang_rt.builtins-$linux_arch.a" "$toolchain_prefix/lib/clang/14.0.6/lib/linux/libclang_rt.builtins-i386.a"
 	fi
 
