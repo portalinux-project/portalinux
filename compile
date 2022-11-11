@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 set -e
 
-# TODO: refactor code in modules to use _exec() and _compile_pkg() when possible and useful
 # TODO: maybe make a _timed_exec() and/or _timed_run() function to potentialy remove some additional redundant lines of code
 # TODO: document the usage and params of every function
 # TODO: document every modules needed dependencies in comments
@@ -74,7 +73,7 @@ _exec(){
 	set -e
 }
 
-_compile_pkg(){
+_compile_ac_pkg(){
 	if [ ! -r "$1" ]; then
 		cd "$2"
 		if [ ! -r "$2/Makefile" ]; then
