@@ -42,7 +42,7 @@ compile_toolchain(){
 	_compile_cmake_pkg "$toolchain_prefix/bin/clang" "$llvm_dir" llvm "toolchain" "$toolchain_prefix" \
 					"-DLLVM_TARGETS_TO_BUILD='$llvm_targets' -DLLVM_LINK_LLVM_DYLIB=1 -DCLANG_LINK_CLANG_DYLIB=1 -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_HAVE_LIBXAR=0" \
 					"LLVM Toolchain" no-clean no-silent
-	rm -rf "$toolchain_prefix/include" "$toolchain_prefix/lib/*.a"
+	rm -rf "$toolchain_prefix/include" "$toolchain_prefix/lib/"*".a"
 
 	# linux headers
 	if [ ! -r "$sysroot/include/linux" ]; then
