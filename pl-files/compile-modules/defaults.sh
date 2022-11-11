@@ -32,6 +32,7 @@ mpc_url="http://ftp.gnu.org/gnu/mpc/mpc-1.2.1.tar.gz"
 mpfr_url="http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.0.tar.gz"
 
 ## Default Target
+llvm_targets="AArch64;ARM;Mips;PowerPC;RISCV;Sparc;SystemZ;X86"
 compile_target="i486-pocket-linux-musl"
 linux_arch="i386"
 specific_arch="i486"
