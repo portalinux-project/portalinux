@@ -56,7 +56,7 @@ compile_toolchain(){
 	fi
 
 	# libgcc (libgcc-static for musl)
-	if [ ! -r "$toolchain_prefix/lib/gcc/$compile_target/10.3.0/libgcc.a" ]; then
+	if [ ! -r "$toolchain_prefix/lib/gcc/$compile_target/$(_generate_stuff pkg_ver gcc)/libgcc.a" ]; then
 		cd "$gcc_dir/build"
 		name="libgcc"
 		printf "Preparing to compile libgcc..."

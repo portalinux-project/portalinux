@@ -34,6 +34,7 @@ compile_toolchain(){
 	cmake_cross_flags="-DCMAKE_TOOLCHAIN_FILE='$sysroot/cross_clang.cmake' "
 	cmake_bs_flags="$cmake_cross_flags -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
 	cross_cc="'$toolchain_prefix/bin/clang' --gcc-toolchain='' --target=$compile_target --sysroot='$sysroot' -fuse-ld='$toolchain_prefix/bin/ld.lld' --rtlib=compiler-rt"
+	toolchain_bin="$toolchain_prefix/bin/"
 
 	_get_pkg_names $dist
 	_generate_llvm_wrappers
@@ -62,10 +63,9 @@ compile_toolchain(){
 					"$cmake_bs_flags -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 \
 					-DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1" "compiler-rt builtins"
 		# fix linking errors
-		# TODO: stop hardcoding LLVM versions
 	for i in begin end; do ln -sf "./linux/clang_rt.crt$i-$linux_arch.o" "$sysroot/lib/crt"$i"S.o"; done
-	mkdir -p "$toolchain_prefix/lib/clang/14.0.6/lib/linux/"
-	ln -sf "../../../../../$compile_target/lib/linux/libclang_rt.builtins-$linux_arch.a" "$toolchain_prefix/lib/clang/14.0.6/lib/linux/libclang_rt.builtins-$linux_arch.a"
+	mkdir -p "$toolchain_prefix/lib/clang/$(_generate_stuff pkg_ver llvm)/lib/linux/"
+	ln -sf "../../../../../$compile_target/lib/linux/libclang_rt.builtins-$linux_arch.a" "$toolchain_prefix/lib/clang/$(_generate_stuff pkg_ver llvm)/lib/linux/libclang_rt.builtins-$linux_arch.a"
 
 	# musl libc
 	if [ ! -r "$sysroot/lib/libc.so" ]; then
