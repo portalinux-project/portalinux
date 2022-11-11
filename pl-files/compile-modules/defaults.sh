@@ -20,7 +20,7 @@ python_url="https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tar.xz"
 nano_url="http://ftp.gnu.org/gnu/nano/nano-6.2.tar.gz"
 ncurses_url="http://ftp.gnu.org/gnu/ncurses/ncurses-6.2.tar.gz"
 grub_url="https://ftp.gnu.org/gnu/grub/grub-2.06.tar.xz"
-xserver_url="https://www.x.org/releases/X11R7.7/src/xserver/xorg-server-1.12.2.tar.bz2"
+xserver_url="https://www.x.org/releases/individual/xserver/xorg-server-1.20.14.tar.xz"
 bison_url="http://ftp.gnu.org/gnu/bison/bison-3.7.6.tar.gz"
 # llvm toolchain url
 llvm_url="https://github.com/llvm/llvm-project/archive/refs/tags/llvmorg-14.0.6.tar.gz"
