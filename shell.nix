@@ -19,6 +19,7 @@ mkShell.override { stdenv = gcc8Stdenv; } {
 		flex
 		bison
 		gawk
+		libuuid
 
 		# llvm deps
 		cmake
