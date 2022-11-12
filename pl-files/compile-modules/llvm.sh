@@ -45,9 +45,9 @@ compile_toolchain(){
 
 	# LLVM C/C++ compilers
 	_compile_cmake_pkg "$toolchain_prefix/bin/clang" "$llvm_dir" llvm "toolchain" "$toolchain_prefix" \
-					"LLVM_TARGETS_TO_BUILD='$llvm_targets' LLVM_LINK_LLVM_DYLIB=1 CLANG_LINK_CLANG_DYLIB=1 LLVM_ENABLE_PROJECTS='clang;lld' LLVM_HAVE_LIBXAR=0" \
+					"LLVM_TARGETS_TO_BUILD='$llvm_targets' BUILD_SHARED_LIBS=1 LLVM_ENABLE_PROJECTS='clang;lld' LLVM_HAVE_LIBXAR=0" \
 					"LLVM Toolchain" no-clean no-silent
-	rm -rf "$toolchain_prefix/include" "$toolchain_prefix/lib/"*".a"
+	#rm -rf "$toolchain_prefix/include" "$toolchain_prefix/lib/"*".a"
 
 	# linux headers
 	if [ ! -r "$sysroot/include/linux" ]; then
