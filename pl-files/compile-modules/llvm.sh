@@ -63,8 +63,7 @@ compile_toolchain(){
 	fi
 
 	# compiler-rt builtins
-	_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a" "$llvm_dir" compiler-rt "builtins" "$sysroot" \
-					"$compiler_rt_flags" "compiler-rt builtins"
+	_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a" "$llvm_dir" compiler-rt "builtins" "$sysroot"	"$compiler_rt_flags" "compiler-rt builtins"
 		# fix linking errors
 	for i in begin end; do ln -sf "./linux/clang_rt.crt$i-$linux_arch.o" "$sysroot/lib/crt"$i"S.o"; done
 	mkdir -p "$toolchain_prefix/lib/clang/$(_generate_stuff pkg_ver llvm)/lib/linux/"
@@ -79,8 +78,7 @@ compile_toolchain(){
 	fi
 
 	# libatomic
-	_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.atomic-$linux_arch.so" "$llvm_dir" compiler-rt "atomic" "$sysroot" \
-					"$compiler_rt_flags COMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1" "libatomic"
+	_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.atomic-$linux_arch.so" "$llvm_dir" compiler-rt "atomic" "$sysroot"	"$compiler_rt_flags COMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1" "libatomic"
 	ln -sf "./linux/libclang_rt.atomic-$linux_arch.so" "$sysroot/lib/libatomic.so"
 
 	# LLVM C++ Runtimes (libunwind, libcxxabi, pstl, and libcxx)

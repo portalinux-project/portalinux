@@ -102,9 +102,15 @@ _compile_cmake_pkg(){
 		if [ "$8" = "" ]; then
 			rm -rf "build/$4"
 		fi
+
+		# arg parser
+		_args=""
+		for i in $6; do
+			_args="$_args -D$i"
+		done
+
 		# configure the project
-		# TODO: smarter arg parcer
-		_exec "Configuring $7"			"cmake -S './$3' -B 'build/$4' -GNinja -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX='$5' $6"
+		_exec "Configuring $7"			"cmake -S './$3' -B 'build/$4' -GNinja -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX='$5' $_args"
 		if [ "$9" = "" ]; then
 			_exec "Compiling $7"		"cmake --build 'build/$4' -j$threads"
 		else
