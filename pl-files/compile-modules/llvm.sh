@@ -31,17 +31,21 @@ EOF
 }
 
 compile_toolchain(){
-	cmake_cross_flags="-DCMAKE_TOOLCHAIN_FILE='$sysroot/cross_clang.cmake' "
-	cmake_bs_flags="$cmake_cross_flags -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
+	cmake_cross_flags="CMAKE_TOOLCHAIN_FILE='$sysroot/cross_clang.cmake' "
+	cmake_bs_flags="$cmake_cross_flags CMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
+	compiler_rt_flags="$cmake_bs_flags COMPILER_RT_BUILD_LIBFUZZER=0 COMPILER_RT_BUILD_MEMPROF=0 COMPILER_RT_BUILD_ORC=0 COMPILER_RT_BUILD_PROFILE=0 \
+					COMPILER_RT_BUILD_SANITIZERS=0 COMPILER_RT_BUILD_XRAY=0 COMPILER_RT_DEFAULT_TARGET_ONLY=1"
+
 	cross_cc="'$toolchain_prefix/bin/clang' --gcc-toolchain='' --target=$compile_target --sysroot='$sysroot' -fuse-ld='$toolchain_prefix/bin/ld.lld' --rtlib=compiler-rt"
 	toolchain_bin="$toolchain_prefix/bin/"
 
 	_get_pkg_names $dist
 	_generate_llvm_wrappers
 
+
 	# LLVM C/C++ compilers
 	_compile_cmake_pkg "$toolchain_prefix/bin/clang" "$llvm_dir" llvm "toolchain" "$toolchain_prefix" \
-					"-DLLVM_TARGETS_TO_BUILD='$llvm_targets' -DLLVM_LINK_LLVM_DYLIB=1 -DCLANG_LINK_CLANG_DYLIB=1 -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_HAVE_LIBXAR=0" \
+					"LLVM_TARGETS_TO_BUILD='$llvm_targets' LLVM_LINK_LLVM_DYLIB=1 CLANG_LINK_CLANG_DYLIB=1 LLVM_ENABLE_PROJECTS='clang;lld' LLVM_HAVE_LIBXAR=0" \
 					"LLVM Toolchain" no-clean no-silent
 	rm -rf "$toolchain_prefix/include" "$toolchain_prefix/lib/"*".a"
 
@@ -60,8 +64,7 @@ compile_toolchain(){
 
 	# compiler-rt builtins
 	_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a" "$llvm_dir" compiler-rt "builtins" "$sysroot" \
-					"$cmake_bs_flags -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 \
-					-DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1" "compiler-rt builtins"
+					"$compiler_rt_flags" "compiler-rt builtins"
 		# fix linking errors
 	for i in begin end; do ln -sf "./linux/clang_rt.crt$i-$linux_arch.o" "$sysroot/lib/crt"$i"S.o"; done
 	mkdir -p "$toolchain_prefix/lib/clang/$(_generate_stuff pkg_ver llvm)/lib/linux/"
@@ -70,21 +73,20 @@ compile_toolchain(){
 	# musl libc
 	if [ ! -r "$sysroot/lib/libc.so" ]; then
 		cd "$libc_dir"
-		_exec "Configuring musl libc" "ARCH=$arch CC='$cross_cc' LIBCC=$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a ./configure --prefix=$sysroot --disable-multilib --host=$compile_target"
+		_exec "Configuring musl libc" "ARCH=$arch CC='$cross_cc' LIBCC=$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a ./configure --prefix=$sysroot -isable-multilib --host=$compile_target"
 		_exec "Compiling musl libc" "make -j$threads AR='$toolchain_prefix/bin/llvm-ar' RANLIB='$toolchain_prefix/bin/llvm-ranlib' "
 		_exec "Installing musl libc" "make AR='$toolchain_prefix/bin/llvm-ar' RANLIB='$toolchain_prefix/bin/llvm-ranlib' install"
 	fi
 
 	# libatomic
 	_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.atomic-$linux_arch.so" "$llvm_dir" compiler-rt "atomic" "$sysroot" \
-					"$cmake_bs_flags -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 \
-					-DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1 -DCOMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1" "libatomic"
+					"$compiler_rt_flags COMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1" "libatomic"
 	ln -sf "./linux/libclang_rt.atomic-$linux_arch.so" "$sysroot/lib/libatomic.so"
 
 	# LLVM C++ Runtimes (libunwind, libcxxabi, pstl, and libcxx)
 	_compile_cmake_pkg "$sysroot/lib/libc++.so" "$llvm_dir" runtimes "runtimes" "$sysroot" \
-					"$cmake_bs_flags -DLLVM_ENABLE_RUNTIMES='libunwind;libcxxabi;pstl;libcxx' -DLIBUNWIND_USE_COMPILER_RT=1 -DLIBCXXABI_USE_COMPILER_RT=1 -DLIBCXX_USE_COMPILER_RT=1 \
-					-DLIBCXXABI_USE_LLVM_UNWINDER=1 -DLIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=0 -DLIBCXX_HAS_MUSL_LIBC=1" "LLVM C++ Runtimes"
+					"$cmake_bs_flags LLVM_ENABLE_RUNTIMES='libunwind;libcxxabi;pstl;libcxx' LIBUNWIND_USE_COMPILER_RT=1 LIBCXXABI_USE_COMPILER_RT=1 LIBCXX_USE_COMPILER_RT=1 \
+					LIBCXXABI_USE_LLVM_UNWINDER=1 LIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=0 LIBCXX_HAS_MUSL_LIBC=1" "LLVM C++ Runtimes"
 
 	# ncurses
 	# _compile_ac_pkg "$sysroot/lib/libncurses.so" "$ncurses_dir" \
