@@ -15,6 +15,10 @@ pldir="$(dirname $(realpath $0))"
 plfiles="$pldir/pl-files"
 threads=$(nproc)
 
+source "$plfiles/compile-modules/defaults.sh"
+source "$plfiles/compile-modules/pkg/get_names.sh"
+source "$plfiles/compile-modules/runtime_calc.sh"
+
 if [ $threads -gt 4 ]; then
 	if [ $threads -lt 8 ]; then
 		threads=4
@@ -23,9 +27,12 @@ if [ $threads -gt 4 ]; then
 	fi
 fi
 
-source "$plfiles/compile-modules/defaults.sh"
-source "$plfiles/compile-modules/pkg/get_names.sh"
-source "$plfiles/compile-modules/runtime_calc.sh"
+if [ "$LLVM" = "1" ]; then
+	cross_cc="$toolchain_bin/clang"
+	cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot -fuse-ld=$toolchain_bin/ld.lld --rtlib=compiler-rt"
+else
+	cross_cc="$toolchain_bin/$compile_target-gcc"
+fi
 
 _print_help(){ # TODO: Make sure this is up to date
 	printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
@@ -156,6 +163,32 @@ _generate_stuff(){
 	esac
 }
 
+_compile_musl(){
+	if [ "$3" = "rootfs" ]; then
+		install_dir="$output_rootfs"
+	else
+		install_dir=""
+	fi
+
+	if [ ! -r "$install_dir/lib/libc.so" ]; then
+		cd "$libc_dir"
+		libcc="$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a"
+		ar="$toolchain_bin/llvm-ar"
+		ranlib="$toolchain_bin/llvm-ranlib"
+
+		if [ "$LLVM" = "" ]; then
+			libcc="$toolchain_prefix/lib/gcc/$compile_target/$(_generate_stuff pkg_ver gcc)/libgcc.a"
+			ar="$toolchain_bin/$compile_target-ar"
+			ranlib="$toolchain_bin/$compile_target-ranlib"
+		fi
+
+		_exec "Configuring musl libc" "ARCH=$arch LIBCC='$libcc' CC='$cross_cc $cross_cflags' ./configure --prefix='$1' --disable-multilib --host=$compile_target $2"
+		_exec "Compiling musl libc" "make -j$threads AR='$ar' RANLIB='$ranlib'"
+		_exec "Installing musl libc" "make AR='$ar' RANLIB='$ranlib' DESTDIR='$install_dir' install"
+	fi
+}
+
+
 _setup_gcc(){
 	if [ ! -r "$gcc_dir/mpfr" ]; then
 		ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
@@ -164,8 +197,8 @@ _setup_gcc(){
 	fi
 
 	if [ "$1" = "rfs" ]; then
-		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null || true
-		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null || true
+		ln -s "$toolchain_bin/$compile_target-gcc" "$toolchain_bin/cc" 2>/dev/null || true
+		ln -s "$toolchain_bin/$compile_target-g++" "$toolchain_bin/c++" 2>/dev/null || true
 	fi
 }
 

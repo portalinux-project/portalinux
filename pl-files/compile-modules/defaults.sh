@@ -43,6 +43,7 @@ grub_platform="efi"
 abi=""
 with_aoc=""
 sysroot="$toolchain_prefix/$compile_target"
+toolchain_bin="$toolchain_prefix/bin"
 
 ## Default Configs
 kdefconfig="defconfig"
