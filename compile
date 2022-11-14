@@ -239,6 +239,7 @@ while [ $# -gt 0 ]; do
 		"--toolchain-prefix")
 			toolchain_prefix="$2"
 			sysroot="$toolchain_prefix/$compile_target"
+			toolchain_bin="$toolchain_prefix/bin"
 			shift
 			;;
 		"--test")

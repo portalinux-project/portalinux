@@ -11,14 +11,14 @@ set(triple "$compile_target")
 set(CMAKE_ASM_COMPILER_TARGET \${triple})
 set(CMAKE_C_COMPILER_TARGET \${triple})
 set(CMAKE_CXX_COMPILER_TARGET \${triple})
-set(CMAKE_EXE_LINKER_FLAGS "--ld-path='$toolchain_prefix/bin/ld.lld' --rtlib=compiler-rt")
+set(CMAKE_EXE_LINKER_FLAGS "--ld-path='$toolchain_bin/ld.lld' --rtlib=compiler-rt")
 set(CMAKE_SHARED_LINKER_FLAGS \${CMAKE_EXE_LINKER_FLAGS})
 
-set(CMAKE_C_COMPILER "$toolchain_prefix/bin/clang")
-set(CMAKE_CXX_COMPILER "$toolchain_prefix/bin/clang++")
-set(CMAKE_NM "$toolchain_prefix/bin/llvm-nm")
-set(CMAKE_AR "$toolchain_prefix/bin/llvm-ar")
-set(CMAKE_RANLIB "$toolchain_prefix/bin/llvm-ranlib")
+set(CMAKE_C_COMPILER "$toolchain_bin/clang")
+set(CMAKE_CXX_COMPILER "$toolchain_bin/clang++")
+set(CMAKE_NM "$toolchain_bin/llvm-nm")
+set(CMAKE_AR "$toolchain_bin/llvm-ar")
+set(CMAKE_RANLIB "$toolchain_bin/llvm-ranlib")
 
 
 # these variables tell CMake to avoid using any binary it finds in
@@ -41,7 +41,7 @@ compile_toolchain(){
 
 
 	# LLVM C/C++ compilers
-	_compile_cmake_pkg "$toolchain_prefix/bin/clang" "$llvm_dir" llvm "toolchain" "$toolchain_prefix" \
+	_compile_cmake_pkg "$toolchain_bin/clang" "$llvm_dir" llvm "toolchain" "$toolchain_prefix" \
 					"LLVM_TARGETS_TO_BUILD='$llvm_targets' BUILD_SHARED_LIBS=1 LLVM_ENABLE_PROJECTS='clang;lld' LLVM_HAVE_LIBXAR=0" \
 					"LLVM Toolchain" no-clean no-silent
 	#rm -rf "$toolchain_prefix/include" "$toolchain_prefix/lib/"*".a"
@@ -82,7 +82,7 @@ compile_toolchain(){
 	# _compile_ac_pkg "$sysroot/lib/libncurses.so" "$ncurses_dir" \
 	# 			"Configuring Ncurses" "--prefix=$sysroot --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib" \
 	# 			"Compiling Ncurses" "" \
-	# 			"Installing Ncurses" "install INSTALL_PROG='/usr/bin/env install --strip-program='$toolchain_prefix/bin/llvm-strip' -c -s'"
+	# 			"Installing Ncurses" "install INSTALL_PROG='/usr/bin/env install --strip-program='$toolchain_bin/llvm-strip' -c -s'"
 
 	# ncursesw
 	# if [ -r "$ncurses_dir/build" ]; then
@@ -91,5 +91,5 @@ compile_toolchain(){
 	# _compile_ac_pkg "$sysroot/lib/libncursesw.so" "$ncurses_dir" \
 	# 			"Configuring NcursesW" "--prefix=$sysroot --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec" \
 	# 			"Compiling NcursesW" "" \
-	# 			"Installing NcursesW" "install INSTALL_PROG='/usr/bin/env install --strip-program='$toolchain_prefix/bin/llvm-strip' -c -s'"
+	# 			"Installing NcursesW" "install INSTALL_PROG='/usr/bin/env install --strip-program='$toolchain_bin/llvm-strip' -c -s'"
 }
