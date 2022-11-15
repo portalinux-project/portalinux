@@ -29,7 +29,7 @@ _get_pkg_names(){
 	ncurses_dir="$(realpath $(echo $dirlist | grep 'ncurses.[0-9,a-z,A-Z,\.]*' -o))"
 	grub_dir="$(realpath $(echo $dirlist | grep 'grub.[0-9,a-z,A-Z,\.]*' -o))"
 #	python_dir="$(realpath $(echo $dirlist | grep 'python.[0-9,a-z,A-Z,\.]*' -o))"
-	if [ "$LLVM" = "1" ]; then
+	if [ "$LLVM" != "" ]; then
 		llvm_dir="$(realpath $(echo $dirlist | grep 'llvm.[0-9,a-z,A-Z,\.,\-]*' -o))"
 	else
 		binutils_dir="$(realpath $(echo $dirlist | grep 'binutils.[0-9,a-z,A-Z,\.]*' -o))"

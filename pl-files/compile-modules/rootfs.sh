@@ -11,11 +11,6 @@ _rootfs_cleanup(){
 }
 
 compile_rootfs(){
-	cross_cc="$compile_target-gcc"
-	if [ "$LLVM" = "1" ]; then
-		cross_cc="clang"
-	fi
-
 	if ! command -v $cross_cc > /dev/null; then
 		echo "Error: You do not have the compiler for system $compile_target installed. Please run $0 --build toolchain and try again"
 		exit 1
@@ -136,15 +131,21 @@ compile_rootfs(){
 create_boot_image(){
 	_rootfs_cleanup
 
-	if [ $(id -u) -ne 0 ]; then
-		echo "Error: You are not root"
+	if [ $(id -u) = 0 ]; then
+		su_exec=""
+	elif command -v pkexec 2>/dev/null; then
+		su_exec="pkexec"
+	elif command -v sudo 2>/dev/null; then
+		su_exec="sudo"
+	else
+		echo "Error: No way to esclate privilages, aborting!"
 		exit 3
 	fi
 
 	printf "Creating necessary device nodes..."
-	mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null || true
-	mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null || true
-	mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null || true
+	$su_exec mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null || true
+	$su_exec mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null || true
+	$su_exec mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null || true
 	echo "Done."
 
 	printf "Creating initramfs boot file..."

@@ -27,9 +27,9 @@ if [ $threads -gt 4 ]; then
 	fi
 fi
 
-if [ "$LLVM" = "1" ]; then
+if [ "$LLVM" != "" ]; then
 	cross_cc="$toolchain_bin/clang"
-	cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot -fuse-ld=$toolchain_bin/ld.lld --rtlib=compiler-rt"
+	cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot --ld-path=$toolchain_bin/ld.lld --rtlib=compiler-rt"
 else
 	cross_cc="$toolchain_bin/$compile_target-gcc"
 fi
@@ -203,7 +203,7 @@ _setup_gcc(){
 }
 
 setup_toolchain(){
-	if [ "$LLVM" = "1" ]; then
+	if [ "$LLVM" != "" ]; then
 		source "$plfiles/compile-modules/llvm.sh"
 	else
 		source "$plfiles/compile-modules/gcc.sh"
