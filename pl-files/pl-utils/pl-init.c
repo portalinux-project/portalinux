@@ -1,12 +1,14 @@
 /****************************************************************************\
- pl-init, v0.01
+ pl-init, v0.02
  (c) 2022 pocketlinux32, Under GPLv2 or later
  pl-init.c: Simplified clone of sysvinit
 \****************************************************************************/
+
 #include <stdio.h>
+#include <string.h>
 #include <signal.h>
-#include <spawn.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -16,7 +18,17 @@
 #include <sys/mount.h>
 #include <sys/reboot.h>
 
+typedef struct plexec {
+	char* path;
+	char** args;
+	bool respawn;
+} plexec_t;
+
+plexec_t* execBuffer;
+
 void signalHandler(int signal){
+	free(execBuffer);
+
 	printf("* Syncing cached file ops...\n");
 	sync();
 
@@ -42,48 +54,56 @@ void setSignal(int signal, struct sigaction* newHandler){
 		sigaction(signal, newHandler, NULL);
 }
 
-pid_t spawnShell(){
-	pid_t shell = fork();
-	if(shell == 0){
+int spawnExec(plexec_t executable){
+	pid_t exec = fork();
+	int status;
+	if(exec == 0){
 		sleep(1);
-		char buffer[64];
-		char* args[] = { "sh", NULL };
-		execv(realpath("/bin/sh", buffer), args);
+		char buffer[256];
+		execv(realpath(executable.path, buffer), executable.args);
 	}else{
-		return shell;
+		waitpid(exec, &status, 0);
 	}
+	return status;
 }
 
-void shellRespawner(){
-	pid_t shell = spawnShell();
-	int status;
-
+#ifndef PL_SRV_INIT
+void respawnExec(plexec_t executable){
 	while(1){
-		waitpid(shell, &status, 0);
-		printf("* Shell has exited, respawning...\n\n");
-		shell = spawnShell();
+		spawnExec(executable);
 	}
 }
 
 void parseInitTabLine(char* line){
-	char parsedLine[4][128];
+	char token[4][512];
+	char* stringHolder;
 
 	// TODO: add proper line parser here
+	int i = 1;
+	stringHolder = strtok(line, ":");
+	strcpy(token[0], stringHolder);
+	while((stringHolder = strtok(NULL, ":")) != NULL && i < 4){
+		strcpy(token[i], stringHolder);
+	}
 }
 
 int parseInitTab(){
-	FILE* inittabFile = fopen("/etc/inittab", "r");
+	FILE* inittabFile = NULL; //fopen("/etc/inittab", "r");
 
 	if(!inittabFile){
-		printf("	Could not load inittab. Running pl-srv instead");
+		printf("	Could not load inittab. Running defaults instead");
 		return 1;
 	}
 
-	char buffer[64];
-	while(fgets(buffer, 64, inittabFile) != NULL){
+	int amnt = 0;
+	char buffer[512];
+	while(fgets(buffer, 512, inittabFile) != NULL){
 		parseInitTabLine(buffer);
 	}
+
+	return 0;
 }
+#endif
 
 int safeMount(char* source, char* dest, char* fstype, int mountflags, char* data){
 	struct stat root;
@@ -101,8 +121,10 @@ int safeMount(char* source, char* dest, char* fstype, int mountflags, char* data
 		}else{
 			printf("Successfully mounted.\n");
 		}
-	}else{		printf("Already mounted.\n");
+	}else{
+		printf("Already mounted.\n");
 	}
+	return 0;
 }
 
 int safeMountBootFS(char* dest, char* fstype){
@@ -112,6 +134,18 @@ int safeMountBootFS(char* dest, char* fstype){
 int main(int argc, const char* argv[]){
 	pid_t pid = getpid();
 	uid_t uid = getuid();
+
+	if(argc > 1){
+		printf("pl-init v0.02\n");
+		printf("(c) 2022 pocketlinux32, Under GPLv2 or later\n\n");
+		printf("Usage: %s\n\n", argv[0]);
+		printf("Initializes a PortaLinux system. Must be ran as PID 1.\n");
+		printf("Depending on the compilation options, it might have a dependency to pl-srv\n");
+		#ifdef PL_SRV_INIT
+		printf("NOTE: This version of pl-init was compiled with a pl-srv dependency\n");
+		#endif
+		return 0;
+	}
 
 	if(uid){
 		printf("Error: Init can only be ran by root\n");
@@ -123,7 +157,7 @@ int main(int argc, const char* argv[]){
 		return 2;
 	}
 
-	printf("pl-init 0.01 started\n\n");
+	printf("pl-init 0.02 started\n\n");
 	printf("* Mounting necessary filesystems:\n");
 
 	safeMountBootFS("/sys", "sysfs");
@@ -141,6 +175,41 @@ int main(int argc, const char* argv[]){
 	setSignal(SIGUSR1, &newSigAction);
 	setSignal(SIGUSR2, &newSigAction);
 
-	printf("* Executing shell\n\n");
-	shellRespawner();
+	#ifndef PL_SRV_INIT
+	printf("* Parsing inittab:");
+	if(parseInitTab()){
+		execBuffer = malloc(3 * sizeof(plexec_t));
+		char* sysinit[3] = { "pl-srv", "init", NULL };
+		char* respawn[2] = { "sh", NULL };
+
+		execBuffer[0].path = "/usr/bin/pl-srv";
+		execBuffer[0].args = sysinit;
+		execBuffer[0].respawn = false;
+		execBuffer[1].path = "/bin/sh";
+		execBuffer[1].args = respawn;
+		execBuffer[1].respawn = true;
+		execBuffer[2].path = NULL;
+	}
+
+	int i = 0;
+	while(execBuffer[i].path != NULL){
+		if(execBuffer[i].respawn){
+			pid_t status = fork();
+			if(status == 0){
+				respawnExec(execBuffer[i]);
+			}
+		}else{
+			spawnExec(execBuffer[i]);
+		}
+	}
+	#else
+	printf("* Running pl-srv...");
+	plexec_t plsrv;
+	char* plsrvargs[3] = { "pl-srv", "init", NULL };
+	plsrv.path = "/usr/bin/pl-srv";
+	plsrv.args = plsrvargs;
+	spawnExec(plsrv);
+	#endif
+
+	return 3;
 }

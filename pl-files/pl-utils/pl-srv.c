@@ -6,7 +6,59 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <sys/stat.h>
+#include <sys/type.h>
+
+#define PL_WAIT 0
+#define PL_RESPAWN 1
+
+typedef struct plexec {
+	char* path;
+	char** args;
+	int action;
+	bool silent;
+} plexec_t;
+
+pid_t spawnExec(plexec_t executable){
+	pid_t exec = fork();
+	int status;
+	if(exec == 0){
+		sleep(1);
+		char buffer[256];
+		if(silent){
+			fclose(stdout);
+			fclose(stderr);
+		}
+		execv(realpath(executable.path, buffer), executable.args);
+	}else{
+		if(executable.action == PL_WAIT){
+			waitpid(exec, &status, 0);
+			return status;
+		}else if(executable.action == PL_RESPAWN){
+			return exec;
+		}
+	}
+}
+
+int startTask(char* name){
+	
+}
+
+int stopTask(){
+	
+}
+
+void initSystem(){
+	
+}
+
+void stopSystem
 
 int main(int argc, const char* argv[]){
-	
+	if(argv > 1){
+		for(int i = 0; i < argc; i++){
+
+		}
+	}
 }
