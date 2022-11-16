@@ -16,7 +16,7 @@ compile_rootfs(){
 		exit 1
 	fi
 	musl_subset="--with-sysroot=/ --datarootdir=/opt/share --includedir=/opt/include"
-	common_flags="$musl_subset --host=$compile_targee"
+	common_flags="$musl_subset --host=$compile_target"
 	included_comp="--prefix=/usr $common_flags"
 	main_comp="$included_comp --disable-multilib"
 	_get_pkg_names $dist
