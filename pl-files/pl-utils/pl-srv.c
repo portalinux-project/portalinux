@@ -42,18 +42,31 @@ pid_t spawnExec(plexec_t executable){
 }
 
 int startTask(char* name){
+	char fullPath[256] = "/etc/pl-srv/";
+	strncat(fullPath, name, 239);
+	strcat(fullPath, ".srv");
+
+	FILE* serviceUnit = fopen(fullPath, "r");
+
+	if(!serviceUnit){
+		printf("Error: Unit %s does not exist", fullPath);
+		return 1;
+	}
+
+	//TODO: add service unit parser
+}
+
+int stopTask(char* name){
 	
 }
 
-int stopTask(){
+void initSystem(void){
 	
 }
 
-void initSystem(){
+void stopSystem(void){
 	
 }
-
-void stopSystem
 
 int main(int argc, const char* argv[]){
 	if(argv > 1){

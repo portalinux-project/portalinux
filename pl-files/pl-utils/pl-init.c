@@ -24,10 +24,41 @@ typedef struct plexec {
 	bool respawn;
 } plexec_t;
 
-plexec_t* execBuffer;
+plexec_t* execBuffer = NULL;
+int execBufSize = 0;
+
+int spawnExec(plexec_t executable){
+	pid_t exec = fork();
+	int status;
+	if(exec == 0){
+		sleep(1);
+		char buffer[256];
+		execv(realpath(executable.path, buffer), executable.args);
+	}else{
+		waitpid(exec, &status, 0);
+	}
+	return status;
+}
 
 void signalHandler(int signal){
+	#ifndef PL_SRV_INIT
+	int i = 0;
+	while(execBuffer[i].path != NULL){
+		int j = 0;
+		while(execBuffer[i].args[j] != NULL){
+			free(execBuffer[i].args[j]);
+		}
+		free(execBuffer[i].args);
+	}
+
 	free(execBuffer);
+	#else
+	plexec_t plsrv;
+	char* plsrvargs[3] = { "pl-srv", "poweroff", NULL };
+	plsrv.path = "/usr/bin/pl-srv";
+	plsrv.args = plsrvargs;
+	spawnExec(plsrv);
+	#endif
 
 	printf("* Syncing cached file ops...\n");
 	sync();
@@ -54,19 +85,6 @@ void setSignal(int signal, struct sigaction* newHandler){
 		sigaction(signal, newHandler, NULL);
 }
 
-int spawnExec(plexec_t executable){
-	pid_t exec = fork();
-	int status;
-	if(exec == 0){
-		sleep(1);
-		char buffer[256];
-		execv(realpath(executable.path, buffer), executable.args);
-	}else{
-		waitpid(exec, &status, 0);
-	}
-	return status;
-}
-
 #ifndef PL_SRV_INIT
 void respawnExec(plexec_t executable){
 	while(1){
@@ -75,8 +93,9 @@ void respawnExec(plexec_t executable){
 }
 
 void parseInitTabLine(char* line){
-	char token[4][512];
+	char token[4][512] = { "", "", "", "" };
 	char* stringHolder;
+	int offset = 0;
 
 	// TODO: add proper line parser here
 	int i = 1;
@@ -85,9 +104,27 @@ void parseInitTabLine(char* line){
 	while((stringHolder = strtok(NULL, ":")) != NULL && i < 4){
 		strcpy(token[i], stringHolder);
 	}
+
+	if(strcmp(token[4], "") != 0)
+		offset = 1;
+
+	if(!execBuffer){
+		execBuffer = malloc(2 * sizeof(plexec_t));
+		execBufSize = 1;
+	}else{
+		void* tmpVal = realloc(execBuffer, (execBufSize + 2) * sizeof(plexec_t));
+		if(!tmpVal)
+			return;
+
+		execBuffer = tmpVal;
+		execBufSize++;
+	}
+
+	execBuffer[execBufSize - 1].path = malloc((strlen(token[3 + offset]) + 1) * sizeof(char));
+	execBuffer[execBufSize - 1].args = malloc()
 }
 
-int parseInitTab(){
+int parseInitTab(void){
 	FILE* inittabFile = NULL; //fopen("/etc/inittab", "r");
 
 	if(!inittabFile){
@@ -140,7 +177,7 @@ int main(int argc, const char* argv[]){
 		printf("(c) 2022 pocketlinux32, Under GPLv2 or later\n\n");
 		printf("Usage: %s\n\n", argv[0]);
 		printf("Initializes a PortaLinux system. Must be ran as PID 1.\n");
-		printf("Depending on the compilation options, it might have a dependency to pl-srv\n");
+		printf("Depending on the compilation options, it might have a pl-srv dependency\n");
 		#ifdef PL_SRV_INIT
 		printf("NOTE: This version of pl-init was compiled with a pl-srv dependency\n");
 		#endif
@@ -179,10 +216,20 @@ int main(int argc, const char* argv[]){
 	printf("* Parsing inittab:");
 	if(parseInitTab()){
 		execBuffer = malloc(3 * sizeof(plexec_t));
-		char* sysinit[3] = { "pl-srv", "init", NULL };
-		char* respawn[2] = { "sh", NULL };
+		char** sysinit = malloc(3 * sizeof(char*));
+		char** respawn = malloc(2 * sizeof(char*));
 
-		execBuffer[0].path = "/usr/bin/pl-srv";
+		sysinit[0] = malloc(3 * sizeof(char));
+		sysinit[1] = malloc(16 * sizeof(char));
+		sysinit[2] = NULL;
+		respawn[0] = malloc(3 * sizeof(char));
+		respawn[1] = NULL;
+
+		strcpy(sysinit[0], "sh\0");
+		strcpy(sysinit[1], "/etc/init.d/rcS\0");
+		strcpy(respawn[0], "sh\0");
+
+		execBuffer[0].path = "/bin/sh";
 		execBuffer[0].args = sysinit;
 		execBuffer[0].respawn = false;
 		execBuffer[1].path = "/bin/sh";
@@ -203,13 +250,15 @@ int main(int argc, const char* argv[]){
 		}
 	}
 	#else
-	printf("* Running pl-srv...");
+	printf("* Running pl-srv...\n\n");
 	plexec_t plsrv;
 	char* plsrvargs[3] = { "pl-srv", "init", NULL };
 	plsrv.path = "/usr/bin/pl-srv";
 	plsrv.args = plsrvargs;
 	spawnExec(plsrv);
 	#endif
+
+	while(1);
 
 	return 3;
 }
