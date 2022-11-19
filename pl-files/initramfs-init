@@ -1,10 +1,8 @@
 #!/bin/sh
-
-PUT_DYN_SYMLINK_TO_BOX_HERE
-
+/bin/busybox --install -s
 dmesg -n 1
 
-echo "Welcome to PortaLinux v0.09, (c) 2022 pocketlinux32 & raisinware"
+echo "Welcome to PortaLinux IMG_VER, (c) 2022 pocketlinux32 & raisinware"
 printf "Pre-Init. Running on Linux $(uname -m) $(uname -r)\\n\\n"
 
 printf "Mounting pseudo-filesystems..."
@@ -29,21 +27,8 @@ else
 	mdev -s
 fi
 
-#printf "Done.\\nSwitching from ramfs to tmpfs..."
-#mkdir /pivot
-#mount -t tmpfs tmpfs /pivot
-#mkdir -p /pivot/dev /pivot/sys /pivot/proc
-#for i in dev sys proc; do
-#	mount -o move /$i /pivot/$i
-#	printf "."
-#done
-#for i in $(ls / | grep -v init | grep -v linuxrc | grep -v pivot | grep -v dev); do
-#	cp -ar $i /pivot
-#	printf "."
-#done
-
 printf '#!/bin/sh\\n\\ngetty $@\\nclear\\n' > /bin/agetty
 chmod 777 /bin/agetty
 
 printf "Done.\\nExecuting init...\\n\\n"
-exec /sbin/init #/sbin/switch_root /pivot /bin/BOX init
+exec /sbin/init

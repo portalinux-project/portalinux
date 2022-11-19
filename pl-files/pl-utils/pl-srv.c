@@ -60,7 +60,7 @@ int stopTask(char* name){
 	
 }
 
-void initSystem(void){
+void initSystem(char* target){
 	
 }
 
@@ -71,7 +71,9 @@ void stopSystem(void){
 int main(int argc, const char* argv[]){
 	if(argv > 1){
 		for(int i = 0; i < argc; i++){
-
+			if(){
+				
+			}
 		}
 	}
 }

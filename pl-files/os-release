@@ -1,6 +1,6 @@
 NAME="PortaLinux"
 ID="portalinux"
-PRETTY_NAME="PortaLinux v0.10 ToyMusl"
+PRETTY_NAME="PortaLinux v0.10 VAR_NAME"
 DEFAULT_HOSTNAME="portalinux"
 
 HOME_URL="https://github.com/pocketlinux32/portalinux"
@@ -8,6 +8,6 @@ DOCUMENTATION_URL="https://github.com/pocketlinux32/portalinux/wiki"
 
 IMAGE_VERSION="v0.10"
 IMAGE_ID="0.10"
-VARIANT="ToyMusl"
-VARIANT_ID="pl-toymusl"
-BUILD_ID="pl-build-1668312789"
+VARIANT="VAR_NAME"
+VARIANT_ID="VAR_ID"
+BUILD_ID="BID"

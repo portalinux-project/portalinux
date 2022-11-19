@@ -212,7 +212,7 @@ setup_toolchain(){
 	compile_toolchain
 }
 
-echo "PortaLinux Build System v0.09"
+echo "PortaLinux Build System v0.10"
 printf "(c) 2022 pocketlinux32 & raisinware, Under GPLv2+\n\n"
 
 if [ $# -eq 0 ]; then

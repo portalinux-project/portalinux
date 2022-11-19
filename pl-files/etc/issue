@@ -1,4 +1,4 @@
-PortaLinux v0.09
+PortaLinux IMG_VER
 
 ports: https://github.com/raisinware/portalinux
 mainline: https://github.com/pocketlinux32/portalinux

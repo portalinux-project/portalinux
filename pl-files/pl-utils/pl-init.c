@@ -41,27 +41,25 @@ int spawnExec(plexec_t executable){
 }
 
 void signalHandler(int signal){
-	#ifndef PL_SRV_INIT
-	int i = 0;
-	while(execBuffer[i].path != NULL){
-		int j = 0;
-		while(execBuffer[i].args[j] != NULL){
-			free(execBuffer[i].args[j]);
-		}
-		free(execBuffer[i].args);
-	}
-
-	free(execBuffer);
-	#else
+	#ifdef PL_SRV_INIT
 	plexec_t plsrv;
-	char* plsrvargs[3] = { "pl-srv", "poweroff", NULL };
+	char* plsrvargs[3] = { "pl-srv", "halt", NULL };
 	plsrv.path = "/usr/bin/pl-srv";
 	plsrv.args = plsrvargs;
 	spawnExec(plsrv);
+	#else
+	printf("* Killing all processes...");
+	kill(-1, SIGTERM);
+	printf("Done.\n");
 	#endif
 
-	printf("* Syncing cached file ops...\n");
+	printf("* Force-killing all processes...");
+	kill(-1, SIGKILL);
+	printf("Done.\n");
+
+	printf("* Syncing cached file ops...");
 	sync();
+	printf("Done.\n");
 
 	switch(signal){
 		case SIGTERM: ;
@@ -94,6 +92,7 @@ void respawnExec(plexec_t executable){
 
 void parseInitTabLine(char* line){
 	char token[4][512] = { "", "", "", "" };
+	char pathToken[256];
 	char* stringHolder;
 	int offset = 0;
 
@@ -120,15 +119,51 @@ void parseInitTabLine(char* line){
 		execBufSize++;
 	}
 
-	execBuffer[execBufSize - 1].path = malloc((strlen(token[3 + offset]) + 1) * sizeof(char));
-	execBuffer[execBufSize - 1].args = malloc()
+	stringHolder = strtok(token[3 + offset], " ");
+
+	execBuffer[execBufSize - 1].args = malloc(2 * sizeof(char*));
+	execBuffer[execBufSize - 1].args[0] = malloc((strlen(stringHolder) + 1) * sizeof(char));
+	execBuffer[execBufSize - 1].path = execBuffer[execBufSize - 1].args[0];
+	int argsSize = 1;
+
+	strcpy(execBuffer[execBufSize - 1].args[0], stringHolder);
+
+	while((stringHolder = strtok(NULL, " ")) != NULL){
+		void* tmpVal = realloc(execBuffer[execBufSize - 1].args, (argsSize + 2) * sizeof(char*));
+		if(!tmpVal){
+			for(int i = 0; i < argsSize; i++){
+				free(execBuffer[execBufSize - 1].args[i]);
+			}
+
+			free(execBuffer[execBufSize - 1].args);
+			execBuffer = realloc(execBuffer, execBufSize * sizeof(plexec_t));
+			execBufSize--;
+			return;
+		}
+
+		execBuffer[execBufSize - 1].args = tmpVal;
+		execBuffer[execBufSize - 1].args[argsSize] = malloc((strlen(stringHolder) + 1) * sizeof(char));
+
+		strcpy(execBuffer[execBufSize - 1].args[argsSize], stringHolder);
+		argsSize++;
+	}
+
+	execBuffer[execBufSize - 1].args[argsSize] = NULL;
+
+	if(strcmp(token[2 + offset],"respawn")){
+		execBuffer[execBufSize - 1].respawn = true;
+	}else{
+		execBuffer[execBufSize - 1].respawn = false;
+	}
+
+	return;
 }
 
 int parseInitTab(void){
 	FILE* inittabFile = NULL; //fopen("/etc/inittab", "r");
 
 	if(!inittabFile){
-		printf("	Could not load inittab. Running defaults instead");
+		printf("	Could not load inittab. Running defaults instead\n");
 		return 1;
 	}
 
@@ -149,7 +184,7 @@ int safeMount(char* source, char* dest, char* fstype, int mountflags, char* data
 	stat("/", &root);
 	stat(dest, &mountpoint);
 
-	printf("	%s: ", dest);
+	printf("	%s:", dest);
 	if(mountpoint.st_dev == root.st_dev){
 		if(mount(source, dest, fstype, mountflags, data) != 0){
 			printf("Error.\n");
@@ -238,8 +273,18 @@ int main(int argc, const char* argv[]){
 		execBuffer[2].path = NULL;
 	}
 
+	printf("* Executing inittab programs:\n");
+
 	int i = 0;
 	while(execBuffer[i].path != NULL){
+		printf("	Running %s ", execBuffer[i].path);
+		int j = 1;
+		while(execBuffer[i].args[j] != NULL){
+			printf("%s ", execBuffer[i].args[j]);
+			j++;
+		}
+		printf("\n");
+
 		if(execBuffer[i].respawn){
 			pid_t status = fork();
 			if(status == 0){
@@ -248,6 +293,7 @@ int main(int argc, const char* argv[]){
 		}else{
 			spawnExec(execBuffer[i]);
 		}
+		i++;
 	}
 	#else
 	printf("* Running pl-srv...\n\n");

@@ -82,19 +82,21 @@ compile_rootfs(){
 		else
 			cp "$plfiles/initramfs-init" "$output_rootfs/init"
 			chmod 777 "$output_rootfs/init"
-			sed -i 's/PUT_DYN_SYMLINK_TO_BOX_HERE/\/bin\/busybox --install -s/g' "$output_rootfs/init"
-			sed -i 's/BOX/busybox/g' "$output_rootfs/init"
+			sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/init"
 		fi
 		echo "Done."
 	fi
 
 	if [ ! -r "$output_rootfs/etc" ]; then
 		printf "Installing etc files..."
+		source "$plfiles/os-release"
 		cp -r "$plfiles/etc" "$output_rootfs"
 		chmod 777 "$output_rootfs/etc/init.d/rcS"
 		if [ "$dist" = "musl" ]; then
 			mv "$output_rootfs/etc/ld.so.conf" "$output_rootfs/etc/ld-musl-$(_generate_stuff musl).path"
 		fi
+		sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/etc/issue"
+		sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/etc/init.d/rcS"
 		echo "Done."
 	fi
 
@@ -111,19 +113,19 @@ compile_rootfs(){
 		printf "Installing os-release..."
 		cp "$plfiles/os-release" "$output_rootfs/usr/lib"
 		if [ "$dist" = "gnu" ]; then
-			sed -i 's/VAR_NAME/Desktop/g' "$plfiles/os-release"
-			sed -i 's/VAR_ID/pl-glibc/g' "$plfiles/os-release"
+			sed -i 's/VAR_NAME/Desktop/g' "$output_rootfs/usr/lib/os-release"
+			sed -i 's/VAR_ID/pl-glibc/g' "$output_rootfs/usr/lib/os-release"
 		else
 			if [ "$toybox" = "y" ] || [ "$LLVM" = "1" ]; then
-				sed -i 's/VAR_NAME/ToyMusl/g' "$plfiles/os-release"
-				sed -i 's/VAR_ID/pl-toymusl/g' "$plfiles/os-release"
+				sed -i 's/VAR_NAME/ToyMusl/g' "$output_rootfs/usr/lib/os-release"
+				sed -i 's/VAR_ID/pl-toymusl/g' "$output_rootfs/usr/lib/os-release"
 			else
-				sed -i 's/VAR_NAME/Musl/g' "$plfiles/os-release"
-				sed -i 's/VAR_ID/pl-busymusl/g' "$plfiles/os-release"
+				sed -i 's/VAR_NAME/Musl/g' "$output_rootfs/usr/lib/os-release"
+				sed -i 's/VAR_ID/pl-busymusl/g' "$output_rootfs/usr/lib/os-release"
 			fi
 		fi
 
-		sed -i "s/BID/pl-build-$(date +%s)/g" "$plfiles/os-release"
+		sed -i "s/BID/pl-build-$(date +%s)/g" "$output_rootfs/usr/lib/os-release"
 		echo "Done."
 	fi
 }
