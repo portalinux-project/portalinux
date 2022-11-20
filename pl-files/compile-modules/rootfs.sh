@@ -63,10 +63,6 @@ compile_rootfs(){
 		cd "$coreutils_dir"
 
 		printf "Configuring Coreutils..."
-		if [ $(echo $coreutils_dir | grep "toybox") ]; then   # NixOS fixes
-			sed -i "s/bash/sh/" "$coreutils_dir/scripts/genconfig.sh"
-			sed -i "s/bash/sh/" "$coreutils_dir/scripts/make.sh"
-		fi
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
 		if [ $(echo $coreutils_dir | grep "toybox") ]; then
 			printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_INIT=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config

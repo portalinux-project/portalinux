@@ -15,7 +15,7 @@ _get_deps(){
 		URL="$URL $musl_url"
 	fi
 
-	if [ "$toybox" = "y" ] || [ "$LLVM" = "1" ]; then
+	if [ "$toybox" != "" ] || [ "$LLVM" != "" ]; then
 		URL="$URL $toybox_url"
 	else
 		URL="$URL $busybox_url"
@@ -83,5 +83,10 @@ _init(){
 				ln i386 $j -s
 			done
 		done
+
+		if [ "$toybox" != "" ]; then   # NixOS fixes
+			sed -i "s/bash/sh/" "$coreutils_dir/scripts/genconfig.sh"
+			sed -i "s/bash/sh/" "$coreutils_dir/scripts/make.sh"
+		fi
 	fi
 }
