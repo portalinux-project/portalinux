@@ -9,7 +9,7 @@ toolchain_prefix="$(echo ~/cross)"
 logfile="$pldir/log.txt"
 
 ## Default URLS
-kernel_url="https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.78.tar.xz"
+kernel_url="https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.79.tar.xz"
 glibc_url="http://ftp.gnu.org/gnu/glibc/glibc-2.31.tar.gz"
 musl_url="https://musl.libc.org/releases/musl-1.2.3.tar.gz"
 busybox_url="http://busybox.net/downloads/busybox-1.34.1.tar.bz2"

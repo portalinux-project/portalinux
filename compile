@@ -29,6 +29,7 @@ fi
 if [ "$LLVM" != "" ]; then
 	cross_cc="$toolchain_bin/clang"
 	cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot --ld-path=$toolchain_bin/ld.lld --rtlib=compiler-rt"
+	echo "WARNING: LLVM PortaLinux is experimental, and currently only tested and supported on i486-musl. extra-pkgs are currently not supported."
 else
 	cross_cc="$toolchain_bin/$compile_target-gcc"
 fi
