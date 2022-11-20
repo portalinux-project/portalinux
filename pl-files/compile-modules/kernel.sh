@@ -9,11 +9,11 @@ compile_kernel(){
 		exit 4
 	fi
 
-	script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads" "$logfile"
+	script -qeac "PATH="$toolchain_bin:$PATH" make $kbuild_flags CROSS_COMPILE=$compile_target- ARCH=$linux_arch -j$threads" "$logfile"
 
 	modules_support=$(grep -w "CONFIG_MODULES" .config)
 	if [ "$modules_support" != "" ] && [ "$(echo $modules_support | grep '#')" = "" ]; then
-		script -qeac "make CROSS_COMPILE=$compile_target- ARCH=$linux_arch INSTALL_MOD_PATH=$output_rootfs modules_install" "$logfile"
+		script -qeac "PATH="$toolchain_bin:$PATH" make $kbuild_flags CROSS_COMPILE=$compile_target- ARCH=$linux_arch INSTALL_MOD_PATH=$output_rootfs modules_install" "$logfile"
 	fi
 	cp arch/$linux_arch/boot/dts/*.dtb "$output" 2>/dev/null || true
 	cp arch/$linux_arch/boot/*Image "$output"
@@ -28,9 +28,9 @@ configure_kernel(){
 	fi
 
 	if [ ! -f .config ]; then
-		make CROSS_COMPILE=$compile_target- ARCH=$linux_arch $kdefconfig
+		PATH="$toolchain_bin:$PATH" make $kbuild_flags CROSS_COMPILE=$compile_target- ARCH=$linux_arch $kdefconfig
 	fi
 
-	make ARCH=$linux_arch menuconfig
+	PATH="$toolchain_bin:$PATH" make $kbuild_flags ARCH=$linux_arch menuconfig
 	exit 0
 }

@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 set -e
 
-# TODO: refactor code in modules to use _exec() and _compile_pkg() when possible and useful
-# TODO: maybe make a _timed_exec() and/or _timed_run() function to potentialy remove some additional redundant lines of code
 # TODO: document the usage and params of every function
 # TODO: document every modules needed dependencies in comments
 # TODO: finish llvm support
@@ -16,6 +14,10 @@ pldir="$(dirname $(realpath $0))"
 plfiles="$pldir/pl-files"
 threads=$(nproc)
 
+source "$plfiles/compile-modules/defaults.sh"
+source "$plfiles/compile-modules/pkg/get_names.sh"
+source "$plfiles/compile-modules/runtime_calc.sh"
+
 if [ $threads -gt 4 ]; then
 	if [ $threads -lt 8 ]; then
 		threads=4
@@ -23,10 +25,6 @@ if [ $threads -gt 4 ]; then
 		threads=$(expr $(nproc) / 2)
 	fi
 fi
-
-source "$plfiles/compile-modules/defaults.sh"
-source "$plfiles/compile-modules/pkg/get_names.sh"
-source "$plfiles/compile-modules/runtime_calc.sh"
 
 _print_help(){ # TODO: Make sure this is up to date
 	printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
@@ -74,7 +72,19 @@ _exec(){
 	set -e
 }
 
-_compile_pkg(){
+_compiler_check(){
+	if [ "$LLVM" != "" ]; then
+		cross_cc="$toolchain_bin/clang"
+		cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot --ld-path=$toolchain_bin/ld.lld --rtlib=compiler-rt"
+		kbuild_flags="HOSTCC='cc' HOSTLD='ld' LLVM='$toolchain_bin' "
+
+		printf "WARNING: LLVM PortaLinux is experimental, and currently only tested and supported on i486-musl. extra-pkgs are currently not supported on LLVM.\n\n"
+	else
+		cross_cc="$toolchain_bin/$compile_target-gcc"
+	fi
+}
+
+_compile_ac_pkg(){
 	if [ ! -r "$1" ]; then
 		cd "$2"
 		if [ ! -r "$2/Makefile" ]; then
@@ -85,13 +95,39 @@ _compile_pkg(){
 			if [ "$dir" = "" ]; then
 				dir=".."
 			fi
-			_exec "$3" "$dir/configure $4"
+			PATH="$toolchain_bin:$PATH" _exec "$3" "$dir/configure $4"
 		fi
 
 		while [ $# -gt 4 ]; do
-			_exec "$5" "make -j$threads $6"
+			PATH="$toolchain_bin:$PATH" _exec "$5" "make -j$threads $6"
 			shift 2
 		done
+	fi
+}
+
+#_compile_cmake_pkg 1)fileToCheckIfExists 2)mainProjectDir 3)projectToConfig 4)buildSubDir(optional)
+#                   5)installPrefix 6)cmakeArgs 7)projectName 8)noCleanBuildDir(optional) 9)noSilentBuild(optional)
+_compile_cmake_pkg(){
+	if [ ! -r "$1" ]; then
+		cd "$2"
+		if [ "$8" = "" ]; then
+			rm -rf "build/$4"
+		fi
+
+		# arg parser
+		_args=""
+		for i in $6; do
+			_args="$_args -D$i"
+		done
+
+		# configure the project
+		_exec "Configuring $7"			"cmake -S './$3' -B 'build/$4' -GNinja -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX='$5' $_args"
+		if [ "$9" = "" ]; then
+			_exec "Compiling $7"		"cmake --build 'build/$4' -j$threads"
+		else
+			_exec "Compiling $7...\n"	"cmake --build 'build/$4' -j$threads" no-silent
+		fi
+		_exec "Installing $7"			"cmake --install 'build/$4' --strip"
 	fi
 }
 
@@ -131,6 +167,32 @@ _generate_stuff(){
 	esac
 }
 
+_compile_musl(){
+	if [ "$3" = "rootfs" ]; then
+		install_dir="$output_rootfs"
+	else
+		install_dir=""
+	fi
+
+	if [ ! -r "$install_dir/lib/libc.so" ]; then
+		cd "$libc_dir"
+		libcc="$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a"
+		ar="$toolchain_bin/llvm-ar"
+		ranlib="$toolchain_bin/llvm-ranlib"
+
+		if [ "$LLVM" = "" ]; then
+			libcc="$toolchain_prefix/lib/gcc/$compile_target/$(_generate_stuff pkg_ver gcc)/libgcc.a"
+			ar="$toolchain_bin/$compile_target-ar"
+			ranlib="$toolchain_bin/$compile_target-ranlib"
+		fi
+
+		_exec "Configuring musl libc" "ARCH=$arch LIBCC='$libcc' CC='$cross_cc $cross_cflags' ./configure --prefix='$1' --disable-multilib --host=$compile_target $2"
+		_exec "Compiling musl libc" "make -j$threads AR='$ar' RANLIB='$ranlib'"
+		_exec "Installing musl libc" "make AR='$ar' RANLIB='$ranlib' DESTDIR='$install_dir' install"
+	fi
+}
+
+
 _setup_gcc(){
 	if [ ! -r "$gcc_dir/mpfr" ]; then
 		ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
@@ -139,14 +201,14 @@ _setup_gcc(){
 	fi
 
 	if [ "$1" = "rfs" ]; then
-		ln -s "$toolchain_prefix/bin/$compile_target-gcc" "$toolchain_prefix/bin/cc" 2>/dev/null || true
-		ln -s "$toolchain_prefix/bin/$compile_target-g++" "$toolchain_prefix/bin/c++" 2>/dev/null || true
+		ln -s "$toolchain_bin/$compile_target-gcc" "$toolchain_bin/cc" 2>/dev/null || true
+		ln -s "$toolchain_bin/$compile_target-g++" "$toolchain_bin/c++" 2>/dev/null || true
 	fi
 }
 
 setup_toolchain(){
-	if [ "$LLVM" = "1" ]; then
-		source "$plfiles/compile-modules/llvm.sh"  
+	if [ "$LLVM" != "" ]; then
+		source "$plfiles/compile-modules/llvm.sh"
 	else
 		source "$plfiles/compile-modules/gcc.sh"
 	fi
@@ -154,8 +216,9 @@ setup_toolchain(){
 	compile_toolchain
 }
 
-echo "PortaLinux Build System v0.09"
+echo "PortaLinux Build System v0.10"
 printf "(c) 2022 pocketlinux32 & raisinware, Under GPLv2+\n\n"
+_compiler_check
 
 if [ $# -eq 0 ]; then
 	echo "Error: No command given. Run $0 --help for a list of supported commands"
@@ -180,6 +243,8 @@ while [ $# -gt 0 ]; do
 			;;
 		"--toolchain-prefix")
 			toolchain_prefix="$2"
+			sysroot="$toolchain_prefix/$compile_target"
+			toolchain_bin="$toolchain_prefix/bin"
 			shift
 			;;
 		"--test")

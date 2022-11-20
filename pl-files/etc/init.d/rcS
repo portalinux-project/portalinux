@@ -2,6 +2,13 @@
 device=""
 devscan_timeout=10
 
+if [ -f /usr/bin/toybox ]; then
+	for i in $(toybox --long); do
+		toybox ln -s /bin/toybox /$i 2>/dev/null
+	done
+	dmesg -n 1
+fi
+
 parse_kcmdline(){
 	cmdline=$(grep -E -o 'plflags.[a-z,0-9,\:,\,]*' /proc/cmdline | cut -d'=' -f2)
 
@@ -45,13 +52,13 @@ device_scan(){
 		fi
 	done
 
-	if ! mountpoint /opt 2>/dev/null; then
+	if ! mountpoint /opt 1>/dev/null 2>/dev/null; then
 		echo "None found"
 	fi
 }
 
-echo "Welcome to PortaLinux v0.08, (c) 2022 pocketlinux32 & raisinware"
-printf "Init script. Running on Linux $(uname -m) $(uname -r)\n\n"
+echo "Welcome to PortaLinux IMG_VER, (c) 2022 pocketlinux32 & raisinware"
+printf "Init script. Running on Linux $(uname -m) $(uname -r)\\n\\n"
 
 if [ -r /lib/modules ]; then
 	printf "Loading kernel modules..."
@@ -73,7 +80,7 @@ else
 	fi
 fi
 
-if ! mountpoint /opt 2>/dev/null; then
+if ! mountpoint /opt 1>/dev/null 2>/dev/null; then
 	echo "/opt is not a mountpoint. Running without filesystem persistence."
 else
 	printf "Setting up filesystem persistence..."

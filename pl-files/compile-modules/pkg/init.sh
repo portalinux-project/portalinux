@@ -1,7 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 _get_deps(){
-	URL="$kernel_url $gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
+	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
+
+	if [ "$LLVM" != "" ]; then
+		URL="$llvm_url $URL"
+	else
+		URL="$gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $URL"
+	fi
 
 	if [ "$dist" = "gnu" ]; then
 		URL="$URL $glibc_url"
@@ -9,7 +15,7 @@ _get_deps(){
 		URL="$URL $musl_url"
 	fi
 
-	if [ "$toybox" = "y" ] || [ "$LLVM" = "1" ]; then
+	if [ "$toybox" != "" ] || [ "$LLVM" != "" ]; then
 		URL="$URL $toybox_url"
 	else
 		URL="$URL $busybox_url"
@@ -77,5 +83,10 @@ _init(){
 				ln i386 $j -s
 			done
 		done
+
+		if [ "$toybox" != "" ]; then   # NixOS fixes
+			sed -i "s/bash/sh/" "$coreutils_dir/scripts/genconfig.sh"
+			sed -i "s/bash/sh/" "$coreutils_dir/scripts/make.sh"
+		fi
 	fi
 }
