@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 compile_extra_pkgs(){
+	if [ "$LLVM" != "" ]; then
+		echo "Error: LLVM Toolchain is not supported with --build extra-pkgs"
+		exit 9
+	fi
 	if [ ! -r "$output_rootfs/usr/bin/pl-install" ]; then
 		compile_rootfs
 	else
