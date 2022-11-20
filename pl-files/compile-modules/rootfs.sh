@@ -63,6 +63,10 @@ compile_rootfs(){
 		cd "$coreutils_dir"
 
 		printf "Configuring Coreutils..."
+		if [ $(echo $coreutils_dir | grep "toybox") ]; then   # NixOS fixes
+			sed -i "s/bash/sh/" "$coreutils_dir/scripts/genconfig.sh"
+			sed -i "s/bash/sh/" "$coreutils_dir/scripts/make.sh"
+		fi
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
 		if [ $(echo $coreutils_dir | grep "toybox") ]; then
 			printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_INIT=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config
@@ -133,8 +137,13 @@ compile_rootfs(){
 create_boot_image(){
 	_rootfs_cleanup
 
+	# find a way to escalate privilages, if not already running as root
 	if [ $(id -u) = 0 ]; then
 		su_exec=""
+	elif command -v /run/wrappers/bin/pkexec 2>/dev/null; then
+		su_exec="/run/wrappers/bin/pkexec"
+	elif command -v /run/wrappers/bin/sudo 2>/dev/null; then
+		su_exec="/run/wrappers/bin/sudo"
 	elif command -v pkexec 2>/dev/null; then
 		su_exec="pkexec"
 	elif command -v sudo 2>/dev/null; then
@@ -145,9 +154,7 @@ create_boot_image(){
 	fi
 
 	printf "Creating necessary device nodes..."
-	$su_exec mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null || true
-	$su_exec mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null || true
-	$su_exec mknod "$output_rootfs/dev/null" c 1 3 2>/dev/null || true
+	$su_exec "$plfiles/compile-modules/mknod.sh"
 	echo "Done."
 
 	printf "Creating initramfs boot file..."

@@ -21,6 +21,7 @@ mkShell.override { stdenv = gcc8Stdenv; } {
 		gawk
 		libuuid
 		zstd
+		cpio
 
 		# llvm deps
 		cmake
