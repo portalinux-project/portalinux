@@ -102,7 +102,7 @@ _compile_ac_pkg(){
 }
 
 #_compile_cmake_pkg 1)fileToCheckIfExists 2)mainProjectDir 3)projectToConfig 4)buildSubDir(optional)
-#			5)installPrefix 6)cmakeArgs 7)projectName 8)noCleanBuildDir(optional) 9)noSilentBuild(optional)
+#                   5)installPrefix 6)cmakeArgs 7)projectName 8)noCleanBuildDir(optional) 9)noSilentBuild(optional)
 _compile_cmake_pkg(){
 	if [ ! -r "$1" ]; then
 		cd "$2"
