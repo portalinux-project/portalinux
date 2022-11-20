@@ -20,6 +20,7 @@ mkShell.override { stdenv = gcc8Stdenv; } {
 		bison
 		gawk
 		libuuid
+		zstd
 
 		# llvm deps
 		cmake
@@ -27,6 +28,7 @@ mkShell.override { stdenv = gcc8Stdenv; } {
 		python3
 
 		# kernel build deps
+		pkg-config
 		ncurses
 		libressl
 		bc

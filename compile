@@ -26,14 +26,6 @@ if [ $threads -gt 4 ]; then
 	fi
 fi
 
-if [ "$LLVM" != "" ]; then
-	cross_cc="$toolchain_bin/clang"
-	cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot --ld-path=$toolchain_bin/ld.lld --rtlib=compiler-rt"
-	echo "WARNING: LLVM PortaLinux is experimental, and currently only tested and supported on i486-musl. extra-pkgs are currently not supported."
-else
-	cross_cc="$toolchain_bin/$compile_target-gcc"
-fi
-
 _print_help(){ # TODO: Make sure this is up to date
 	printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
 	echo "--init					Initializes the build system by downloading necessary components and unpacking them"
@@ -78,6 +70,18 @@ _exec(){
 	fi
 	echo "Done."
 	set -e
+}
+
+_compiler_check(){
+	if [ "$LLVM" != "" ]; then
+		cross_cc="$toolchain_bin/clang"
+		cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot --ld-path=$toolchain_bin/ld.lld --rtlib=compiler-rt"
+		kbuild_flags="HOSTCC='cc' HOSTLD='ld' LLVM='$toolchain_bin' "
+
+		printf "WARNING: LLVM PortaLinux is experimental, and currently only tested and supported on i486-musl. extra-pkgs are currently not supported on LLVM.\n\n"
+	else
+		cross_cc="$toolchain_bin/$compile_target-gcc"
+	fi
 }
 
 _compile_ac_pkg(){
@@ -214,6 +218,7 @@ setup_toolchain(){
 
 echo "PortaLinux Build System v0.10"
 printf "(c) 2022 pocketlinux32 & raisinware, Under GPLv2+\n\n"
+_compiler_check
 
 if [ $# -eq 0 ]; then
 	echo "Error: No command given. Run $0 --help for a list of supported commands"

@@ -49,9 +49,7 @@ compile_toolchain(){
 	# linux headers
 	if [ ! -r "$sysroot/include/linux" ]; then
 		cd "$linux_dir"
-		if ! [ -x "$(command -v clang)" ]; then LLVM=""; fi
-		_exec "Installing Linux headers" "make ARCH=$linux_arch INSTALL_HDR_PATH='$sysroot' headers_install"
-		if [ "$LLVM" = "" ]; then LLVM="1"; fi ##TODO: properly fix this
+		_exec "Installing Linux headers" "PATH="$toolchain_bin:$PATH" make $kbuild_flags ARCH=$linux_arch INSTALL_HDR_PATH='$sysroot' headers_install"
 	fi
 
 	# musl libc headers
