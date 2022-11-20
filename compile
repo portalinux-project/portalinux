@@ -95,11 +95,11 @@ _compile_ac_pkg(){
 			if [ "$dir" = "" ]; then
 				dir=".."
 			fi
-			_exec "$3" "$dir/configure $4"
+			PATH="$toolchain_bin:$PATH" _exec "$3" "$dir/configure $4"
 		fi
 
 		while [ $# -gt 4 ]; do
-			_exec "$5" "make -j$threads $6"
+			PATH="$toolchain_bin:$PATH" _exec "$5" "make -j$threads $6"
 			shift 2
 		done
 	fi
