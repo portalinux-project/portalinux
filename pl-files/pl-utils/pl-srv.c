@@ -20,7 +20,7 @@ typedef struct plexec {
 	bool silent;
 } plexec_t;
 
-pid_t spawnExec(plexec_t executable){
+pid_t spawnExec(plexec_t* executable){
 	pid_t exec = fork();
 	int status;
 	if(exec == 0){
@@ -30,16 +30,18 @@ pid_t spawnExec(plexec_t executable){
 			fclose(stdout);
 			fclose(stderr);
 		}
-		execv(realpath(executable.path, buffer), executable.args);
+		execv(realpath(executable->path, buffer), executable->args);
 	}else{
-		if(executable.action == PL_WAIT){
+		if(executable->action == PL_WAIT){
 			waitpid(exec, &status, 0);
 			return status;
-		}else if(executable.action == PL_RESPAWN){
+		}else if(executable->action == PL_RESPAWN){
 			return exec;
 		}
 	}
 }
+
+int configurePlExecStruct(plexec_t* executable)
 
 int startTask(char* name){
 	char fullPath[256] = "/etc/pl-srv/";
@@ -54,6 +56,7 @@ int startTask(char* name){
 	}
 
 	//TODO: add service unit parser
+	
 }
 
 int stopTask(char* name){
