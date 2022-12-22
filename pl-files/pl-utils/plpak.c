@@ -46,7 +46,7 @@ int main(int argc, const char argv[]){
 			silent = false;
 		}else if(strcmp(argv[i], "--help") == 0 || strcmp(argv[0], "-h"){
 			printf("PortaLinux Package Installer v0.03\n");
-			printf("(c) 2022 pocketlinux32, Under GPLv2+\n\n");
+			printf("(c) 2022 pocketlinux32, Under MPL v2.0\n\n");
 			printf("Usage: %s {--silent | --help} [install | remove] package\n\n");
 			printf("Options:\n")
 			printf("--help|-h		Shows this help\n");

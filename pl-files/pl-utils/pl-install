@@ -121,7 +121,7 @@ uninstall_pkg(){
 }
 
 echo "PortaLinux Package Installer v0.03"
-printf "(c) 2022 pocketlinux32, Under GPLv2+\n\n"
+printf "(c) 2022 pocketlinux32, Under MPL v2.0\n\n"
 
 if [ $(id -u) -ne 0 ]; then
 	echo "Error: You're not root"

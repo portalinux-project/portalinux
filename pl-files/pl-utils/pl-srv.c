@@ -1,6 +1,6 @@
 /***************************************************************************\
  pl-init, v0.01
- (c) 2022 pocketlinux32, Under GPLv2 or later
+ (c) 2022 pocketlinux32, Under MPL v2.0
  pl-srv.c: Simplified implementation of rust-based pl-srv service supervisor
 \***************************************************************************/
 #include <stdio.h>

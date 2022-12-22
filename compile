@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL v2.0
 set -e
 
 # TODO: document the usage and params of every function

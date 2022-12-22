@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
 ## Default Directory and Logfile Locations
 build="$pldir/build"

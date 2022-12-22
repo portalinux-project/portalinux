@@ -1,6 +1,6 @@
 /****************************************************************************\
  pl-init, v0.02
- (c) 2022 pocketlinux32, Under GPLv2 or later
+ (c) 2022 pocketlinux32, Under MPL v2.0
  pl-init.c: Simplified clone of sysvinit
 \****************************************************************************/
 

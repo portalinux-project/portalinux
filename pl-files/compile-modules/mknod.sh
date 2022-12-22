@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
 pldir="$(dirname $(realpath $0))/../.."
 plfiles="$pldir/pl-files"

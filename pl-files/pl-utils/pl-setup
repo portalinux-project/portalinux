@@ -8,7 +8,7 @@ _check_ans(){
 }
 
 echo "PortaLinux Setup v0.02"
-printf "(c) 2022 pocketlinux32, Under GPLv2+\n\n"
+printf "(c) 2022 pocketlinux32, Under MPL v2.0\n\n"
 
 read -n 1 -p "Set root password? [Y/n]" yn
 printf "\n"

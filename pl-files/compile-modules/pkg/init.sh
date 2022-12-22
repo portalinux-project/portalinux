@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
 _get_deps(){
 	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url"

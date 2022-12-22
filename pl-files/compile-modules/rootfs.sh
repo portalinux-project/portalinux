@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
 _rootfs_cleanup(){
 	printf "Deleting unnecessary files..."

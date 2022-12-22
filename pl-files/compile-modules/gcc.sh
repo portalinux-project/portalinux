@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
 _setup_glibc(){
 	mkdir -p "$output_rootfs/opt/include/gnu"
