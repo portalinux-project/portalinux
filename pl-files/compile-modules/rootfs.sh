@@ -41,17 +41,7 @@ compile_rootfs(){
 
 	if [ ! -r "$output_rootfs/usr/lib/libc.a" ]; then
 		cd "$libc_dir"
-		if [ "$dist" = "gnu" ]; then
-			_exec "Preparing for compilation" "_setup_gcc"
-			mkdir -p "build" && cd "build"
-			if [ ! -r "$libc_dir/build/Makefile" ]; then
-				_exec "Configuring glibc" "../configure $main_comp libc_cv_forced_unwind=yes CFLAGS='-s -O2' CXXFLAGS='-s -O2'"
-			fi
-			_exec "Compiling glibc" "make -j$threads"
-			_exec "Installing glibc" "make DESTDIR=$output_rootfs install"
-		else
-			_compile_musl "/usr" "$musl_subset" rootfs
-		fi
+		_compile_musl "/usr" "$musl_subset" rootfs
 
 		printf "Packaging libc headers..."
 		mkdir -p "$output/$dist-libc-headers/files/opt"
@@ -92,9 +82,7 @@ compile_rootfs(){
 		source "$plfiles/os-release"
 		cp -r "$plfiles/etc" "$output_rootfs"
 		chmod 777 "$output_rootfs/etc/init.d/rcS"
-		if [ "$dist" = "musl" ]; then
-			mv "$output_rootfs/etc/ld.so.conf" "$output_rootfs/etc/ld-musl-$(_generate_stuff musl).path"
-		fi
+		mv "$output_rootfs/etc/ld.so.conf" "$output_rootfs/etc/ld-musl-$(_generate_stuff musl).path"
 		sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/etc/issue"
 		sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/etc/init.d/rcS"
 		echo "Done."
@@ -112,19 +100,8 @@ compile_rootfs(){
 	if [ ! -r "$output_rootfs/usr/lib/os-release" ]; then
 		printf "Installing os-release..."
 		cp "$plfiles/os-release" "$output_rootfs/usr/lib"
-		if [ "$dist" = "gnu" ]; then
-			sed -i 's/VAR_NAME/Desktop/g' "$output_rootfs/usr/lib/os-release"
-			sed -i 's/VAR_ID/pl-glibc/g' "$output_rootfs/usr/lib/os-release"
-		else
-			if [ "$toybox" = "y" ] || [ "$LLVM" = "1" ]; then
-				sed -i 's/VAR_NAME/ToyMusl/g' "$output_rootfs/usr/lib/os-release"
-				sed -i 's/VAR_ID/pl-toymusl/g' "$output_rootfs/usr/lib/os-release"
-			else
-				sed -i 's/VAR_NAME/Musl/g' "$output_rootfs/usr/lib/os-release"
-				sed -i 's/VAR_ID/pl-busymusl/g' "$output_rootfs/usr/lib/os-release"
-			fi
-		fi
-
+		sed -i 's/VAR_NAME/ToyMusl/g' "$output_rootfs/usr/lib/os-release"
+		sed -i 's/VAR_ID/pl-toymusl/g' "$output_rootfs/usr/lib/os-release"
 		sed -i "s/BID/pl-build-$(date +%s)/g" "$output_rootfs/usr/lib/os-release"
 		echo "Done."
 	fi

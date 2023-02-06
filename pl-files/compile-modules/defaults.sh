@@ -10,9 +10,7 @@ logfile="$pldir/log.txt"
 
 ## Default URLS
 kernel_url="https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.79.tar.xz"
-glibc_url="http://ftp.gnu.org/gnu/glibc/glibc-2.31.tar.gz"
 musl_url="https://musl.libc.org/releases/musl-1.2.3.tar.gz"
-busybox_url="http://busybox.net/downloads/busybox-1.34.1.tar.bz2"
 toybox_url="http://landley.net/toybox/downloads/toybox-0.8.8.tar.gz"
 bash_url="http://ftp.gnu.org/gnu/bash/bash-5.1.tar.gz"
 make_url="http://ftp.gnu.org/gnu/make/make-4.3.tar.gz" # update to 4.4?
@@ -37,7 +35,6 @@ compile_target="i486-pocket-linux-musl"
 linux_arch="i386"
 specific_arch="i486"
 arch="i486"
-dist="musl"
 libdir="lib"
 grub_platform="efi"
 abi=""

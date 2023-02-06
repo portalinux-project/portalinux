@@ -36,7 +36,25 @@ int spawnExec(char* path, char** args){
 }
 
 int executeSupervisor(plsrv_t* service){
-	
+	pid_t exec = fork();
+	if(exec == 0){
+		fclose(stdin);
+		freopen("/dev/null", "w", stdout);
+		spawnExec(service->path, service->args);
+		if(service->type == PLSRV_RESPAWN){
+			while(1)
+				spawnExec(service->path, service->args);
+		}
+	}
+
+	return exec;
+}
+
+plsrv_t* generateServiceStruct(char* pathname, plmt_t* mt){
+	plfile_t* srvFile = plFOpen(pathname, "r", mt);
+	plsrv_t* returnStruct = plMTAllocE(mt, sizeof(plsrv_t));
+
+	if(
 }
 
 int main(int argc, char* argv[]){

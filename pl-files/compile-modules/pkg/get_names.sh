@@ -28,6 +28,7 @@ _get_pkg_names(){
 	nano_dir="$(realpath $(echo $dirlist | grep 'nano.[0-9,a-z,A-Z,\.]*' -o))"
 	ncurses_dir="$(realpath $(echo $dirlist | grep 'ncurses.[0-9,a-z,A-Z,\.]*' -o))"
 	grub_dir="$(realpath $(echo $dirlist | grep 'grub.[0-9,a-z,A-Z,\.]*' -o))"
+	libc_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
 #	python_dir="$(realpath $(echo $dirlist | grep 'python.[0-9,a-z,A-Z,\.]*' -o))"
 	if [ "$LLVM" != "" ]; then
 		llvm_dir="$(realpath $(echo $dirlist | grep 'llvm.[0-9,a-z,A-Z,\.,\-]*' -o))"
@@ -37,11 +38,5 @@ _get_pkg_names(){
 		gmp_dir="$(realpath $(echo $dirlist | grep 'gmp.[0-9,a-z,A-Z,\.]*' -o))"
 		mpc_dir="$(realpath $(echo $dirlist | grep 'mpc.[0-9,a-z,A-Z,\.]*' -o))"
 		mpfr_dir="$(realpath $(echo $dirlist | grep 'mpfr.[0-9,a-z,A-Z,\.]*' -o))"
-	fi
-
-	if [ "$dist" = "gnu" ]; then
-		libc_dir="$(realpath $(echo $dirlist | grep 'glibc.[0-9,a-z,A-Z,\.]*' -o))"
-	else
-		libc_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
 	fi
 }

@@ -73,13 +73,7 @@ compile_toolchain(){
 	fi
 
 	# libc
-	if [ ! -r "$sysroot/lib/libc.so" ] && [ "$dist" = "gnu" ]; then
-		cd "$libc_dir/build"
-		_exec "Compiling libc" "make -j$threads AR=$compile_target-ar RANLIB=$compile_target-ranlib"
-		_exec "Installing libc" "make AR=$compile_target-ar RANLIB=$compile_target-ranlib install"
-	elif [ ! -r "$sysroot/lib/libc.so" ]; then
-		_compile_musl "$sysroot"
-	fi
+	_compile_musl "$sysroot"
 
 	# libgcc-shared (musl-only)
 	if [ ! -r "$sysroot/$libdir/libgcc_s.so" ]; then

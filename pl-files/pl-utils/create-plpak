@@ -17,6 +17,6 @@ echo "Done."
 
 printf "Packing and compressing everything..."
 tar cf ../$1.tar files.tar files.tar.sha256sum pkg_info
-bzip2 ../$1.tar
+gzip ../$1.tar
 mv ../$1.tar.bz2 ../$1.plpak
 echo "Done."

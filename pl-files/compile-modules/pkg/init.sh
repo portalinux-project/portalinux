@@ -1,24 +1,12 @@
 # SPDX-License-Identifier: MPL-2.0
 
 _get_deps(){
-	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url"
+	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url $musl_url $toybox_url"
 
 	if [ "$LLVM" != "" ]; then
 		URL="$llvm_url $URL"
 	else
 		URL="$gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $URL"
-	fi
-
-	if [ "$dist" = "gnu" ]; then
-		URL="$URL $glibc_url"
-	else
-		URL="$URL $musl_url"
-	fi
-
-	if [ "$toybox" != "" ] || [ "$LLVM" != "" ]; then
-		URL="$URL $toybox_url"
-	else
-		URL="$URL $busybox_url"
 	fi
 
 	if [ "$2" = "experimental" ]; then
@@ -73,20 +61,15 @@ _init(){
 	done
 
 	_get_pkg_names $dist
-	if [ "$dist" = "gnu" ]; then
-		sed -i 's/limits.h/linux\/limits.h/g' "$gcc_dir/libsanitizer/asan/asan_linux.cpp"
-		sed -i '20 i #include <bits/xopen_lim.h>' "$coreutils_dir/include/libbb.h"
-	else
-		for i in arch crt; do
-			cd "$libc_dir/$i"
-			for j in i486 i586 i686; do
-				ln i386 $j -s
-			done
+	for i in arch crt; do
+		cd "$libc_dir/$i"
+		for j in i486 i586 i686; do
+			ln i386 $j -s
 		done
+	done
 
-		if [ "$toybox" != "" ]; then   # NixOS fixes
-			sed -i "s/bash/sh/" "$coreutils_dir/scripts/genconfig.sh"
-			sed -i "s/bash/sh/" "$coreutils_dir/scripts/make.sh"
-		fi
+	if [ "$toybox" != "" ]; then   # NixOS fixes
+		sed -i "s/bash/sh/" "$coreutils_dir/scripts/genconfig.sh"
+		sed -i "s/bash/sh/" "$coreutils_dir/scripts/make.sh"
 	fi
 }

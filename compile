@@ -29,7 +29,7 @@ fi
 _print_help(){ # TODO: Make sure this is up to date
 	printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
 	echo "--init					Initializes the build system by downloading necessary components and unpacking them"
-	echo "--target-system [arch-dist]		Specifies the CPU architecture and the C library to be used. Default: i486-musl"
+	echo "--target-system [arch]		Specifies the CPU architecture. Default: i486"
 	echo "--toolchain-prefix [path]		Sets the target system's toolchain's install directory. Default: ~/cross"
 	echo "--clean [lvl]				Cleans the build directory"
 	echo "--hard-clean [no-rm-tarballs]		Removes any directories created by $0"

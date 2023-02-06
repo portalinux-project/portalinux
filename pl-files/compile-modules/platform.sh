@@ -5,28 +5,19 @@ _parse_platform(){
 	case $1 in
 		android32 | earm)
 			specific_arch="armv7"
-			dist="musl"
 			;;
 		android64 | earm64)
 			specific_arch="aarch64"
-			dist="musl"
 			;;
 		pc | pc32)
 			specific_arch="i486"
-			dist="musl"
 			;;
 		pc64)
 			specific_arch="x86_64"
-			dist="gnu"
 			;;
 		*)
 			if [ -f "$pldir/custom-platforms" ]; then
 				source "$plfiles/compile-modules/custom-platforms.sh" $specific_arch
-			fi
-
-			if [ "$specific_arch" = "$dist" ]; then
-				echo "Error: Unknown platform"
-				exit 5
 			fi
 			;;
 	esac
@@ -34,13 +25,9 @@ _parse_platform(){
 }
 
 _target_system(){
-	specific_arch=$(echo $1 | cut -d- -f1)
-	dist=$(echo $1 | cut -d- -f2)
+	specific_arch=$1
 
-	if [ "$specific_arch" = "$dist" ]; then
-		_parse_platform $1
-	fi
-
+	_parse_platform $1
 	if [ $(echo "$specific_arch" | grep -c arm) -ne 0 ]; then
 		arch="arm"
 		abi="eabi"
@@ -69,6 +56,6 @@ _target_system(){
 		fi
 	fi
 
-	compile_target="$arch-pocket-linux-$dist$abi"
+	compile_target="$arch-pocket-linux-musl$abi"
 	sysroot="$toolchain_prefix/$compile_target"
 }
