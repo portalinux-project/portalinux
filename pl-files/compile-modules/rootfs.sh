@@ -44,7 +44,7 @@ compile_rootfs(){
 		_compile_musl "/usr" "$musl_subset" rootfs
 
 		printf "Packaging libc headers..."
-		mkdir -p "$output/$dist-libc-headers/files/opt"
+		mkdir -p "$output/libc-headers/files/opt"
 		cp -r "$output_rootfs/opt/include" "$output/$dist-libc-headers/files/opt"
 		echo "Done."
 	fi

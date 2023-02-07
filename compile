@@ -143,10 +143,8 @@ _generate_stuff(){
 		"pkg_ver")
 			set +e
 			pkg=$2
-			if [ "$2" = "musl-libc-headers" ]; then
+			if [ "$2" = "libc-headers" ]; then
 				pkg="musl"
-			elif [ "$2" = "gnu-libc-headers" ]; then
-				pkg="glibc"
 			elif [ "$2" = "libstdc++" ]; then
 				pkg="gcc"
 			elif [ "$2" = "linux-headers" ]; then

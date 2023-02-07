@@ -78,7 +78,7 @@ compile_extra_pkgs(){
 	_rootfs_cleanup
 
 	printf "Creating packages..."
-	for i in $dist-libc-headers libstdc++ gcc linux-headers binutils bash make ncurses nano; do
+	for i in libc-headers libstdc++ gcc linux-headers binutils bash make ncurses nano; do
 		cd "$output/$i"
 		tar cf files.tar files
 		sha256sum files.tar > files.tar.sha256sum
