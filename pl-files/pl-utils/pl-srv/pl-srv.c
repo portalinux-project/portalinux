@@ -14,12 +14,12 @@
 #define PLSRV_RUN_ONCE 2
 
 struct plsrv {
-	char* path;
-	char** args;
+	string_t path;
+	string_t* args;
 	int type;
 }; plsrv_t;
 
-int spawnExec(char* path, char** args){
+int spawnExec(string_t path, string_t* args){
 	pid_t exec = fork();
 	int status;
 	if(exec == 0){
@@ -50,13 +50,37 @@ int executeSupervisor(plsrv_t* service){
 	return exec;
 }
 
-plsrv_t* generateServiceStruct(char* pathname, plmt_t* mt){
+plsrv_t* generateServiceStruct(string_t pathname, plmt_t* mt){
+	if(pathname == NULL || mt == NULL)
+		return NULL;
+
 	plfile_t* srvFile = plFOpen(pathname, "r", mt);
 	plsrv_t* returnStruct = plMTAllocE(mt, sizeof(plsrv_t));
 
-	if(
+	if(srvFile == NULL)
+		return NULL;
+
+	byte_t buffer[256];
+	while(plFGets(buffer, 256, srvFile) != NULL){
+		plmltoken_t* plmlToken = plMLParse(buffer, mt);
+		string_t tokenName;
+
+		plMLGetTokenAttrib(plmlToken, &tokenName, PLML_GET_NAME);
+
+		if(strcmp("execPath", tokenName) == 0){
+			string_t tokenVal;
+			size_t tokenValLen;
+			plMLGetTokenAttrib(plmlToken, &tokenVal, PLML_GET_VALUE);
+			tokenValLen = strlen(tokenVal) + 1;
+
+			returnStruct->path = plMTAllocE(mt, tokenValLen);
+			memcpy(returnStruct->path, tokenVal, tokenValLen);
+		}
+
+		plMLFreeToken(plmlToken);
+	}
 }
 
-int main(int argc, char* argv[]){
+int main(int argc, string_t argv[]){
 
 }

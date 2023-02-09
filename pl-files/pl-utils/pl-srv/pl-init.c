@@ -16,7 +16,7 @@
 
 bool inChroot = false;
 
-int spawnExec(char* path, char** args){
+int spawnExec(string_t path, string_t* args){
 	pid_t exec = fork();
 	int status;
 	if(exec == 0){
@@ -33,7 +33,7 @@ int spawnExec(char* path, char** args){
 }
 
 void signalHandler(int signal){
-	char* plSrvArgs[3] = { "pl-srv", "halt", NULL };
+	string_t plSrvArgs[3] = { "pl-srv", "halt", NULL };
 	spawnExec("/usr/bin/pl-srv", plSrvArgs);
 
 	fputs(stdout, "* Force-killing all processes...");
@@ -59,7 +59,7 @@ void signalHandler(int signal){
 	}
 }
 
-int safeMount(char* source, char* dest, char* fstype, int mountflags, char* data){
+int safeMount(string_t source, string_t dest, string_t fstype, int mountflags, string_t data){
 	struct stat root;
 	struct stat mountpoint;
 
@@ -81,11 +81,11 @@ int safeMount(char* source, char* dest, char* fstype, int mountflags, char* data
 	return 0;
 }
 
-int safeMountBootFS(char* dest, char* fstype){
+int safeMountBootFS(string_t dest, string_t fstype){
 	return safeMount("none", dest, fstype, 0, "");
 }
 
-int main(int argc, char* argv[]){
+int main(int argc, string_t argv[]){
 	pid_t pid = getpid();
 	uid_t uid = getuid();
 
@@ -111,7 +111,7 @@ int main(int argc, char* argv[]){
 	// Simple Initialization
 	if(inChroot){
 		puts("Bypassing initialization and dropping you to a shell...");
-		char* args[2] = { "sh", NULL };
+		string_t args[2] = { "sh", NULL };
 		execv("/bin/sh", args);
 	}else{
 		puts("* Mounting necessary filesystems:");
@@ -133,7 +133,7 @@ int main(int argc, char* argv[]){
 		puts("Done.");
 
 		puts("* Running pl-srv...\n");
-		char* plSrvArgs[3] = { "pl-srv", "init", NULL };
+		string_t plSrvArgs[3] = { "pl-srv", "init", NULL };
 		spawnExec("/usr/bin/pl-srv", plSrvArgs);
 		while(1);
 	}
