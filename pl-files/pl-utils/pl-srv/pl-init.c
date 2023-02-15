@@ -91,7 +91,7 @@ int main(int argc, string_t argv[]){
 
 	// Argument parsing
 	if(argc > 1){
-		puts("pl-srv v0.01 init\n");
+		puts("PortaLinux Init v0.01\n");
 		for(int i = 1; i < argc; i++){
 			if(strcmp(argv[i], "--help") == 0){
 				puts("(c) 2023 pocketlinux32, Under MPLv2.0\n");
