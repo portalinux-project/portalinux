@@ -36,11 +36,11 @@ void signalHandler(int signal){
 	string_t plSrvArgs[3] = { "pl-srv", "halt", NULL };
 	spawnExec("/usr/bin/pl-srv", plSrvArgs);
 
-	fputs(stdout, "* Force-killing all processes...");
+	fputs("* Force-killing all processes...", stdout);
 	kill(-1, SIGKILL);
 	puts("Done.");
 
-	fputs(stdout, "* Syncing cached file ops...");
+	fputs("* Syncing cached file ops...", stdout);
 	sync();
 	puts("Done.");
 
@@ -59,6 +59,13 @@ void signalHandler(int signal){
 	}
 }
 
+void setSignal(int signal, struct sigaction* newHandler){
+	struct sigaction oldHandler;
+	sigaction(signal, NULL, &oldHandler);
+	if(oldHandler.sa_handler != SIG_IGN)
+		sigaction(signal, newHandler, NULL);
+}
+
 int safeMount(string_t source, string_t dest, string_t fstype, int mountflags, string_t data){
 	struct stat root;
 	struct stat mountpoint;
@@ -66,7 +73,7 @@ int safeMount(string_t source, string_t dest, string_t fstype, int mountflags, s
 	stat("/", &root);
 	stat(dest, &mountpoint);
 
-	fputs(stdout, "	%s:", dest); // That is a tab, not a space
+	printf("	%s:", dest);
 	if(mountpoint.st_dev == root.st_dev){
 		if(mount(source, dest, fstype, mountflags, data) != 0){
 			puts("Error.");
@@ -96,16 +103,21 @@ int main(int argc, string_t argv[]){
 			if(strcmp(argv[i], "--help") == 0){
 				puts("(c) 2023 pocketlinux32, Under MPLv2.0\n");
 				printf("Usage: %s [options]\n\n", argv[0]);
-				puts("Initializes a PortaLinux System enough to run the pl-srv process supervisor.")
+				puts("Initializes a PortaLinux System enough to run the pl-srv process supervisor.");
 				puts("When ran in normal mode, it must be ran as PID 1 and by root");
 				puts("--help		Shows this help");
 				puts("--chroot		Run in chroot mode");
 				return 0;
-			}else if(strcmp(argv[i], "--chroot")){
+			}else if(strcmp(argv[i], "--chroot") == 0){
 				puts("* Running in chroot mode!");
 				inChroot = true;
 			}
 		}
+	}
+
+	if(uid != 0){
+		printf("Error: Only root can run init");
+		return 1;
 	}
 
 	// Simple Initialization
@@ -114,12 +126,17 @@ int main(int argc, string_t argv[]){
 		string_t args[2] = { "sh", NULL };
 		execv("/bin/sh", args);
 	}else{
+		if(pid != 0){
+			printf("Error: Init must be ran as PID 1");
+			return 2;
+		}
+
 		puts("* Mounting necessary filesystems:");
 		safeMountBootFS("/sys", "sysfs");
 		safeMountBootFS("/proc", "proc");
 		safeMountBootFS("/dev", "devtmpfs");
 
-		fputs(stdout, "* Enabling signal handler: ");
+		fputs("* Enabling signal handler: ", stdout);
 		struct sigaction newSigAction;
 		newSigAction.sa_handler = signalHandler;
 		sigemptyset(&newSigAction.sa_mask);

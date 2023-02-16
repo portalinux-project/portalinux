@@ -18,11 +18,11 @@
 #define PLSRV_START 5
 #define PLSRV_STOP 6
 
-struct plsrv {
+typedef struct plsrv {
 	string_t path;
 	string_t* args;
 	int type;
-}; plsrv_t;
+} plsrv_t;
 
 int spawnExec(string_t path, string_t* args){
 	pid_t exec = fork();
@@ -94,12 +94,12 @@ plsrv_t* generateServiceStruct(string_t pathname, plmt_t* mt){
 			returnStruct->path = ((string_t*)tokenizedVal->array)[0];
 
 			plMTFree(mt, tokenizedVal);
-		}else if(strcmp("respawn")){
+		}else if(strcmp("respawn", tokenName) == 0){
 			bool tokenVal;
 			plMLGetTokenAttrib(plmlToken, &tokenVal, PLML_GET_VALUE);
 
 			if(tokenVal)
-				returnStruct->type = PLSRV_RESPAWM;
+				returnStruct->type = PLSRV_RESPAWN;
 			else
 				returnStruct->type = PLSRV_RUN_ONCE;
 		}
@@ -112,13 +112,14 @@ plsrv_t* generateServiceStruct(string_t pathname, plmt_t* mt){
 
 int plSrvSystemctl(int action, char* value, plmt_t* mt){
 	char* fullPath = NULL;
+	struct stat checkExistence;
 
 	if(action == PLSRV_START || action == PLSRV_STOP){
 		fullPath = plMTAllocE(mt, (17 + strlen(value)) * sizeof(char));
 		if(action == PLSRV_START)
 			strcpy(fullPath, "/etc");
 		else
-			strcpy(fullPath, "/var", 4);
+			strcpy(fullPath, "/var");
 
 		strcpy(fullPath, "/pl-srv");
 		strcat(fullPath, value);
@@ -127,9 +128,8 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 
 	switch(action){
 		case PLSRV_START:
-			printf("* Starting service %s...\n", argv[i]);
+			printf("* Starting service %s...\n", value);
 
-			struct stat checkExistence;
 			if(stat(fullPath, &checkExistence) == -1){
 				perror("plSrvSystemctl");
 				return 1;
@@ -140,19 +140,19 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 			if(servicePid > 0){
 				strncpy(fullPath, "/var", 4);
 				plfile_t* lockFile = plFOpen(fullPath, "w", mt);
-				char* numberBuffer[16];
+				char numberBuffer[16];
 				snprintf(numberBuffer, 16, "%d", servicePid);
-				plFPuts(numberBuffer);
+				plFPuts(numberBuffer, lockFile);
 				plFClose(lockFile);
+				return 0;
 			}else if(servicePid == -1){
 				printf("Error: Failed to start service %s", value);
 				return 2;
 			}
 			break;
 		case PLSRV_STOP:
-			printf("* Stopping service %s...\n", argv[i]);
+			printf("* Stopping service %s...\n", value);
 
-			struct stat checkExistence;
 			if(stat(fullPath, &checkExistence) == -1){
 				perror("plSrvSystemctl");
 				return 1;
@@ -165,6 +165,7 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 		case PLSRV_HALT:
 			break;
 	}
+	return 0;
 }
 
 int main(int argc, string_t argv[]){
@@ -184,15 +185,16 @@ int main(int argc, string_t argv[]){
 			if(strcmp("start", argv[1]) == 0){
 				for(int i = 2; i < argc; i++)
 					plSrvSystemctl(PLSRV_START, argv[i], mt);
-			else if(strcmp("stop", argv[1]) == 0)
+			}else if(strcmp("stop", argv[1]) == 0){
 				for(int i = 2; i < argc; i++)
 					plSrvSystemctl(PLSRV_STOP, argv[2], mt);
-			else if(strcmp("init", argv[1]) == 0)
+			}else if(strcmp("init", argv[1]) == 0){
 				puts("* Starting all active services...");
 				plSrvSystemctl(PLSRV_INIT, argv[2], mt);
-			else if(strcmp("halt", argv[1]) == 0)
+			}else if(strcmp("halt", argv[1]) == 0){
 				puts("* Halting all running services...");
 				plSrvSystemctl(PLSRV_HALT, argv[2], mt);
+			}
 		}else{
 			puts("Error: Not enough argument");
 		}
