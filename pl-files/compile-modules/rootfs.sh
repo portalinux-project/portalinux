@@ -65,15 +65,30 @@ compile_rootfs(){
 		echo "Done."
 	fi
 
+	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
+		cd "$pl32lib_dir"
+		printf "Configuring pl32lib..."
+		./configure --prefix="$output_rootfs/usr" CFLAGS="-Os"
+		printf "Done.\nCompiling pl32lib..."
+		./compile
+		printf "Done.\nInstalling pl32lib..."
+		./compile install
+	fi
+
+	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
+		cd "$libplml_dir"
+		printf "Configuring libplml..."
+		./configure --prefix="$output_rootfs/usr" CFLAGS="-Os"
+		printf "Done.\nCompiling libplml..."
+		./compile
+		printf "Done.\nInstalling libplml..."
+		./compile install
+	fi
+
 	if [ ! -r "$output_rootfs/init" ]; then
-		printf "Installing init script..."
-		if [ -f "$output_rootfs/usr/bin/toybox" ]; then
-			$cross_cc $cross_cflags "$plfiles/pl-utils/pl-init.c" -o "$output_rootfs/init" -w
-		else
-			cp "$plfiles/initramfs-init" "$output_rootfs/init"
-			chmod 777 "$output_rootfs/init"
-			sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/init"
-		fi
+		printf "Compiling and installing pl-srv..."
+		$cross_cc $cross_cflags "$plfiles/pl-utils/pl-init.c" -o "$output_rootfs/init" -w -std=c99
+		$cross_cc $cross_cflags "$plfiles/pl-utils/pl-srv.c" -o "$output_rootfs/usr/bin/pl-srv" -w -std=c99 -lpl32 -lplml
 		echo "Done."
 	fi
 

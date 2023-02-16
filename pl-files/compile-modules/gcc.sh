@@ -88,18 +88,4 @@ compile_toolchain(){
 				"Compiling libstdc++" "" \
 				"Installing libstdc++" "install-strip-target-libstdc++-v3"
 
-	# ncurses
-	_compile_ac_pkg "$sysroot/lib/libncurses.so" "$ncurses_dir" \
-				"Configuring Ncurses" "--prefix=$sysroot --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib" \
-				"Compiling Ncurses" "" \
-				"Installing Ncurses" "install INSTALL_PROG='/usr/bin/env install --strip-program=$toolchain_bin/$compile_target-strip -c -s'"
-
-	# ncursesw
-	if [ -r "$ncurses_dir/build" ]; then
-		_exec "Cleaning Ncurses" "rm -rf $ncurses_dir/build"
-	fi
-	_compile_ac_pkg "$sysroot/lib/libncursesw.so" "$ncurses_dir" \
-				"Configuring NcursesW" "--prefix=$sysroot --host=$compile_target --with-cxx-shared --with-shared --enable-overwrite --with-termlib --enable-widec" \
-				"Compiling NcursesW" "" \
-				"Installing NcursesW" "install INSTALL_PROG='/usr/bin/env install --strip-program=$toolchain_bin/$compile_target-strip -c -s'"
 }
