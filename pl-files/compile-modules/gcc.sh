@@ -88,4 +88,28 @@ compile_toolchain(){
 				"Compiling libstdc++" "" \
 				"Installing libstdc++" "install-strip-target-libstdc++-v3"
 
+	# pl32lib
+	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
+		cd "$pl32lib_dir"
+		meson setup build
+		cd build
+
+		printf "Configuring pl32lib..."
+		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		printf "Done.\nCompiling and installing pl32lib..."
+		meson install 1>/dev/null
+	fi
+
+	# libplml
+	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
+		cd "$libplml_dir"
+		meson setup build
+		cd build
+
+		printf "Configuring libplml..."
+		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		printf "Done.\nCompiling and installing libplml..."
+		meson install 1>/dev/null
+	fi
+
 }

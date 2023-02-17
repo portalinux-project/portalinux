@@ -55,7 +55,7 @@ compile_rootfs(){
 		printf "Configuring Coreutils..."
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
 		if [ $(echo $coreutils_dir | grep "toybox") ]; then
-			printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_INIT=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config
+			printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config
 		fi
 		echo "Done."
 		_exec "Compiling Coreutils" "make CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch' -j$threads"
@@ -67,22 +67,24 @@ compile_rootfs(){
 
 	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
 		cd "$pl32lib_dir"
+		meson setup build
+		cd build
+
 		printf "Configuring pl32lib..."
-		./configure --prefix="$output_rootfs/usr" CFLAGS="-Os"
-		printf "Done.\nCompiling pl32lib..."
-		./compile
-		printf "Done.\nInstalling pl32lib..."
-		./compile install
+		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		printf "Done.\nCompiling and installing pl32lib..."
+		meson install 1>/dev/null
 	fi
 
 	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
 		cd "$libplml_dir"
+		meson setup build
+		cd build
+
 		printf "Configuring libplml..."
-		./configure --prefix="$output_rootfs/usr" CFLAGS="-Os"
-		printf "Done.\nCompiling libplml..."
-		./compile
-		printf "Done.\nInstalling libplml..."
-		./compile install
+		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		printf "Done.\nCompiling and installing libplml..."
+		meson install 1>/dev/null
 	fi
 
 	if [ ! -r "$output_rootfs/init" ]; then

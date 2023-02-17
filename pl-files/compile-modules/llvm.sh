@@ -77,5 +77,27 @@ compile_toolchain(){
 					"$cmake_bs_flags LLVM_ENABLE_RUNTIMES='libunwind;libcxxabi;pstl;libcxx' LIBUNWIND_USE_COMPILER_RT=1 LIBCXXABI_USE_COMPILER_RT=1 LIBCXX_USE_COMPILER_RT=1 \
 					LIBCXXABI_USE_LLVM_UNWINDER=1 LIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=0 LIBCXX_HAS_MUSL_LIBC=1" "LLVM C++ Runtimes"
 
+	# pl32lib
+	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
+		cd "$pl32lib_dir"
+		meson setup build
+		cd build
 
+		printf "Configuring pl32lib..."
+		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		printf "Done.\nCompiling and installing pl32lib..."
+		meson install 1>/dev/null
+	fi
+
+	# libplml
+	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
+		cd "$libplml_dir"
+		meson setup build
+		cd build
+
+		printf "Configuring libplml..."
+		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		printf "Done.\nCompiling and installing libplml..."
+		meson install 1>/dev/null
+	fi
 }
