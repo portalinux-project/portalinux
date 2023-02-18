@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 _get_deps(){
-	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url $musl_url $toybox_url"
+	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url $musl_url $toybox_url $pl32lib_url $libplml_url"
 
 	if [ "$LLVM" != "" ]; then
 		URL="$llvm_url $URL"

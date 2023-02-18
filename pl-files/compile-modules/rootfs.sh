@@ -67,24 +67,22 @@ compile_rootfs(){
 
 	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
 		cd "$pl32lib_dir"
-		meson setup build
-		cd build
 
 		printf "Configuring pl32lib..."
-		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		./configure --prefix="$sysroot" --target="$compile_target"
 		printf "Done.\nCompiling and installing pl32lib..."
-		meson install 1>/dev/null
+		./compile
+		./compile install
 	fi
 
 	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
 		cd "$libplml_dir"
-		meson setup build
-		cd build
 
 		printf "Configuring libplml..."
-		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		./configure --prefix="$sysroot" --target="$compile_target"
 		printf "Done.\nCompiling and installing libplml..."
-		meson install 1>/dev/null
+		./compile
+		./compile install
 	fi
 
 	if [ ! -r "$output_rootfs/init" ]; then

@@ -16,6 +16,8 @@ nano_dir=""
 ncurses_dir=""
 python_dir=""
 grub_dir=""
+pl32lib_dir=""
+libplml_dir=""
 
 _get_pkg_names(){
 	dirlist="$(ls $build)"
@@ -29,6 +31,8 @@ _get_pkg_names(){
 	ncurses_dir="$(realpath $(echo $dirlist | grep 'ncurses.[0-9,a-z,A-Z,\.]*' -o))"
 	grub_dir="$(realpath $(echo $dirlist | grep 'grub.[0-9,a-z,A-Z,\.]*' -o))"
 	libc_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
+	pl32lib_dir="$(realpath $(echo $dirlist | grep 'pl32lib-ng.[0-9,a-z,A-Z,\.,\-]*' -o))"
+	libplml_dir="$(realpath $(echo $dirlist | grep 'libplml.[0-9,a-z,A-Z,\.]*' -o))"
 #	python_dir="$(realpath $(echo $dirlist | grep 'python.[0-9,a-z,A-Z,\.]*' -o))"
 	if [ "$LLVM" != "" ]; then
 		llvm_dir="$(realpath $(echo $dirlist | grep 'llvm.[0-9,a-z,A-Z,\.,\-]*' -o))"

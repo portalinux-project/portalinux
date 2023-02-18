@@ -167,12 +167,12 @@ _generate_stuff(){
 
 _compile_musl(){
 	if [ "$3" = "rootfs" ]; then
-		install_dir="$output_rootfs"
+		install_dir="$output_rootfs/"
 	else
 		install_dir=""
 	fi
 
-	if [ ! -r "$install_dir/lib/libc.so" ]; then
+	if [ ! -r "$install_dir$1/lib/libc.so" ]; then
 		cd "$libc_dir"
 		libcc="$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a"
 		ar="$toolchain_bin/llvm-ar"

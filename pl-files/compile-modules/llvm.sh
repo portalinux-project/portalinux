@@ -78,26 +78,24 @@ compile_toolchain(){
 					LIBCXXABI_USE_LLVM_UNWINDER=1 LIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=0 LIBCXX_HAS_MUSL_LIBC=1" "LLVM C++ Runtimes"
 
 	# pl32lib
-	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
+	if [ ! -r "$sysroot/lib/libpl32.so" ]; then
 		cd "$pl32lib_dir"
-		meson setup build
-		cd build
 
 		printf "Configuring pl32lib..."
-		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		./configure --prefix="$sysroot" --target="$compile_target" CC="$toolchain_prefix/bin/clang" CFLAGS="-Os"
 		printf "Done.\nCompiling and installing pl32lib..."
-		meson install 1>/dev/null
+		./compile
+		./compile install
 	fi
 
 	# libplml
-	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
+	if [ ! -r "$sysroot/lib/libplml.so" ]; then
 		cd "$libplml_dir"
-		meson setup build
-		cd build
 
 		printf "Configuring libplml..."
-		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
+		./configure --prefix="$sysroot" --target="$compile_target" CC="$cross_cc" CFLAGS="-Os"
 		printf "Done.\nCompiling and installing libplml..."
-		meson install 1>/dev/null
+		./compile
+		./compile install
 	fi
 }
