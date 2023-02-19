@@ -45,7 +45,7 @@ compile_rootfs(){
 
 		printf "Packaging libc headers..."
 		mkdir -p "$output/libc-headers/files/opt"
-		cp -r "$output_rootfs/opt/include" "$output/$dist-libc-headers/files/opt"
+		cp -r "$output_rootfs/opt/include" "$output/libc-headers/files/opt"
 		echo "Done."
 	fi
 
@@ -69,26 +69,26 @@ compile_rootfs(){
 		cd "$pl32lib_dir"
 
 		printf "Configuring pl32lib..."
-		./configure --prefix="$sysroot" --target="$compile_target"
+		./configure --prefix="$output_rootfs/usr" CC="$cross_cc" CFLAGS='$cross_cflags -Os' >/dev/null
 		printf "Done.\nCompiling and installing pl32lib..."
-		./compile
-		./compile install
+		./compile >/dev/null
+		./compile install >/dev/null
 	fi
 
 	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
 		cd "$libplml_dir"
 
 		printf "Configuring libplml..."
-		./configure --prefix="$sysroot" --target="$compile_target"
+		./configure --prefix="$output_rootfs" CC="$cross_cc" CFLAGS="$cross_cflags -Os" >/dev/null
 		printf "Done.\nCompiling and installing libplml..."
-		./compile
-		./compile install
+		./compile >/dev/null
+		./compile install >/dev/null
 	fi
 
-	if [ ! -r "$output_rootfs/init" ]; then
+	if [ ! -r "$output_rootfs/usr/bin/pl-srv" ]; then
 		printf "Compiling and installing pl-srv..."
-		$cross_cc $cross_cflags "$plfiles/pl-utils/pl-init.c" -o "$output_rootfs/init" -w -std=c99
-		$cross_cc $cross_cflags "$plfiles/pl-utils/pl-srv.c" -o "$output_rootfs/usr/bin/pl-srv" -w -std=c99 -lpl32 -lplml
+		$cross_cc $cross_cflags "$plfiles/pl-utils/pl-srv/pl-init.c" -o "$output_rootfs/init" -w -std=c99
+		$cross_cc $cross_cflags "$plfiles/pl-utils/pl-srv/pl-srv.c" -o "$output_rootfs/usr/bin/pl-srv" -w -std=c99 -lpl32 -lplml
 		echo "Done."
 	fi
 

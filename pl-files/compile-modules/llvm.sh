@@ -82,7 +82,7 @@ compile_toolchain(){
 		cd "$pl32lib_dir"
 
 		printf "Configuring pl32lib..."
-		./configure --prefix="$sysroot" --target="$compile_target" CC="$toolchain_prefix/bin/clang" CFLAGS="-Os"
+		./configure --prefix="$sysroot" CC="$cross_cc" CFLAGS='$cross_cflags -Os'
 		printf "Done.\nCompiling and installing pl32lib..."
 		./compile
 		./compile install
@@ -93,7 +93,7 @@ compile_toolchain(){
 		cd "$libplml_dir"
 
 		printf "Configuring libplml..."
-		./configure --prefix="$sysroot" --target="$compile_target" CC="$cross_cc" CFLAGS="-Os"
+		./configure --prefix="$sysroot" CC="$cross_cc" CFLAGS='$cross_cflags -Os'
 		printf "Done.\nCompiling and installing libplml..."
 		./compile
 		./compile install

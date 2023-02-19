@@ -23,6 +23,9 @@ _pl_clean(){
 				cd $build/$i
 				make -s clean >/dev/null 2>&1
 				make -s distclean >/dev/null 2>&1
+			elif [ -r $build/$i/compile ]; then
+				cd $build/$i
+				./compile clean >/dev/null
 			fi
 			echo "Done."
 		done

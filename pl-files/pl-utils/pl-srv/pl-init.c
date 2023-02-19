@@ -3,6 +3,7 @@
  (c) 2023 pocketlinux32, Under MPLv2.0
  pl-init.c: Initializes the system enough to run pl-srv
 \******************************************************/
+#define _XOPEN_SOURCE
 #include <pl32.h>
 #include <signal.h>
 #include <unistd.h>
