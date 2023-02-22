@@ -34,8 +34,8 @@ int spawnExec(string_t path, string_t* args){
 }
 
 void signalHandler(int signal){
-//	string_t plSrvArgs[3] = { "pl-srv", "halt", NULL };
-//	spawnExec("/usr/bin/pl-srv", plSrvArgs);
+	string_t plSrvArgs[3] = { "pl-srv", "halt", NULL };
+	spawnExec("/usr/bin/pl-srv", plSrvArgs);
 
 	fputs("* Force-killing all processes...", stdout);
 	kill(-1, SIGKILL);
@@ -96,7 +96,7 @@ int safeMountBootFS(string_t dest, string_t fstype){
 int main(int argc, string_t argv[]){
 	pid_t pid = getpid();
 	uid_t uid = getuid();
-	puts("PortaLinux Init v0.01\n");
+	puts("PortaLinux Init v0.01");
 	puts("(c) 2023 pocketlinux32, Under MPLv2.0\n");
 
 	// Argument parsing
