@@ -16,9 +16,12 @@ _get_deps(){
 	mkdir -p tarballs && cd tarballs
 
 	for i in $URL; do
-		if [ ! -f "$(basename $i)" ]; then
+		if [ ! -f "$(basename $i)" ] || [ $(echo "$i" | grep "https://github.com" -c) -ne 0]; then
 			printf "\n$i\n" >> $logfile
-			_exec "Downloading $(basename $i)" "wget -q --show-progress --progress=dot:giga '$i' $1" "cd .. && rm -rf tarballs" "no-silent"
+			if [ "$i" = "$pl32lib_url" ] || [ "$i" = "$libplml_url" ]; then
+				extra_wget_flag="-O $(basename $(dirname $(dirname $(dirname $(dirname $i))))).tar.gz"
+			fi
+			_exec "Downloading $(basename $i)" "wget -q --show-progress --progress=dot:giga '$i' $extra_wget_flag $1" "cd .. && rm -rf tarballs" "no-silent"
 		else
 			echo "$(basename $i) has already been downloaded. Skipping..."
 		fi

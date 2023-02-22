@@ -49,46 +49,40 @@ compile_rootfs(){
 		echo "Done."
 	fi
 
-	if [ ! -r "$output_rootfs/usr/bin/$(basename $coreutils_dir | cut -d- -f1)" ]; then
+	if [ ! -r "$output_rootfs/usr/bin/toybox" ]; then
 		cd "$coreutils_dir"
 
-		printf "Configuring Coreutils..."
+		printf "Configuring Toybox..."
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
-		if [ $(echo $coreutils_dir | grep "toybox") ]; then
-			printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config
-		fi
+		printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config
 		echo "Done."
-		_exec "Compiling Coreutils" "make CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch' -j$threads"
-		printf "Installing Coreutils..."
+		_exec "Compiling Toybox" "make CC='$cross_cc' CFLAGS='$cross_cflags $cross_ldflags -march=$arch' -j$threads"
+		printf "Installing Toybox..."
 		mv *box "$output_rootfs/usr/bin"
-		ln -s "/bin/$(basename $coreutils_dir | cut -d- -f1)" "$output_rootfs/usr/bin/sh" 2>/dev/null || true
+		ln -s "/usr/bin/toybox" "$output_rootfs/usr/bin/sh" 2>/dev/null || true
 		echo "Done."
 	fi
 
 	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
 		cd "$pl32lib_dir"
 
-		printf "Configuring pl32lib..."
-		./configure --prefix="$output_rootfs/usr" CC="$cross_cc" CFLAGS='$cross_cflags -Os' >/dev/null
-		printf "Done.\nCompiling and installing pl32lib..."
-		./compile >/dev/null
-		./compile install >/dev/null
+		_exec "Configuring pl32lib" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling pl32lib" "./compile"
+		_exec "Installing pl32lib" "./compile install"
 	fi
 
 	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
 		cd "$libplml_dir"
 
-		printf "Configuring libplml..."
-		./configure --prefix="$output_rootfs" CC="$cross_cc" CFLAGS="$cross_cflags -Os" >/dev/null
-		printf "Done.\nCompiling and installing libplml..."
-		./compile >/dev/null
-		./compile install >/dev/null
+		_exec "Configuring libplml" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling libplml" "./compile"
+		_exec "Installing libplml" "./compile install"
 	fi
 
 	if [ ! -r "$output_rootfs/usr/bin/pl-srv" ]; then
 		printf "Compiling and installing pl-srv..."
-		$cross_cc $cross_cflags "$plfiles/pl-utils/pl-srv/pl-init.c" -o "$output_rootfs/init" -w -std=c99
-		$cross_cc $cross_cflags "$plfiles/pl-utils/pl-srv/pl-srv.c" -o "$output_rootfs/usr/bin/pl-srv" -w -std=c99 -lpl32 -lplml
+		$cross_cc $cross_cflags $cross_ldflags "$plfiles/pl-utils/pl-srv/pl-init.c" -o "$output_rootfs/init" -w -std=c99
+		$cross_cc $cross_cflags $cross_ldflags "$plfiles/pl-utils/pl-srv/pl-srv.c" -o "$output_rootfs/usr/bin/pl-srv" -w -std=c99 -lpl32 -lplml
 		echo "Done."
 	fi
 
@@ -96,10 +90,8 @@ compile_rootfs(){
 		printf "Installing etc files..."
 		source "$plfiles/os-release"
 		cp -r "$plfiles/etc" "$output_rootfs"
-		chmod 777 "$output_rootfs/etc/init.d/rcS"
 		mv "$output_rootfs/etc/ld.so.conf" "$output_rootfs/etc/ld-musl-$(_generate_stuff musl).path"
 		sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/etc/issue"
-		sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/etc/init.d/rcS"
 		echo "Done."
 	fi
 

@@ -34,8 +34,8 @@ int spawnExec(string_t path, string_t* args){
 }
 
 void signalHandler(int signal){
-	string_t plSrvArgs[3] = { "pl-srv", "halt", NULL };
-	spawnExec("/usr/bin/pl-srv", plSrvArgs);
+//	string_t plSrvArgs[3] = { "pl-srv", "halt", NULL };
+//	spawnExec("/usr/bin/pl-srv", plSrvArgs);
 
 	fputs("* Force-killing all processes...", stdout);
 	kill(-1, SIGKILL);
@@ -96,13 +96,13 @@ int safeMountBootFS(string_t dest, string_t fstype){
 int main(int argc, string_t argv[]){
 	pid_t pid = getpid();
 	uid_t uid = getuid();
+	puts("PortaLinux Init v0.01\n");
+	puts("(c) 2023 pocketlinux32, Under MPLv2.0\n");
 
 	// Argument parsing
 	if(argc > 1){
-		puts("PortaLinux Init v0.01\n");
 		for(int i = 1; i < argc; i++){
 			if(strcmp(argv[i], "--help") == 0){
-				puts("(c) 2023 pocketlinux32, Under MPLv2.0\n");
 				printf("Usage: %s [options]\n\n", argv[0]);
 				puts("Initializes a PortaLinux System enough to run the pl-srv process supervisor.");
 				puts("When ran in normal mode, it must be ran as PID 1 and by root");
@@ -117,7 +117,7 @@ int main(int argc, string_t argv[]){
 	}
 
 	if(uid != 0){
-		printf("Error: Only root can run init");
+		puts("Error: Only root can run init");
 		return 1;
 	}
 
@@ -127,8 +127,8 @@ int main(int argc, string_t argv[]){
 		string_t args[2] = { "sh", NULL };
 		execv("/bin/sh", args);
 	}else{
-		if(pid != 0){
-			printf("Error: Init must be ran as PID 1");
+		if(pid != 1){
+			puts("Error: Init must be ran as PID 1");
 			return 2;
 		}
 

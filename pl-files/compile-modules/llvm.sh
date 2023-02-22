@@ -81,21 +81,17 @@ compile_toolchain(){
 	if [ ! -r "$sysroot/lib/libpl32.so" ]; then
 		cd "$pl32lib_dir"
 
-		printf "Configuring pl32lib..."
-		./configure --prefix="$sysroot" CC="$cross_cc" CFLAGS='$cross_cflags -Os'
-		printf "Done.\nCompiling and installing pl32lib..."
-		./compile
-		./compile install
+		_exec "Configuring pl32lib" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling pl32lib" "./compile"
+		_exec "Installing pl32lib" "./compile install"
 	fi
 
 	# libplml
 	if [ ! -r "$sysroot/lib/libplml.so" ]; then
 		cd "$libplml_dir"
 
-		printf "Configuring libplml..."
-		./configure --prefix="$sysroot" CC="$cross_cc" CFLAGS='$cross_cflags -Os'
-		printf "Done.\nCompiling and installing libplml..."
-		./compile
-		./compile install
+		_exec "Configuring libplml" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling libplml" "./compile"
+		_exec "Installing libplml" "./compile install"
 	fi
 }

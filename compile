@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: MPL v2.0
+# SPDX-License-Identifier: MPL-2.0
 set -e
 
 # TODO: document the usage and params of every function
@@ -63,7 +63,7 @@ _exec(){
 	errno=$?
 	if [ $errno -ne 0 ]; then
 		echo "Error!"
-		if [ "$3" = "" ]; then
+		if [ "$3" != "" ]; then
 			$3
 		fi
 		exit $errno
@@ -75,7 +75,8 @@ _exec(){
 _compiler_check(){
 	if [ "$LLVM" != "" ]; then
 		cross_cc="$toolchain_bin/clang"
-		cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot --ld-path=$toolchain_bin/ld.lld --rtlib=compiler-rt"
+		cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot"
+		cross_ldflags="--ld-path=$toolchain_bin/ld.lld --rtlib=compiler-rt"
 		kbuild_flags="HOSTCC='cc' HOSTLD='ld' LLVM='$toolchain_bin' "
 
 		printf "WARNING: LLVM PortaLinux is experimental, and currently only tested and supported on i486-musl. extra-pkgs are currently not supported on LLVM.\n\n"
@@ -184,7 +185,7 @@ _compile_musl(){
 			ranlib="$toolchain_bin/$compile_target-ranlib"
 		fi
 
-		_exec "Configuring musl libc" "ARCH=$arch LIBCC='$libcc' CC='$cross_cc $cross_cflags' ./configure --prefix='$1' --disable-multilib --host=$compile_target $2"
+		_exec "Configuring musl libc" "ARCH=$arch LIBCC='$libcc' CC='$cross_cc $cross_cflags $cross_ldflags' ./configure --prefix='$1' --disable-multilib --host=$compile_target $2"
 		_exec "Compiling musl libc" "make -j$threads AR='$ar' RANLIB='$ranlib'"
 		_exec "Installing musl libc" "make AR='$ar' RANLIB='$ranlib' DESTDIR='$install_dir' install"
 	fi
@@ -214,8 +215,8 @@ setup_toolchain(){
 	compile_toolchain
 }
 
-echo "PortaLinux Build System v0.10"
-printf "(c) 2022 pocketlinux32 & raisinware, Under GPLv2+\n\n"
+echo "PortaLinux Build System v0.10.1"
+printf "(c) 2022 pocketlinux32 & raisinware, Under MPLv2.0\n\n"
 _compiler_check
 
 if [ $# -eq 0 ]; then
