@@ -67,7 +67,7 @@ void setSignal(int signal, struct sigaction* newHandler){
 		sigaction(signal, newHandler, NULL);
 }
 
-int safeMount(string_t source, string_t dest, string_t fstype, int mountflags, string_t data){
+int safeMountBoot(string_t dest, string_t fstype){
 	struct stat root;
 	struct stat mountpoint;
 
@@ -76,7 +76,7 @@ int safeMount(string_t source, string_t dest, string_t fstype, int mountflags, s
 
 	printf("	%s:", dest);
 	if(mountpoint.st_dev == root.st_dev){
-		if(mount(source, dest, fstype, mountflags, data) != 0){
+		if(mount("none", dest, fstype, 0, "") != 0){
 			puts("Error.");
 			perror("		pl-init");
 			return 1;
@@ -87,10 +87,6 @@ int safeMount(string_t source, string_t dest, string_t fstype, int mountflags, s
 		puts("Already mounted.");
 	}
 	return 0;
-}
-
-int safeMountBootFS(string_t dest, string_t fstype){
-	return safeMount("none", dest, fstype, 0, "");
 }
 
 int main(int argc, string_t argv[]){
@@ -133,9 +129,9 @@ int main(int argc, string_t argv[]){
 		}
 
 		puts("* Mounting necessary filesystems:");
-		safeMountBootFS("/sys", "sysfs");
-		safeMountBootFS("/proc", "proc");
-		safeMountBootFS("/dev", "devtmpfs");
+		safeMountBoot("/sys", "sysfs");
+		safeMountBoot("/proc", "proc");
+		safeMountBoot("/dev", "devtmpfs");
 
 		fputs("* Enabling signal handler: ", stdout);
 		struct sigaction newSigAction;

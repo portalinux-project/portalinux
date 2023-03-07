@@ -3,8 +3,10 @@
  (c) 2023 pocketlinux32, Under MPLv2.0
  pl-srv.c: Starts and supervises processes
 \*****************************************/
+#define _XOPEN_SOURCE
 #include <pl32.h>
 #include <plml.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -23,6 +25,12 @@ typedef struct plsrv {
 	string_t* args;
 	int type;
 } plsrv_t;
+
+void supervisorSignalHandler(int signal){
+	switch(signal){
+		case SIGTERM: ;
+	}
+}
 
 int spawnExec(string_t path, string_t* args){
 	pid_t exec = fork();
@@ -50,7 +58,7 @@ int executeSupervisor(plsrv_t* service){
 
 	if(exec == 0){
 		if(service->type != PLSRV_RESPAWN){
-			fclose(stdin);
+			freopen("/dev/null", "w", stdin);
 			freopen("/dev/null", "w", stdout);
 		}
 
@@ -114,20 +122,21 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 	char* fullPath = NULL;
 	struct stat checkExistence;
 
-	if(action == PLSRV_START || action == PLSRV_STOP){
-		fullPath = plMTAllocE(mt, (17 + strlen(value)) * sizeof(char));
+	if(action == PLSRV_START || action == PLSRV_STOP ){
+		fullPath = plMTAllocE(mt, (18 + strlen(value)) * sizeof(char));
 		if(action == PLSRV_START)
 			strcpy(fullPath, "/etc");
 		else
 			strcpy(fullPath, "/var");
 
-		strcpy(fullPath, "/pl-srv");
+		strcat(fullPath, "/pl-srv/");
+
 		strcat(fullPath, value);
 		strcat(fullPath, ".srv");
 	}
 
 	switch(action){
-		case PLSRV_START:
+		case PLSRV_START: ;
 			printf("* Starting service %s...\n", value);
 
 			if(stat(fullPath, &checkExistence) == -1){
@@ -146,11 +155,11 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 				plFClose(lockFile);
 				return 0;
 			}else if(servicePid == -1){
-				printf("Error: Failed to start service %s", value);
+				printf("* Error: Failed to start service %s", value);
 				return 2;
 			}
 			break;
-		case PLSRV_STOP:
+		case PLSRV_STOP: ;
 			printf("* Stopping service %s...\n", value);
 
 			if(stat(fullPath, &checkExistence) == -1){
@@ -159,10 +168,21 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 			}
 
 			plfile_t* lockFile = plFOpen(fullPath, "r", mt);
+			
 			break;
-		case PLSRV_INIT:
+		case PLSRV_INIT: ;
+			DIR* directory = opendir("/etc/pl-srv");
+			struct dirent* dirEntry
+			plarray_t services;
+			services->array = plMTAllocE(mt, 2 * sizeof(char*));
+			services->size = 0;
+
+			while((dirEntry = readdir(directory)) != NULL){
+				
+			}
 			break;
-		case PLSRV_HALT:
+		case PLSRV_HALT: ;
+			DIR* directory = opendir("/var/pl-srv");
 			break;
 	}
 	return 0;
@@ -180,7 +200,8 @@ int main(int argc, string_t argv[]){
 			puts("help	Shows this help");
 			puts("start	Starts a service");
 			puts("stop	Stops a service");
-			
+			puts("init	Starts all services");
+			puts("halt	Stops all services");
 			return 0;
 		}else if(strcmp("init", argv[1]) == 0){
 			puts("* Starting all active services...");
