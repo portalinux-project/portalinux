@@ -3,11 +3,12 @@
  (c) 2023 pocketlinux32, Under MPLv2.0
  pl-srv.c: Starts and supervises processes
 \*****************************************/
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 700
 #include <pl32.h>
 #include <plml.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -20,6 +21,8 @@
 #define PLSRV_START 5
 #define PLSRV_STOP 6
 
+pid_t activePid = 0;
+
 typedef struct plsrv {
 	string_t path;
 	string_t* args;
@@ -29,7 +32,18 @@ typedef struct plsrv {
 void supervisorSignalHandler(int signal){
 	switch(signal){
 		case SIGTERM: ;
+		case SIGINT: ;
+			kill(activePid, SIGTERM);
+			break;
 	}
+	exit(0);
+}
+
+void setSignal(int signal, struct sigaction* newHandler){
+	struct sigaction oldHandler;
+	sigaction(signal, NULL, &oldHandler);
+	if(oldHandler.sa_handler != SIG_IGN)
+		sigaction(signal, newHandler, NULL);
 }
 
 int spawnExec(string_t path, string_t* args){
@@ -43,6 +57,7 @@ int spawnExec(string_t path, string_t* args){
 		perror("execv");
 		exit(1);
 	}else{
+		activePid = exec;
 		waitpid(exec, &status, 0);
 	}
 	return status;
@@ -61,6 +76,13 @@ int executeSupervisor(plsrv_t* service){
 			freopen("/dev/null", "w", stdin);
 			freopen("/dev/null", "w", stdout);
 		}
+
+		struct sigaction newSigAction;
+		newSigAction.sa_handler = supervisorSignalHandler;
+		sigemptyset(&newSigAction.sa_mask);
+		newSigAction.sa_flags = 0;
+		setSignal(SIGTERM, &newSigAction);
+		setSignal(SIGINT, &newSigAction);
 
 		spawnExec(service->path, service->args);
 		if(service->type == PLSRV_RESPAWN){
@@ -168,21 +190,29 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 			}
 
 			plfile_t* lockFile = plFOpen(fullPath, "r", mt);
-			
+			char numBuffer[16] = "";
+			char* pointerHolder;
+			pid_t pidNum;
+			plFGets(numBuffer, 16, lockFile);
+			pidNum = strtol(numBuffer, &pointerHolder, 10);
+			kill(pidNum, SIGTERM);
+			return 0;
 			break;
 		case PLSRV_INIT: ;
-			DIR* directory = opendir("/etc/pl-srv");
-			struct dirent* dirEntry
-			plarray_t services;
-			services->array = plMTAllocE(mt, 2 * sizeof(char*));
-			services->size = 0;
+			DIR* directorySrv = opendir("/etc/pl-srv");
+			struct dirent* dirEntriesSrv;
 
-			while((dirEntry = readdir(directory)) != NULL){
-				
+			while((dirEntriesSrv = readdir(directorySrv)) != NULL){
+				plSrvSystemctl(PLSRV_START, dirEntriesSrv->d_name, mt);
 			}
 			break;
 		case PLSRV_HALT: ;
-			DIR* directory = opendir("/var/pl-srv");
+			DIR* directoryActive = opendir("/var/pl-srv");
+			struct dirent* dirEntriesActive;
+
+			while((dirEntriesActive = readdir(directoryActive)) != NULL){
+				plSrvSystemctl(PLSRV_STOP, dirEntriesActive->d_name, mt);
+			}
 			break;
 	}
 	return 0;
