@@ -120,13 +120,13 @@ create_boot_image(){
 	# find a way to escalate privilages, if not already running as root
 	if [ $(id -u) = 0 ]; then
 		su_exec=""
-	elif command -v /run/wrappers/bin/pkexec 2>/dev/null; then
+	elif command -v /run/wrappers/bin/pkexec >/dev/null; then
 		su_exec="/run/wrappers/bin/pkexec"
-	elif command -v /run/wrappers/bin/sudo 2>/dev/null; then
+	elif command -v /run/wrappers/bin/sudo >/dev/null; then
 		su_exec="/run/wrappers/bin/sudo"
-	elif command -v pkexec 2>/dev/null; then
+	elif command -v pkexec >/dev/null; then
 		su_exec="pkexec"
-	elif command -v sudo 2>/dev/null; then
+	elif command -v sudo >/dev/null; then
 		su_exec="sudo"
 	else
 		echo "Error: No way to esclate privilages, aborting!"

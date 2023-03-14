@@ -13,20 +13,18 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#define PLSRV_RESPAWN 1
-#define PLSRV_RUN_ONCE 2
-
-#define PLSRV_INIT 3
-#define PLSRV_HALT 4
-#define PLSRV_START 5
-#define PLSRV_STOP 6
+#define PLSRV_INIT 10
+#define PLSRV_HALT 11
+#define PLSRV_START 12
+#define PLSRV_STOP 13
 
 pid_t activePid = 0;
 
 typedef struct plsrv {
 	string_t path;
 	string_t* args;
-	int type;
+	bool respawn;
+	bool background;
 } plsrv_t;
 
 void supervisorSignalHandler(int signal){
@@ -55,7 +53,7 @@ int spawnExec(string_t path, string_t* args){
 		execv(realpath(path, buffer), args);
 
 		perror("execv");
-		exit(1);
+		return 255;
 	}else{
 		activePid = exec;
 		waitpid(exec, &status, 0);
@@ -68,11 +66,11 @@ int executeSupervisor(plsrv_t* service){
 		return -1;
 
 	pid_t exec = 0;
-	if(service->type != PLSRV_RESPAWN)
+	if(service->respawn == true || service->background == true)
 		exec = fork();
 
 	if(exec == 0){
-		if(service->type != PLSRV_RESPAWN){
+		if(service->background == true){
 			freopen("/dev/null", "w", stdin);
 			freopen("/dev/null", "w", stdout);
 		}
@@ -85,7 +83,7 @@ int executeSupervisor(plsrv_t* service){
 		setSignal(SIGINT, &newSigAction);
 
 		spawnExec(service->path, service->args);
-		if(service->type == PLSRV_RESPAWN){
+		if(service->respawn == true){
 			while(1)
 				spawnExec(service->path, service->args);
 		}
@@ -105,7 +103,7 @@ plsrv_t* generateServiceStruct(string_t pathname, plmt_t* mt){
 	if(srvFile == NULL)
 		return NULL;
 
-	byte_t buffer[256];
+	byte_t buffer[256] = "";
 	while(plFGets(buffer, 256, srvFile) != NULL){
 		plmltoken_t* plmlToken = plMLParse(buffer, mt);
 		string_t tokenName;
@@ -125,13 +123,13 @@ plsrv_t* generateServiceStruct(string_t pathname, plmt_t* mt){
 
 			plMTFree(mt, tokenizedVal);
 		}else if(strcmp("respawn", tokenName) == 0){
+			bool tokenVal = false;
+			plMLGetTokenAttrib(plmlToken, &tokenVal, PLML_GET_VALUE);
+			returnStruct->respawn = tokenVal;
+		}else if(strcmp("background", tokenName) == 0){
 			bool tokenVal;
 			plMLGetTokenAttrib(plmlToken, &tokenVal, PLML_GET_VALUE);
-
-			if(tokenVal)
-				returnStruct->type = PLSRV_RESPAWN;
-			else
-				returnStruct->type = PLSRV_RUN_ONCE;
+			returnStruct->background = tokenVal;
 		}
 
 		plMLFreeToken(plmlToken);
@@ -196,22 +194,36 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 			plFGets(numBuffer, 16, lockFile);
 			pidNum = strtol(numBuffer, &pointerHolder, 10);
 			kill(pidNum, SIGTERM);
-			return 0;
+			plFClose(lockFile);
+			remove(fullPath);
 			break;
 		case PLSRV_INIT: ;
 			DIR* directorySrv = opendir("/etc/pl-srv");
 			struct dirent* dirEntriesSrv;
 
+			if(directorySrv == NULL){
+				puts("Error: Service directory not found");
+				return 3;
+			}
+
+
 			while((dirEntriesSrv = readdir(directorySrv)) != NULL){
-				plSrvSystemctl(PLSRV_START, dirEntriesSrv->d_name, mt);
+				if(strcmp(dirEntriesSrv->d_name, ".") != 0 || strcmp(dirEntriesSrv->d_name, "..") != 0)
+					plSrvSystemctl(PLSRV_START, strtok(dirEntriesSrv->d_name, "."), mt);
 			}
 			break;
 		case PLSRV_HALT: ;
 			DIR* directoryActive = opendir("/var/pl-srv");
 			struct dirent* dirEntriesActive;
 
+			if(directorySrv == NULL){
+				puts("Error: Service directory not found");
+				return 3;
+			}
+
 			while((dirEntriesActive = readdir(directoryActive)) != NULL){
-				plSrvSystemctl(PLSRV_STOP, dirEntriesActive->d_name, mt);
+				if(strcmp(dirEntriesSrv->d_name, ".") != 0 || strcmp(dirEntriesSrv->d_name, "..") != 0)
+					plSrvSystemctl(PLSRV_STOP, dirEntriesActive->d_name, mt);
 			}
 			break;
 	}
