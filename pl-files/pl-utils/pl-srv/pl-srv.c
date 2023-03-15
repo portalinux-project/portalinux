@@ -87,7 +87,6 @@ int executeSupervisor(plsrv_t* service){
 			while(1)
 				spawnExec(service->path, service->args);
 		}
-		exit(0);
 	}
 
 	return exec;
@@ -99,6 +98,8 @@ plsrv_t* generateServiceStruct(string_t pathname, plmt_t* mt){
 
 	plfile_t* srvFile = plFOpen(pathname, "r", mt);
 	plsrv_t* returnStruct = plMTAllocE(mt, sizeof(plsrv_t));
+	returnStruct->respawn = false;
+	returnStruct->background = false;
 
 	if(srvFile == NULL)
 		return NULL;

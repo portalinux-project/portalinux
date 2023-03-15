@@ -121,7 +121,7 @@ uninstall_pkg(){
 }
 
 echo "PortaLinux Package Installer v0.03"
-printf "(c) 2022 pocketlinux32, Under MPL v2.0\n\n"
+printf "(c) 2022 pocketlinux32, Under MPL v2.0\\n\\n"
 
 if [ $(id -u) -ne 0 ]; then
 	echo "Error: You're not root"
@@ -133,20 +133,20 @@ if [ ! -d "$pldb_path" ]; then
 fi
 
 case $1 in
-	"--install" | "install")
+	"install")
 		install_pkg $2
 		;;
-	"--remove" | "--uninstall" | "remove")
+	"uninstall" | "remove")
 		uninstall_pkg $2
 		;;
-	"--help" | "help")
-		printf "Usage: $0 {--install|--remove} pkg_name\n\n"
-		echo "--install		Installs a package"
-		echo "--remove		Removes an installed package"
-		echo "--help			Shows this help"
+	"help")
+		printf "Usage: $0 {--install|--remove} pkg_name\\n\\n"
+		echo "install		Installs a package"
+		echo "remove		Removes an installed package"
+		echo "help			Shows this help"
 		;;
 	*)
-		echo "Error: Unknown option. Run $0 --help for more information"
+		echo "Error: Unknown option. Run $0 help for more information"
 		exit 1
 		;;
 esac
