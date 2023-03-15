@@ -22,7 +22,7 @@ compile_rootfs(){
 	_get_pkg_names $dist
 
 	printf "Creating rootfs structure..."
-	for i in dev sys proc opt usr/bin usr/lib root mnt home tmp var; do
+	for i in dev sys proc opt usr/bin usr/lib root mnt home tmp var/pl-srv; do
 		mkdir -p "$output_rootfs/$i"
 		printf "."
 	done
@@ -90,18 +90,18 @@ compile_rootfs(){
 		printf "Installing etc files..."
 		source "$plfiles/os-release"
 		cp -r "$plfiles/etc" "$output_rootfs"
-		mkdir "$output_rootfs/etc/pl-srv"
+		mkdir -p "$output_rootfs/etc/pl-srv"
 		mv "$output_rootfs/etc/ld.so.conf" "$output_rootfs/etc/ld-musl-$(_generate_stuff musl).path"
 		sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/etc/issue"
 		echo "Done."
 	fi
 
 	if [ ! -r "$output_rootfs/usr/bin/pl-setup" ]; then
-		printf "Installing PortaLinux Package Installer & Setup..."
+		printf "Installing PortaLinux scripts..."
 		cp "$plfiles/pl-utils/pl-install" "$output_rootfs/usr/bin"
 		chmod 777 "$output_rootfs/usr/bin/pl-install"
-		cp "$plfiles/pl-utils/pl-setup" "$output_rootfs/usr/bin"
-		chmod 777 "$output_rootfs/usr/bin/pl-setup"
+		cp "$plfiles/pl-utils/toybox-init" "$output_rootfs/usr/bin"
+		chmod 777 "$output_rootfs/usr/bin/toybox-init"
 		echo "Done."
 	fi
 

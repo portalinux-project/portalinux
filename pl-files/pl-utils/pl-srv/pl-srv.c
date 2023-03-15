@@ -206,10 +206,10 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 				return 3;
 			}
 
-
+			readdir(directorySrv);
+			readdir(directorySrv);
 			while((dirEntriesSrv = readdir(directorySrv)) != NULL){
-				if(strcmp(dirEntriesSrv->d_name, ".") != 0 || strcmp(dirEntriesSrv->d_name, "..") != 0)
-					plSrvSystemctl(PLSRV_START, strtok(dirEntriesSrv->d_name, "."), mt);
+				plSrvSystemctl(PLSRV_START, strtok(dirEntriesSrv->d_name, "."), mt);
 			}
 			break;
 		case PLSRV_HALT: ;
@@ -221,9 +221,10 @@ int plSrvSystemctl(int action, char* value, plmt_t* mt){
 				return 3;
 			}
 
+			readdir(directorySrv);
+			readdir(directorySrv);
 			while((dirEntriesActive = readdir(directoryActive)) != NULL){
-				if(strcmp(dirEntriesSrv->d_name, ".") != 0 || strcmp(dirEntriesSrv->d_name, "..") != 0)
-					plSrvSystemctl(PLSRV_STOP, dirEntriesActive->d_name, mt);
+				plSrvSystemctl(PLSRV_STOP, dirEntriesActive->d_name, mt);
 			}
 			break;
 	}

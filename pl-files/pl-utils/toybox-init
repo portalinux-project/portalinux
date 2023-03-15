@@ -1,0 +1,8 @@
+#!/usr/bin/sh
+cmdList="$(toybox)"
+
+for i in $cmdList; do
+	if [ "$i" != "sh" ]; then
+		ln -s /usr/bin/toybox /usr/bin/$i
+	fi
+done

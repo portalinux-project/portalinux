@@ -147,12 +147,9 @@ int main(int argc, string_t argv[]){
 		puts("Done.");
 
 		puts("* Running pl-srv...\n");
-		string_t plSrvArgs[3] = { "pl-srv", "init", NULL };
+		string_t plSrvArgs[5] = { "pl-srv", "init", NULL };
 		spawnExec("/usr/bin/pl-srv", plSrvArgs);
-		plSrvArgs[0] = "sh";
-		plSrvArgs[1] = NULL;
-		while(1)
-			spawnExec("/usr/bin/sh", plSrvArgs);
+		while(1);
 	}
 
 	signalHandler(SIGTERM);
