@@ -123,13 +123,13 @@ plsrv_t* generateServiceStruct(string_t pathname, plmt_t* mt){
 
 			plMTFree(mt, tokenizedVal);
 		}else if(strcmp("respawn", tokenName) == 0){
-			bool tokenVal = false;
+			bool* tokenVal;
 			plMLGetTokenAttrib(plmlToken, &tokenVal, PLML_GET_VALUE);
-			returnStruct->respawn = tokenVal;
+			returnStruct->respawn = *tokenVal;
 		}else if(strcmp("background", tokenName) == 0){
-			bool tokenVal;
+			bool* tokenVal;
 			plMLGetTokenAttrib(plmlToken, &tokenVal, PLML_GET_VALUE);
-			returnStruct->background = tokenVal;
+			returnStruct->background = *tokenVal;
 		}
 
 		plMLFreeToken(plmlToken);

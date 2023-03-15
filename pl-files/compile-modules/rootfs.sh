@@ -90,6 +90,7 @@ compile_rootfs(){
 		printf "Installing etc files..."
 		source "$plfiles/os-release"
 		cp -r "$plfiles/etc" "$output_rootfs"
+		mkdir "$output_rootfs/etc/pl-srv"
 		mv "$output_rootfs/etc/ld.so.conf" "$output_rootfs/etc/ld-musl-$(_generate_stuff musl).path"
 		sed -i "s/IMG_VER/$IMAGE_VERSION/g" "$output_rootfs/etc/issue"
 		echo "Done."

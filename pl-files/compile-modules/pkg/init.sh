@@ -16,7 +16,7 @@ _get_deps(){
 	mkdir -p tarballs && cd tarballs
 
 	for i in $URL; do
-		if [ ! -f "$(basename $i)" ] || [ $(echo "$i" | grep "https://github.com" -c) -ne 0]; then
+		if [ ! -f "$(basename $i)" ] || [ $(echo "$i" | grep "https://github.com" -c) -ne 0 ]; then
 			printf "\n$i\n" >> $logfile
 			if [ "$i" = "$pl32lib_url" ] || [ "$i" = "$libplml_url" ]; then
 				extra_wget_flag="-O $(basename $(dirname $(dirname $(dirname $(dirname $i))))).tar.gz"
