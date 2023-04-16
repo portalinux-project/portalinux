@@ -217,7 +217,6 @@ setup_toolchain(){
 
 echo "PortaLinux Build System v0.10.1"
 printf "(c) 2022 pocketlinux32 & raisinware, Under MPLv2.0\n\n"
-_compiler_check
 
 if [ $# -eq 0 ]; then
 	echo "Error: No command given. Run $0 --help for a list of supported commands"
@@ -298,6 +297,7 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
+_compiler_check
 echo "Log file: $logfile"
 echo "Target System: $compile_target"
 printf "Toolchain install directory: $toolchain_prefix\n\n"
