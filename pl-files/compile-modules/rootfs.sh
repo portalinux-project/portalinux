@@ -80,10 +80,12 @@ compile_rootfs(){
 	fi
 
 	if [ ! -r "$output_rootfs/usr/bin/pl-srv" ]; then
-		printf "Compiling and installing pl-srv..."
-		$cross_cc $cross_cflags $cross_ldflags "$plfiles/pl-utils/pl-srv/pl-init.c" -o "$output_rootfs/init" -w -std=c99 -march=$arch
-		$cross_cc $cross_cflags $cross_ldflags "$plfiles/pl-utils/pl-srv/pl-srv.c" -o "$output_rootfs/usr/bin/pl-srv" -w -std=c99 -lpl32 -lplml -march=$arch
-		echo "Done."
+		cd "$plsrv_dir"
+
+		_exec "Configuring pl-srv" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling pl-srv" "./compile build"
+		_exec "Installing pl-srv" "./compile install"
+		ln -s ./usr/bin/pl-init $output_rootfs/init
 	fi
 
 	if [ ! -r "$output_rootfs/etc" ]; then
@@ -102,6 +104,8 @@ compile_rootfs(){
 		chmod 777 "$output_rootfs/usr/bin/pl-install"
 		cp "$plfiles/pl-utils/toybox-init" "$output_rootfs/usr/bin"
 		chmod 777 "$output_rootfs/usr/bin/toybox-init"
+		cp "$plfiles/pl-utils/pl-shell" "$output_rootfs/usr/bin"
+		chmod 777 "$output_rootfs/usr/bin/pl-shell"
 		echo "Done."
 	fi
 

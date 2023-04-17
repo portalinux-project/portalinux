@@ -5,9 +5,10 @@ cmdList="$(toybox)"
 for i in $cmdList; do
 	if [ "$i" != "sh" ]; then
 		toybox ln -s /usr/bin/toybox /usr/bin/$i
-		echo "	* Created link $i"
+		printf "* Creating link: $i        \\r"
 	fi
 done
 
+echo "* Created all links        "
 echo "* Initialization done"
 exit 0

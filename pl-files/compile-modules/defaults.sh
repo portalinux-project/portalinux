@@ -22,6 +22,7 @@ xserver_url="https://www.x.org/releases/individual/xserver/xorg-server-1.20.14.t
 bison_url="http://ftp.gnu.org/gnu/bison/bison-3.7.6.tar.gz"
 pl32lib_url="https://github.com/pocketlinux32/pl32lib-ng/archive/refs/heads/main.tar.gz"
 libplml_url="https://github.com/pocketlinux32/libplml/archive/refs/heads/main.tar.gz"
+plsrv_url="https://github.com/pocketlinux32/pl-srv/archive/refs/heads/main.tar.gz"
 # llvm toolchain url
 llvm_url="https://github.com/llvm/llvm-project/archive/refs/tags/llvmorg-14.0.6.tar.gz"
 # gcc toolchain urls

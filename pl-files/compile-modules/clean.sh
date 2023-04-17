@@ -17,14 +17,14 @@ _pl_clean(){
 					make -s clean >/dev/null 2>&1
 					shift
 				else
-					rm -rf $build/$i/build
+					rm -rf "$build/$i/build"
 				fi
-			elif [ -r $build/$i/Makefile ]; then
-				cd $build/$i
+			elif [ -r "$build/$i/Makefile" ]; then
+				cd "$build/$i"
 				make -s clean >/dev/null 2>&1
 				make -s distclean >/dev/null 2>&1
-			elif [ -r $build/$i/compile ]; then
-				cd $build/$i
+			elif [ -r "$build/$i/compile" ] && [ -r "$build/$i/configure.ac" ]; then
+				cd "$build/$i"
 				./compile clean >/dev/null
 			fi
 			echo "Done."

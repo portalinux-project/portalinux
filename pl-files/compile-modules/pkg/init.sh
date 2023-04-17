@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 _get_deps(){
-	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url $musl_url $toybox_url $pl32lib_url $libplml_url"
+	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url $musl_url $toybox_url $pl32lib_url $libplml_url $plsrv_url"
 
 	if [ "$LLVM" != "" ]; then
 		URL="$llvm_url $URL"
@@ -18,7 +18,7 @@ _get_deps(){
 	for i in $URL; do
 		if [ ! -f "$(basename $i)" ] || [ $(echo "$i" | grep "https://github.com" -c) -ne 0 ]; then
 			printf "\n$i\n" >> $logfile
-			if [ "$i" = "$pl32lib_url" ] || [ "$i" = "$libplml_url" ]; then
+			if [ "$i" = "$pl32lib_url" ] || [ "$i" = "$libplml_url" ] || [ "$i" = "$plsrv_url" ]; then
 				extra_wget_flag="-O $(basename $(dirname $(dirname $(dirname $(dirname $i))))).tar.gz"
 			fi
 			_exec "Downloading $(basename $i)" "wget -q --show-progress --progress=dot:giga '$i' $extra_wget_flag $1" "cd .. && rm -rf tarballs" "no-silent"

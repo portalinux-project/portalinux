@@ -6,17 +6,17 @@ while also being as secure and compatible with as many components as it can.
 # Minimum Requirements
 
 - CPU: Intel 80486
-- RAM: 128* MiB
-- HDD: 12** MiB
+- RAM: 48* MiB
+- HDD: 8** MiB
 
-**These metrics may vary depending on the kernel config and the C library used**
+**These metrics may vary depending on the kernel config used**
 
 # Build Requirements
 
 ## Build tools
 
 - Make >= 4.x
-- GCC >= 7
+- GCC >= 7 or LLVM >= 14
 - Flex >= 2.x
 - Bison >= 3.x
 - Gawk >= 3.x/Busybox Awk >= 1.30.1

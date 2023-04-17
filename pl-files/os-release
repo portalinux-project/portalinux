@@ -1,13 +1,13 @@
 NAME="PortaLinux"
 ID="portalinux"
-PRETTY_NAME="PortaLinux v0.10 VAR_NAME"
+PRETTY_NAME="PortaLinux v0.10.2 VAR_NAME"
 DEFAULT_HOSTNAME="portalinux"
 
 HOME_URL="https://github.com/pocketlinux32/portalinux"
 DOCUMENTATION_URL="https://github.com/pocketlinux32/portalinux/wiki"
 
-IMAGE_VERSION="v0.10"
-IMAGE_ID="0.10"
+IMAGE_VERSION="v0.10.2"
+IMAGE_ID="0.10.2"
 VARIANT="VAR_NAME"
 VARIANT_ID="VAR_ID"
 BUILD_ID="BID"

@@ -18,6 +18,7 @@ python_dir=""
 grub_dir=""
 pl32lib_dir=""
 libplml_dir=""
+plsrv_dir=""
 
 _get_pkg_names(){
 	dirlist="$(ls $build)"
@@ -33,6 +34,7 @@ _get_pkg_names(){
 	libc_dir="$(realpath $(echo $dirlist | grep 'musl.[0-9,a-z,A-Z,\.]*' -o))"
 	pl32lib_dir="$(realpath $(echo $dirlist | grep 'pl32lib-ng.[0-9,a-z,A-Z,\.,\-]*' -o))"
 	libplml_dir="$(realpath $(echo $dirlist | grep 'libplml.[0-9,a-z,A-Z,\.]*' -o))"
+	plsrv_dir="$(realpath $(echo $dirlist | grep 'pl-srv.[0-9,a-z,A-Z,\.]*' -o))"
 #	python_dir="$(realpath $(echo $dirlist | grep 'python.[0-9,a-z,A-Z,\.]*' -o))"
 	if [ "$LLVM" != "" ]; then
 		llvm_dir="$(realpath $(echo $dirlist | grep 'llvm.[0-9,a-z,A-Z,\.,\-]*' -o))"
