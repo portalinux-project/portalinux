@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+require 'yaml'
+require 'net/http'
 
 $validArchitectures = [ "i486", "i586", "i686", "x86_64", "armv5", "armv6", "armv7", "aarch64", "riscv64" ]
 $validToolchains = [ "llvm", "gcc" ]
@@ -6,7 +8,7 @@ $validToolchains = [ "llvm", "gcc" ]
 $arch = ""
 $toolchain = ""
 $prefix = File.expand_path("~/cross")
-$initDir = File.expand_path"pl-files/configure-files")
+$initDir = File.expand_path("pl-files/configure-files/")
 
 def errorHandler(msg)
 	puts "Error: #{msg}. Run #{$0} -h for more information"
@@ -94,13 +96,17 @@ end
 def fetchPkgs
 	pkgDir = Dir.open($initDir)
 
-	for i in pkgDir.foreach
-		print i
+	for i in pkgDir.each_child
+		fileParse = YAML.load_file($initDir + "/" + i)
+		pkg = fileParse.inspect
+
+		print "Downloading #{pkg["name"]}..."
+		#
 	end
 end
 
 def init
-	
+	fetchPkgs
 end
 
 puts "PortaLinux Build System v0.11"
