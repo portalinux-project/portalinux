@@ -1,11 +1,12 @@
 #!/usr/bin/env ruby
 
-$validArchitectures = [ "i486", "i586", "i686", "x86_64", "armv6", "armv7", "aarch64", "riscv64" ]
+$validArchitectures = [ "i486", "i586", "i686", "x86_64", "armv5", "armv6", "armv7", "aarch64", "riscv64" ]
 $validToolchains = [ "llvm", "gcc" ]
 
 $arch = ""
 $toolchain = ""
 $prefix = File.expand_path("~/cross")
+$initDir = File.expand_path"pl-files/configure-files")
 
 def errorHandler(msg)
 	puts "Error: #{msg}. Run #{$0} -h for more information"
@@ -42,6 +43,7 @@ def parseArgs
 				puts "			i586"
 				puts "			i686"
 				puts "			x86_64"
+				puts "			armv5"
 				puts "			armv6"
 				puts "			armv7"
 				puts "			aarch64"
@@ -89,6 +91,18 @@ def validateArgs
 	end	
 end
 
+def fetchPkgs
+	pkgDir = Dir.open($initDir)
+
+	for i in pkgDir.foreach
+		print i
+	end
+end
+
+def init
+	
+end
+
 puts "PortaLinux Build System v0.11"
 print "(c) 2023 pocketlinux32 & raisinware, Under MPL 2.0\n\n"
 
@@ -102,3 +116,5 @@ validateArgs
 puts "Toolchain: #{$toolchain}"
 puts "Architecture: #{$arch}"
 puts "Toolchain Install Directory: #{$prefix}"
+
+init

@@ -1,0 +1,4 @@
+name = "pl-srv"
+version = "0.02"
+github = true
+url = "pocketlinux32/pl-srv"
