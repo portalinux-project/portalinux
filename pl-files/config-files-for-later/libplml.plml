@@ -1,4 +1,5 @@
 name = "libplml"
 version = "0.01"
 github = true
+tag = "v0.01"
 url = "pocketlinux32/libplml"

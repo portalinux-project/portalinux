@@ -1,4 +1,5 @@
 name = "pl32lib-ng"
 version = "1.04-ng"
 github = true
+tag = "v1.04-ng"
 url = "pocketlinux32/pl32lib-ng"
