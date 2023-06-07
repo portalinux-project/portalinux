@@ -9,11 +9,16 @@ $arch = ""
 $toolchain = ""
 $prefix = File.expand_path("~/cross")
 $baseDir = File.expand_path(".")
-$configDir = "#{$baseDir}/pl-files"
+$configDir = "#{$baseDir}/pl-files/configure-files"
 
-def errorHandler(msg)
-	puts "Error: #{msg}. Run #{$0} -h for more information"
-	exit 1	
+def errorHandler(msg, isOpt)
+	print "Error: #{msg}."
+	if isOpt == true
+		puts "Run #{$0} -h for more information"
+	else
+		puts ""
+	end
+	exit 1
 end
 
 def parseArgs
@@ -23,19 +28,19 @@ def parseArgs
 		case args[0]
 			when "-a"
 				if args.length < 2
-					errorHandler "Not enough arguments"
+					errorHandler("Not enough arguments", true)
 				end
 				$arch = args[1]
 				args.shift
 			when "-t"
 				if args.length < 2
-					errorHandler "Not enough arguments"
+					errorHandler("Not enough arguments", true)
 				end
 				$toolchain = args[1]
 				args.shift
 			when "-p"
 				if args.length < 2
-					errorHandler "Not enough arguments"
+					errorHandler("Not enough arguments",true)
 				end
 				$prefix = File.expand_path(args[1])
 				args.shift
@@ -60,7 +65,7 @@ def parseArgs
 				puts "For more information, please go to https://github.com/pocketlinux32/portalinux"
 				exit				
 			else
-				errorHandler "Unknown option" 
+				errorHandler("Unknown option", true)
 		end
 		args.shift
 	end
@@ -68,11 +73,11 @@ end
 
 def validateArgs
 	if $arch == ""
-		errorHandler "Architecture not set"
+		errorHandler("Architecture not set", true)
 	end
 
 	if $toolchain == ""
-		errorHandler "Toolchain not set"
+		errorHandler("Toolchain not set", true)
 	end
 
 	i = 0
@@ -81,7 +86,7 @@ def validateArgs
 	end
 
 	if $validArchitectures[i] != $arch
-		errorHandler "Unknown architecture"
+		errorHandler("Unknown architecture", true)
 	end
 
 	i = 0
@@ -90,7 +95,7 @@ def validateArgs
 	end
 
 	if $validToolchains[i] != $toolchain
-		errorHandler "Unsupported toolchain"
+		errorHandler("Unsupported toolchain", true)
 	end	
 end
 
@@ -120,7 +125,7 @@ end
 
 def fetchPkgs pkgList
 	for i in pkgList
-		fileParse = YAML.load_file("#{$configDir}/configure-files/pkg/" + i ".yaml")
+		fileParse = YAML.load_file("#{$configDir}/pkg/" + i + ".yaml")
 
 		if fileParse["github"] == true
 			tempUrl = "https://codeload.github.com/" + fileParse["url"] + "/tar.gz/refs/"
@@ -147,20 +152,79 @@ def fetchPkgs pkgList
 	end
 end
 
+def decompressPkgs
+	if Dir.empty?("#{$baseDir}/build") == false
+		puts "Build directory is not empty. Skipping decompression stage..."
+		return
+	end
+
+	Dir.chdir("#{$baseDir}/build")
+	openDir = Dir.open("#{$baseDir}/tarballs")
+
+	for i in openDir.each_child
+		print "Decompressing #{i}..."
+		
+		compression = i.split(".").last
+		case compression
+			when "gz"
+				system("gunzip -c #{$baseDir}/tarballs/#{i} | tar x")
+			when "bz2"
+				system("bunzip2 -c #{$baseDir}/tarballs/#{i} | tar x")
+			when "xz"
+				system("xz -dc #{$baseDir}/tarballs/#{i} | tar x")
+			when "zst"
+				system("zstd -dc #{$baseDir}/tarballs/#{i} | tar x")
+			else
+				puts "Error!"
+				puts "Error: Unknown compression type"
+				exit 1
+		end
+
+		puts "Done."
+	end
+
+	openDir.close
+	Dir.chdir("#{$baseDir}")
+end
+
 def init
 	if Dir.exist?("#{$baseDir}/tarballs") == false
 		Dir.mkdir("#{$baseDir}/tarballs")
 	end
+	if Dir.exist?("#{$baseDir}/build") == false
+		Dir.mkdir("#{$baseDir}/build")
+	end
 
-	puts "Stage 1: Download packages\n"
+	puts "Stage 1: Download packages"
 	
-	presetFile = YAML.load_file("#{$configDir}/configure-files/" + $toolchain + ".yaml")
-	list = presetFile["pkgList"].scan(" ")
+	presetFile = YAML.load_file("#{$configDir}/" + $toolchain + ".yaml")
+	list = presetFile["pkgList"].split(" ")
 
 	fetchPkgs list
 
 	puts "Stage 1 Complete! Starting Stage 2"
-	puts "Stage 2: Extract packages\n"
+	puts "Stage 2: Extract packages"
+
+	decompressPkgs
+
+	puts "Stage 2 Complete! Starting Stage 3"
+	puts "Stage 3: Create config file"
+
+	if File.exist?(".config") == true
+		puts "Config file exists, skipping..."
+	else
+		print "Creating config file..."
+		configFile = File.open(".config", "w")
+
+		configFile.write("arch: #{$arch}\n")
+		configFile.write("toolchain: #{$toolchain}\n")
+		configFile.write("tcprefix: #{$prefix}\n")
+		configFile.close
+
+		puts "Done."
+	end	
+
+	puts "Stage 3 Complete!"
 end
 
 puts "PortaLinux Configure System v0.11"
