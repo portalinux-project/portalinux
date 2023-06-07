@@ -2,7 +2,7 @@
 
 _generate_llvm_wrappers(){
 	mkdir -p "$sysroot"
-	cat <<EOF > "$sysroot/cross_clang.cmake"
+	cat << EOF > "$sysroot/cross_clang.cmake"
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR "$arch")
 set(CMAKE_SYSROOT "$sysroot")
@@ -36,9 +36,7 @@ compile_toolchain(){
 	compiler_rt_flags="$cmake_bs_flags COMPILER_RT_BUILD_LIBFUZZER=0 COMPILER_RT_BUILD_MEMPROF=0 COMPILER_RT_BUILD_ORC=0 COMPILER_RT_BUILD_PROFILE=0 \
 					COMPILER_RT_BUILD_SANITIZERS=0 COMPILER_RT_BUILD_XRAY=0 COMPILER_RT_DEFAULT_TARGET_ONLY=1"
 
-	_get_pkg_names $dist
 	_generate_llvm_wrappers
-
 
 	# LLVM C/C++ compilers
 	if [ ! -r "$toolchain_prefix/bin/clang" ]; then
@@ -83,7 +81,7 @@ compile_toolchain(){
 		cd "$pl32lib_dir"
 
 		_exec "Configuring pl32lib" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
-		_exec "Compiling pl32lib" "./compile"
+		_exec "Compiling pl32lib" "./compile build"
 		_exec "Installing pl32lib" "./compile install"
 	fi
 
@@ -92,7 +90,7 @@ compile_toolchain(){
 		cd "$libplml_dir"
 
 		_exec "Configuring libplml" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
-		_exec "Compiling libplml" "./compile"
+		_exec "Compiling libplml" "./compile build"
 		_exec "Installing libplml" "./compile install"
 	fi
 }
