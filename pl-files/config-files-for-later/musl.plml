@@ -1,4 +1,0 @@
-name = "musl"
-version = "1.2.4"
-github = false
-url = "https://musl.libc.org/releases/musl-1.2.4.tar.gz"
