@@ -1,16 +1,12 @@
 # SPDX-License-Identifier: MPL-2.0
 
 _get_deps(){
-	URL="$kernel_url $bash_url $make_url $ncurses_url $nano_url $grub_url $musl_url $toybox_url $pl32lib_url $libplml_url $plsrv_url"
+	URL="$kernel_url $musl_url $toybox_url $pl32lib_url $libplml_url $plsrv_url"
 
 	if [ "$LLVM" != "" ]; then
 		URL="$llvm_url $URL"
 	else
 		URL="$gcc_url $gmp_url $mpc_url $mpfr_url $binutils_url $URL"
-	fi
-
-	if [ "$2" = "experimental" ]; then
-		URl="$URL $xserver_url $bison_url"
 	fi
 
 	mkdir -p tarballs && cd tarballs
@@ -29,11 +25,15 @@ _get_deps(){
 }
 
 _decompress_all(){
+	if [ "$overlayfs" != "" ]; then
+		set +e
+	fi
+
 	for i in $(ls | grep .tar); do
 		printf "Unpacking archive $i..."
 		case $i in
 			*.gz)
-				gunzip -c "$i" | tar xf -
+				gunzip -c "$i"  | tar xf -
 				;;
 			*.bz2)
 				bunzip2 -c "$i" | tar xf -
@@ -41,8 +41,6 @@ _decompress_all(){
 			*.xz)
 				xz -dc "$i" | tar xf -
 				;;
-			*.zip)
-				unzip "$i" &>/dev/null
 		esac
 		echo "Done."
 	done
@@ -50,20 +48,28 @@ _decompress_all(){
 }
 
 _init(){
-	if [ -d $build ]; then
+	isinit="yee :3"
+	if [ -d "$build" ]; then
 		_exec "Detected old build files, removing" "rm -rf $build"
 	fi
 
-	_get_deps $1 $2
-	mkdir -p $build $toolchain_prefix $output
-	cd $pldir/tarballs && _decompress_all
+	if [ "$1" = "overlayfs-mode" ]; then
+		echo "WARNING: OverlayFS mode detected, error handling disabled"
+		overlayfs="1"
+		shift
+	fi
+
+	_get_deps $1
+	mkdir -p "$build" "$toolchain_prefix" "$output"
+
+	cd "$pldir/tarballs" && _decompress_all
 	for i in $(ls); do
-		if [ -d $i ]; then
-			mv $i $build
+		if [ -d "$i" ]; then
+			mv "$i" "$build"
 		fi
 	done
 
-	_get_pkg_names $dist
+	_get_pkg_names
 	for i in arch crt; do
 		cd "$libc_dir/$i"
 		for j in i486 i586 i686; do
@@ -71,8 +77,12 @@ _init(){
 		done
 	done
 
-	if [ "$toybox" != "" ]; then   # NixOS fixes
-		sed -i "s/bash/sh/" "$coreutils_dir/scripts/genconfig.sh"
-		sed -i "s/bash/sh/" "$coreutils_dir/scripts/make.sh"
+	if [ "$LLVM" = "" ]; then
+		mv "$gmp_dir" "$gcc_dir/gmp"
+		mv "$mpc_dir" "$gcc_dir/mpc"
+		mv "$mpfr_dir" "$gcc_dir/mpfr"
 	fi
+
+	sed -i "s/bash/sh/" "$coreutils_dir/scripts/genconfig.sh"
+	sed -i "s/bash/sh/" "$coreutils_dir/scripts/make.sh"
 }

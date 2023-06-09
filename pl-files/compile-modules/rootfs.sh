@@ -19,7 +19,7 @@ compile_rootfs(){
 	common_flags="$musl_subset --host=$compile_target"
 	included_comp="--prefix=/usr $common_flags"
 	main_comp="$included_comp --disable-multilib"
-	_get_pkg_names $dist
+	_get_pkg_names
 
 	printf "Creating rootfs structure..."
 	for i in dev sys proc opt usr/bin usr/lib root mnt home tmp var/pl-srv; do
@@ -67,7 +67,7 @@ compile_rootfs(){
 		cd "$pl32lib_dir"
 
 		_exec "Configuring pl32lib" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
-		_exec "Compiling pl32lib" "./compile"
+		_exec "Compiling pl32lib" "./compile build"
 		_exec "Installing pl32lib" "./compile install"
 	fi
 
@@ -75,7 +75,7 @@ compile_rootfs(){
 		cd "$libplml_dir"
 
 		_exec "Configuring libplml" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
-		_exec "Compiling libplml" "./compile"
+		_exec "Compiling libplml" "./compile build"
 		_exec "Installing libplml" "./compile install"
 	fi
 
