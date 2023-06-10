@@ -21,6 +21,10 @@ compile_rootfs(){
 	main_comp="$included_comp --disable-multilib"
 	_get_pkg_names
 
+	if [ "$LLVM" != "" ]; then
+		cross_cflags="$cross_cflags -march=i486"
+	fi
+
 	printf "Creating rootfs structure..."
 	for i in dev sys proc opt usr/bin usr/lib root mnt home tmp var/pl-srv; do
 		mkdir -p "$output_rootfs/$i"
@@ -56,7 +60,7 @@ compile_rootfs(){
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
 		printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config
 		echo "Done."
-		_exec "Compiling Toybox" "make CC='$cross_cc' CFLAGS='$cross_cflags $cross_ldflags -march=$arch' -j$threads"
+		_exec "Compiling Toybox" "make CC='$cross_cc' CFLAGS='$cross_cflags $cross_ldflags' -j$threads"
 		printf "Installing Toybox..."
 		mv *box "$output_rootfs/usr/bin"
 		ln -s "/usr/bin/toybox" "$output_rootfs/usr/bin/sh" 2>/dev/null || true
@@ -66,7 +70,7 @@ compile_rootfs(){
 	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
 		cd "$pl32lib_dir"
 
-		_exec "Configuring pl32lib" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Configuring pl32lib" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
 		_exec "Compiling pl32lib" "./compile build"
 		_exec "Installing pl32lib" "./compile install"
 	fi
@@ -74,7 +78,7 @@ compile_rootfs(){
 	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
 		cd "$libplml_dir"
 
-		_exec "Configuring libplml" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Configuring libplml" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
 		_exec "Compiling libplml" "./compile build"
 		_exec "Installing libplml" "./compile install"
 	fi
@@ -82,7 +86,7 @@ compile_rootfs(){
 	if [ ! -r "$output_rootfs/usr/bin/pl-srv" ]; then
 		cd "$plsrv_dir"
 
-		_exec "Configuring pl-srv" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Configuring pl-srv" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
 		_exec "Compiling pl-srv" "./compile build"
 		_exec "Installing pl-srv" "./compile install"
 		ln -s ./usr/bin/pl-init $output_rootfs/init
