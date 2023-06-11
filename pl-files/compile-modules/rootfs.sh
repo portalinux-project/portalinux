@@ -19,7 +19,11 @@ compile_rootfs(){
 	common_flags="$musl_subset --host=$compile_target"
 	included_comp="--prefix=/usr $common_flags"
 	main_comp="$included_comp --disable-multilib"
-	_get_pkg_names $dist
+	_get_pkg_names
+
+	if [ "$LLVM" != "" ]; then
+		cross_cflags="$cross_cflags -march=i486"
+	fi
 
 	printf "Creating rootfs structure..."
 	for i in dev sys proc opt usr/bin usr/lib root mnt home tmp var/pl-srv; do
@@ -56,7 +60,7 @@ compile_rootfs(){
 		script -qeac "make defconfig 2>&1" "$logfile" >/dev/null
 		printf "CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n" >> .config
 		echo "Done."
-		_exec "Compiling Toybox" "make CC='$cross_cc' CFLAGS='$cross_cflags $cross_ldflags -march=$arch' -j$threads"
+		_exec "Compiling Toybox" "make CC='$cross_cc' CFLAGS='$cross_cflags $cross_ldflags' -j$threads"
 		printf "Installing Toybox..."
 		mv *box "$output_rootfs/usr/bin"
 		ln -s "/usr/bin/toybox" "$output_rootfs/usr/bin/sh" 2>/dev/null || true
@@ -66,24 +70,26 @@ compile_rootfs(){
 	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
 		cd "$pl32lib_dir"
 
-		_exec "Configuring pl32lib" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
-		_exec "Compiling pl32lib" "./compile"
+		_exec "Configuring pl32lib" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling pl32lib" "./compile build"
 		_exec "Installing pl32lib" "./compile install"
 	fi
 
 	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
 		cd "$libplml_dir"
 
-		_exec "Configuring libplml" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
-		_exec "Compiling libplml" "./compile"
+		_exec "Configuring libplml" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling libplml" "./compile build"
 		_exec "Installing libplml" "./compile install"
 	fi
 
 	if [ ! -r "$output_rootfs/usr/bin/pl-srv" ]; then
-		printf "Compiling and installing pl-srv..."
-		$cross_cc $cross_cflags $cross_ldflags "$plfiles/pl-utils/pl-srv/pl-init.c" -o "$output_rootfs/init" -w -std=c99 -march=$arch
-		$cross_cc $cross_cflags $cross_ldflags "$plfiles/pl-utils/pl-srv/pl-srv.c" -o "$output_rootfs/usr/bin/pl-srv" -w -std=c99 -lpl32 -lplml -march=$arch
-		echo "Done."
+		cd "$plsrv_dir"
+
+		_exec "Configuring pl-srv" "./configure --prefix='$output_rootfs/usr' CC='$cross_cc' CFLAGS='$cross_cflags -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling pl-srv" "./compile build"
+		_exec "Installing pl-srv" "./compile install"
+		ln -s ./usr/bin/pl-init $output_rootfs/init
 	fi
 
 	if [ ! -r "$output_rootfs/etc" ]; then
@@ -102,6 +108,8 @@ compile_rootfs(){
 		chmod 777 "$output_rootfs/usr/bin/pl-install"
 		cp "$plfiles/pl-utils/toybox-init" "$output_rootfs/usr/bin"
 		chmod 777 "$output_rootfs/usr/bin/toybox-init"
+		cp "$plfiles/pl-utils/pl-shell" "$output_rootfs/usr/bin"
+		chmod 777 "$output_rootfs/usr/bin/pl-shell"
 		echo "Done."
 	fi
 

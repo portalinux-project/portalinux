@@ -1,21 +1,11 @@
 # SPDX-License-Identifier: MPL-2.0
 
-_setup_glibc(){
-	mkdir -p "$output_rootfs/opt/include/gnu"
-	touch "$output_rootfs/opt/include/gnu/stubs.h"
-	touch "$output_rootfs/opt/include/gnu/stubs-32.h"
-	touch "$output_rootfs/opt/include/gnu/stubs-64.h"
-	if [ "$1" = "tc" ]; then
-		$compile_target-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o "$sysroot/lib/libc.so"
-	fi
-}
-
 compile_toolchain(){
 	extra_flags=""
 	common_flags="$compile_target --disable-multilib"
 	gnu_flags="$common_flags $with_aoc --disable-werror --disable-doc"
 	libc_flags=""
-	_get_pkg_names $dist
+	_get_pkg_names
 
 	# binutils
 	_compile_ac_pkg "$toolchain_bin/$compile_target-as" "$binutils_dir" \
@@ -24,12 +14,8 @@ compile_toolchain(){
 				"Installing Binutils" "install-strip"
 
 	# gcc c/c++ compilers
-	_setup_gcc cross
-	if [ "$dist" = "musl" ]; then
-		extra_flags="--disable-libsanitizer --enable-initfini-array"
-	fi
 	_compile_ac_pkg "$toolchain_bin/$compile_target-gcc" "$gcc_dir" \
-				"Configuring GCC" "--prefix=$toolchain_prefix --target=$gnu_flags --enable-languages=c,c++,$extra_gcc_langs --disable-libstdcxx-debug --disable-bootstrap $extra_flags $extra_gcc_flags" \
+				"Configuring GCC" "--prefix=$toolchain_prefix --target=$gnu_flags --disable-libsanitizer --enable-initfini-array --enable-languages=c,c++,$extra_gcc_langs --disable-libstdcxx-debug --disable-bootstrap $extra_flags $extra_gcc_flags" \
 				"Compiling GCC C/C++ compilers" "all-gcc" \
 				"Installing GCC C/C++ compilers" "install-strip-gcc"
 
@@ -39,43 +25,24 @@ compile_toolchain(){
 		_exec "Installing Linux headers" "make ARCH=$linux_arch INSTALL_HDR_PATH=$sysroot headers_install"
 	fi
 
-	# libc headers + start files (glibc-only)
+	# libc headers
 	if [ ! -r "$sysroot/include/stdio.h" ]; then
 		cd "$libc_dir"
-		if [ "$dist" = "gnu" ]; then
-			mkdir -p "build" && cd "build"
-			if [ ! -r "$libc_dir/build/Makefile" ]; then
-				_exec "Configuring glibc" "../configure --prefix=$sysroot --host=$gnu_flags --with-headers=$sysroot/include libc_cv_forced_unwind=yes"
-			fi
-			_exec "Compiling glibc start files" "make -j$threads csu/subdir_lib CFLAGS_FOR_TARGET='-s -O2' CXXFLAGS_FOR_TARGET='-s -O2'"
-			_exec "Installing glibc start files" "install csu/crti.o csu/crtn.o csu/crt1.o '$sysroot/lib'"
-			_exec "Installing glibc headers" "make install-bootstrap-headers=yes install-headers"
-		else
-			_exec "Installing musl headers" "make ARCH=$arch prefix=$sysroot install-headers"
-		fi
+		_exec "Installing musl headers" "make ARCH=$arch prefix=$sysroot install-headers"
 	fi
 
-	# libgcc (libgcc-static for musl)
+	# libgcc-static
 	if [ ! -r "$toolchain_prefix/lib/gcc/$compile_target/$(_generate_stuff pkg_ver gcc)/libgcc.a" ]; then
 		cd "$gcc_dir/build"
-		name="libgcc"
-		printf "Preparing to compile libgcc..."
-		if [ "$dist" = "gnu" ]; then
-			_setup_glibc tc
-		else
-			name="$name-static"
-			extra_flags="enable_shared=no"
-		fi
-		echo "Done."
-		_exec "Compiling $name" "make -j$threads $extra_flags all-target-libgcc"
-		_exec "Installing libgcc" "make install-strip-target-libgcc"
+		_exec "Compiling libgcc-static" "make -j$threads enable_shared=no all-target-libgcc"
+		_exec "Installing libgcc-static" "make install-strip-target-libgcc"
 		rm -rf "$sysroot/lib/libc.so"
 	fi
 
 	# libc
 	_compile_musl "$sysroot"
 
-	# libgcc-shared (musl-only)
+	# libgcc-shared
 	if [ ! -r "$sysroot/$libdir/libgcc_s.so" ]; then
 		cd "$gcc_dir/build"
 		_exec "Cleaning libgcc" "make -C $compile_target/libgcc distclean"
@@ -89,27 +56,21 @@ compile_toolchain(){
 				"Installing libstdc++" "install-strip-target-libstdc++-v3"
 
 	# pl32lib
-	if [ ! -r "$output_rootfs/usr/lib/libpl32.so" ]; then
+	if [ ! -r "$sysroot/lib/libpl32.so" ]; then
 		cd "$pl32lib_dir"
-		meson setup build
-		cd build
 
-		printf "Configuring pl32lib..."
-		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
-		printf "Done.\nCompiling and installing pl32lib..."
-		meson install 1>/dev/null
+		_exec "Configuring pl32lib" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling pl32lib" "./compile build"
+		_exec "Installing pl32lib" "./compile install"
 	fi
 
 	# libplml
-	if [ ! -r "$output_rootfs/usr/lib/libplml.so" ]; then
+	if [ ! -r "$sysroot/lib/libplml.so" ]; then
 		cd "$libplml_dir"
-		meson setup build
-		cd build
 
-		printf "Configuring libplml..."
-		meson configure --prefix="$output_rootfs/usr" --includedir="$output_rootfs/opt/include" 1>/dev/null
-		printf "Done.\nCompiling and installing libplml..."
-		meson install 1>/dev/null
+		_exec "Configuring libplml" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
+		_exec "Compiling libplml" "./compile build"
+		_exec "Installing libplml" "./compile install"
 	fi
 
 }

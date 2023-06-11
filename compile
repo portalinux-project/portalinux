@@ -29,13 +29,13 @@ fi
 _print_help(){ # TODO: Make sure this is up to date
 	printf "Usage: $0 {--target-system|--threads} [--init|--clean|--hard-clean|--build] [value]\n\n"
 	echo "--init					Initializes the build system by downloading necessary components and unpacking them"
-	echo "--target-system [arch]		Specifies the CPU architecture. Default: i486"
+	echo "--target-system [arch]			Specifies the CPU architecture. Default: i486"
 	echo "--toolchain-prefix [path]		Sets the target system's toolchain's install directory. Default: ~/cross"
 	echo "--clean [lvl]				Cleans the build directory"
-	echo "--hard-clean [no-rm-tarballs]		Removes any directories created by $0"
+	echo "--hard-clean [no-rm-tarballs]		Removes any directories created by $0. Same as --clean 4"
 	echo "--threads [n]				Sets the amount of threads to be used in compilation"
 	echo "--config-kernel				Configures the Linux kernel"
-	echo "--build [action] [option]		Compiles toolchain, rootfs, extra-pkgs, kernel or boot-img. The previous list of words are the supported operations."
+	echo "--build [action] [option]		Compiles toolchain, rootfs, kernel or boot-img. The previous list of words are the supported operations."
 }
 
 _exit_handler(){
@@ -191,20 +191,6 @@ _compile_musl(){
 	fi
 }
 
-
-_setup_gcc(){
-	if [ ! -r "$gcc_dir/mpfr" ]; then
-		ln "$gmp_dir" "$gcc_dir/gmp" -s 2>/dev/null || true
-		ln "$mpc_dir" "$gcc_dir/mpc" -s 2>/dev/null || true
-		ln "$mpfr_dir" "$gcc_dir/mpfr" -s 2>/dev/null || true
-	fi
-
-	if [ "$1" = "rfs" ]; then
-		ln -s "$toolchain_bin/$compile_target-gcc" "$toolchain_bin/cc" 2>/dev/null || true
-		ln -s "$toolchain_bin/$compile_target-g++" "$toolchain_bin/c++" 2>/dev/null || true
-	fi
-}
-
 setup_toolchain(){
 	if [ "$LLVM" != "" ]; then
 		source "$plfiles/compile-modules/llvm.sh"
@@ -215,7 +201,7 @@ setup_toolchain(){
 	compile_toolchain
 }
 
-echo "PortaLinux Build System v0.10.1"
+echo "PortaLinux Build System v0.10.3"
 printf "(c) 2022 pocketlinux32 & raisinware, Under MPLv2.0\n\n"
 
 if [ $# -eq 0 ]; then
@@ -244,12 +230,6 @@ while [ $# -gt 0 ]; do
 			sysroot="$toolchain_prefix/$compile_target"
 			toolchain_bin="$toolchain_prefix/bin"
 			shift
-			;;
-		"--test")
-			source "$plfiles/compile-modules/test.sh"
-			set +e
-			_test $2
-			exit 0
 			;;
 		"--clean" | "--hard-clean")
 			_runtime_calc start
@@ -281,9 +261,6 @@ while [ $# -gt 0 ]; do
 			logfile=$2
 			shift
 			;;
-		"--install-bootloader")
-			#
-			;;
 		"--help")
 			_print_help
 			exit 0
@@ -314,17 +291,9 @@ case $action in
 			compile_rootfs
 		fi
 		;;
-	extra-pkgs)
-		source "$plfiles/compile-modules/pkg/extra.sh"
-		compile_extra_pkgs
-		;;
 	kernel)
 		source "$plfiles/compile-modules/kernel.sh"
 		compile_kernel
-		;;
-	bootloader)
-		source "$plfiles/compile-modules/bootloader.sh"
-		compile_bootloader
 		;;
 	*)
 		echo "Error: Unknown build command."
