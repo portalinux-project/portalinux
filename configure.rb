@@ -45,6 +45,7 @@ def parseArgs
 				$prefix = File.expand_path(args[1])
 				args.shift
 			when "-h"
+				puts "Usage: #{$0} [-a arch|-t toolchain] {-p prefix}"
 				puts " -a	Sets the target architecture"
 				puts "		Valid options:"
 				puts "			i486"
@@ -61,6 +62,7 @@ def parseArgs
 				puts "			llvm"
 				puts "			gcc"
 				puts " -p	Sets the cross toolchain install directory"
+				puts "		Default: ~/cross"
 				print " -h	Shows this help\n\n"
 				puts "For more information, please go to https://github.com/pocketlinux32/portalinux"
 				exit				
