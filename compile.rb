@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+# SPDX-License-Identifier: MPL-2.0
+
 require 'yaml'
 
 def parseArgs
@@ -25,7 +27,7 @@ def parseArgs
 				puts " -hc	Equivalent to -c 4"
 				puts " -h	Shows this help"
 				puts "For more information, please go to https://github.com/pocketlinux32/portalinux"
-				exit				
+				exit
 			else
 				errorHandler("Unknown option", true)
 		end
@@ -38,7 +40,7 @@ def init
 		puts "Error: No configuration found. Please run ./configure.rb -h for more information"
 		exit 1
 	end
-	
+
 	parsedConfig = YAML.load_file(".config")
 	case parsedConfig["toolchain"]
 		when "llvm"

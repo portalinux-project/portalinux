@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+# SPDX-License-Identifier: MPL-2.0
+
 require 'yaml'
 require 'net/http'
 
@@ -54,7 +56,7 @@ def parseArgs
 				puts "		Default: ~/cross"
 				print " -h	Shows this help\n\n"
 				puts "For more information, please go to https://github.com/pocketlinux32/portalinux"
-				exit				
+				exit
 			else
 				errorHandler("Unknown option", true)
 		end
@@ -92,7 +94,7 @@ def downloadFile(url, file, secure)
 	end
 
 	print "Downloading #{File.basename(file)}..."
-	
+
 	uri = URI(url)
 	port = 80
 	if secure == true
@@ -134,7 +136,7 @@ def fetchPkgs pkgList
 			end
 
 			downloadFile(fileParse["url"], "#{$baseDir}/tarballs/#{File.basename(URI.parse(fileParse["url"]).path)}", use_secure)
-		end		
+		end
 	end
 end
 
@@ -149,7 +151,7 @@ def decompressPkgs
 
 	for i in openDir.each_child
 		print "Decompressing #{i}..."
-		
+
 		compression = i.split(".").last
 		case compression
 			when "gz"
@@ -182,7 +184,7 @@ def init
 	end
 
 	puts "Stage 1: Download packages"
-	
+
 	presetFile = YAML.load_file("#{$configDir}/#{$preset}.yaml")
 	list = presetFile["pkgList"].split(" ")
 
@@ -208,7 +210,7 @@ def init
 		configFile.close
 
 		puts "Done."
-	end	
+	end
 
 	puts "Stage 3 Complete!"
 end
