@@ -1,1 +1,1 @@
-pkgList: "toybox musl pl32lib-ng libplml pl-srv"
+pkgList: "linux llvm toybox musl pl32lib-ng libplml pl-srv"

@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: MPL-2.0
 
+. ./common.sh
+
 compile_toolchain(){
-	extra_flags=""
 	common_flags="$compile_target --disable-multilib"
 	gnu_flags="$common_flags $with_aoc --disable-werror --disable-doc"
-	libc_flags=""
-	_get_pkg_names
 
 	# binutils
 	_compile_ac_pkg "$toolchain_bin/$compile_target-as" "$binutils_dir" \

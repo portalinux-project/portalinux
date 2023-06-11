@@ -19,7 +19,6 @@ compile_rootfs(){
 	common_flags="$musl_subset --host=$compile_target"
 	included_comp="--prefix=/usr $common_flags"
 	main_comp="$included_comp --disable-multilib"
-	_get_pkg_names
 
 	if [ "$LLVM" != "" ]; then
 		cross_cflags="$cross_cflags -march=i486"
