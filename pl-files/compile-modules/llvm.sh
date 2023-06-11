@@ -1,8 +1,16 @@
 # SPDX-License-Identifier: MPL-2.0
+#!/bin/sh
 
-_generate_llvm_wrappers(){
-	mkdir -p "$sysroot"
-	cat <<EOF > "$sysroot/cross_clang.cmake"
+. "$pl_files/common.sh"
+
+cmake_cross_flags="CMAKE_TOOLCHAIN_FILE='$sysroot/cross_clang.cmake' "
+cmake_bs_flags="$cmake_cross_flags CMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
+compiler_rt_flags="$cmake_bs_flags COMPILER_RT_BUILD_LIBFUZZER=0 COMPILER_RT_BUILD_MEMPROF=0 COMPILER_RT_BUILD_ORC=0 COMPILER_RT_BUILD_PROFILE=0 \
+				COMPILER_RT_BUILD_SANITIZERS=0 COMPILER_RT_BUILD_XRAY=0 COMPILER_RT_DEFAULT_TARGET_ONLY=1"
+
+# llvm wrappers
+mkdir -p "$sysroot"
+cat << EOF > "$sysroot/cross_clang.cmake"
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR "$arch")
 set(CMAKE_SYSROOT "$sysroot")
@@ -28,71 +36,59 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 EOF
-}
 
-compile_toolchain(){
-	cmake_cross_flags="CMAKE_TOOLCHAIN_FILE='$sysroot/cross_clang.cmake' "
-	cmake_bs_flags="$cmake_cross_flags CMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY"
-	compiler_rt_flags="$cmake_bs_flags COMPILER_RT_BUILD_LIBFUZZER=0 COMPILER_RT_BUILD_MEMPROF=0 COMPILER_RT_BUILD_ORC=0 COMPILER_RT_BUILD_PROFILE=0 \
-					COMPILER_RT_BUILD_SANITIZERS=0 COMPILER_RT_BUILD_XRAY=0 COMPILER_RT_DEFAULT_TARGET_ONLY=1"
+# LLVM C/C++ compilers
+if [ ! -r "$toolchain_prefix/bin/clang" ]; then
+	_compile_cmake_pkg "$toolchain_bin/clang" "$llvm_dir" llvm "toolchain" "$toolchain_prefix" \
+				"LLVM_TARGETS_TO_BUILD='$llvm_targets' BUILD_SHARED_LIBS=1 LLVM_ENABLE_PROJECTS='clang;lld' LLVM_HAVE_LIBXAR=0" \
+				"LLVM Toolchain" no-clean no-silent
+fi
 
-	_get_pkg_names $dist
-	_generate_llvm_wrappers
+# linux headers
+if [ ! -r "$sysroot/include/linux" ]; then
+	cd "$linux_dir"
+	_exec "Installing Linux headers" "PATH="$toolchain_bin:$PATH" make $kbuild_flags ARCH=$linux_arch INSTALL_HDR_PATH='$sysroot' headers_install"
+fi
 
+# musl libc headers
+if [ ! -r "$sysroot/include/stdio.h" ]; then
+	cd "$libc_dir"
+	_exec "Installing musl headers" "make ARCH=$arch prefix=$sysroot install-headers"
+fi
 
-	# LLVM C/C++ compilers
-	if [ ! -r "$toolchain_prefix/bin/clang" ]; then
-		_compile_cmake_pkg "$toolchain_bin/clang" "$llvm_dir" llvm "toolchain" "$toolchain_prefix" \
-					"LLVM_TARGETS_TO_BUILD='$llvm_targets' BUILD_SHARED_LIBS=1 LLVM_ENABLE_PROJECTS='clang;lld' LLVM_HAVE_LIBXAR=0" \
-					"LLVM Toolchain" no-clean no-silent
-	fi
+# compiler-rt builtins
+_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a" "$llvm_dir" compiler-rt "builtins" "$sysroot"	"$compiler_rt_flags" "compiler-rt builtins"
+	# fix linking errors
+for i in begin end; do ln -sf "./linux/clang_rt.crt$i-$linux_arch.o" "$sysroot/lib/crt"$i"S.o"; done
+mkdir -p "$toolchain_prefix/lib/clang/$(_generate_stuff pkg_ver llvm)/lib/linux/"
+ln -sf "../../../../../$compile_target/lib/linux/libclang_rt.builtins-$linux_arch.a" "$toolchain_prefix/lib/clang/$(_generate_stuff pkg_ver llvm)/lib/linux/libclang_rt.builtins-$linux_arch.a"
 
-	# linux headers
-	if [ ! -r "$sysroot/include/linux" ]; then
-		cd "$linux_dir"
-		_exec "Installing Linux headers" "PATH="$toolchain_bin:$PATH" make $kbuild_flags ARCH=$linux_arch INSTALL_HDR_PATH='$sysroot' headers_install"
-	fi
+# musl libc
+_compile_musl "$sysroot"
 
-	# musl libc headers
-	if [ ! -r "$sysroot/include/stdio.h" ]; then
-		cd "$libc_dir"
-		_exec "Installing musl headers" "make ARCH=$arch prefix=$sysroot install-headers"
-	fi
+# libatomic
+_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.atomic-$linux_arch.so" "$llvm_dir" compiler-rt "atomic" "$sysroot"	"$compiler_rt_flags COMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1" "libatomic"
+ln -sf "./linux/libclang_rt.atomic-$linux_arch.so" "$sysroot/lib/libatomic.so"
 
-	# compiler-rt builtins
-	_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.builtins-$linux_arch.a" "$llvm_dir" compiler-rt "builtins" "$sysroot"	"$compiler_rt_flags" "compiler-rt builtins"
-		# fix linking errors
-	for i in begin end; do ln -sf "./linux/clang_rt.crt$i-$linux_arch.o" "$sysroot/lib/crt"$i"S.o"; done
-	mkdir -p "$toolchain_prefix/lib/clang/$(_generate_stuff pkg_ver llvm)/lib/linux/"
-	ln -sf "../../../../../$compile_target/lib/linux/libclang_rt.builtins-$linux_arch.a" "$toolchain_prefix/lib/clang/$(_generate_stuff pkg_ver llvm)/lib/linux/libclang_rt.builtins-$linux_arch.a"
+# LLVM C++ Runtimes (libunwind, libcxxabi, pstl, and libcxx)
+_compile_cmake_pkg "$sysroot/lib/libc++.so" "$llvm_dir" runtimes "runtimes" "$sysroot" \
+			"$cmake_bs_flags LLVM_ENABLE_RUNTIMES='libunwind;libcxxabi;pstl;libcxx' LIBUNWIND_USE_COMPILER_RT=1 LIBCXXABI_USE_COMPILER_RT=1 LIBCXX_USE_COMPILER_RT=1 \
+				LIBCXXABI_USE_LLVM_UNWINDER=1 LIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=0 LIBCXX_HAS_MUSL_LIBC=1" "LLVM C++ Runtimes"
 
-	# musl libc
-	_compile_musl "$sysroot"
+# pl32lib
+if [ ! -r "$sysroot/lib/libpl32.so" ]; then
+	cd "$pl32lib_dir"
 
-	# libatomic
-	_compile_cmake_pkg "$sysroot/lib/linux/libclang_rt.atomic-$linux_arch.so" "$llvm_dir" compiler-rt "atomic" "$sysroot"	"$compiler_rt_flags COMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1" "libatomic"
-	ln -sf "./linux/libclang_rt.atomic-$linux_arch.so" "$sysroot/lib/libatomic.so"
+	_exec "Configuring pl32lib" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
+	_exec "Compiling pl32lib" "./compile build"
+	_exec "Installing pl32lib" "./compile install"
+fi
 
-	# LLVM C++ Runtimes (libunwind, libcxxabi, pstl, and libcxx)
-	_compile_cmake_pkg "$sysroot/lib/libc++.so" "$llvm_dir" runtimes "runtimes" "$sysroot" \
-					"$cmake_bs_flags LLVM_ENABLE_RUNTIMES='libunwind;libcxxabi;pstl;libcxx' LIBUNWIND_USE_COMPILER_RT=1 LIBCXXABI_USE_COMPILER_RT=1 LIBCXX_USE_COMPILER_RT=1 \
-					LIBCXXABI_USE_LLVM_UNWINDER=1 LIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=0 LIBCXX_HAS_MUSL_LIBC=1" "LLVM C++ Runtimes"
+# libplml
+if [ ! -r "$sysroot/lib/libplml.so" ]; then
+	cd "$libplml_dir"
 
-	# pl32lib
-	if [ ! -r "$sysroot/lib/libpl32.so" ]; then
-		cd "$pl32lib_dir"
-
-		_exec "Configuring pl32lib" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
-		_exec "Compiling pl32lib" "./compile build"
-		_exec "Installing pl32lib" "./compile install"
-	fi
-
-	# libplml
-	if [ ! -r "$sysroot/lib/libplml.so" ]; then
-		cd "$libplml_dir"
-
-		_exec "Configuring libplml" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
-		_exec "Compiling libplml" "./compile build"
-		_exec "Installing libplml" "./compile install"
-	fi
-}
+	_exec "Configuring libplml" "./configure --prefix='$sysroot' CC='$cross_cc' CFLAGS='$cross_cflags -march=$arch -Os' LDFLAGS='$cross_ldflags'"
+	_exec "Compiling libplml" "./compile build"
+	_exec "Installing libplml" "./compile install"
+fi
