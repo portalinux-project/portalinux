@@ -2,7 +2,7 @@
 require 'yaml'
 require 'net/http'
 
-$validArchitectures = [ "i486", "i586", "i686", "x86_64", "armv5", "armv6", "armv6k", "armv7", "aarch64", "riscv64" ]
+$validArchitechtures = [ "i486", "i586", "i686", "x86_64", "armv5", "armv6", "armv6k", "armv7", "aarch64", "riscv64" ]
 
 $arch = ""
 $preset = ""
@@ -45,16 +45,9 @@ def parseArgs
 				puts "Usage: #{$0} [-a arch|-p preset] {-t toolchain_prefix}"
 				puts " -a	Sets the target architecture"
 				puts "		Valid options:"
-				puts "			i486"
-				puts "			i586"
-				puts "			i686"
-				puts "			x86_64"
-				puts "			armv5"
-				puts "			armv6"
-				puts "			armv6k"
-				puts "			armv7"
-				puts "			aarch64"
-				puts "			riscv64"
+				for i in $validArchitechtures
+					puts "			#{i}"
+				end
 				puts " -p	Sets which preset to use"
 				puts "		The list of valid options may change depending on the changes done to internal build files"
 				puts " -t	Sets the cross toolchain install directory"
@@ -79,7 +72,7 @@ def validateArgs
 	end
 
 	i = 0
-	while $validArchitectures[i] != $arch and i < $validArchitectures.length
+	while $validArchitechtures[i] != $arch and i < $validArchitechtures.length
 		i = i + 1
 	end
 
@@ -210,7 +203,7 @@ def init
 		configFile = File.open(".config", "w")
 
 		configFile.write("arch: #{$arch}\n")
-		configFile.write("toolchain: #{$preset}\n")
+		configFile.write("toolchain: #{prefixFile["toolchain"]}\n")
 		configFile.write("tcprefix: #{$prefix}\n")
 		configFile.close
 

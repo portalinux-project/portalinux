@@ -1,1 +1,2 @@
-pkgList: "linux toybox musl pl32lib-ng libplml pl-srv"
+toolchain: "gcc"
+pkgList: "linux binutils gcc gmp mpc mpfr toybox musl pl32lib-ng libplml pl-srv"
