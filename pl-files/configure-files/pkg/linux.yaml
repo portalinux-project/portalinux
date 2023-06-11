@@ -1,0 +1,4 @@
+name: "linux"
+version: "5.15.116"
+github: false
+url: "https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.116.tar.xz"

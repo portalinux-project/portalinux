@@ -2,11 +2,10 @@
 require 'yaml'
 require 'net/http'
 
-$validArchitectures = [ "i486", "i586", "i686", "x86_64", "armv5", "armv6", "armv7", "aarch64", "riscv64" ]
-$validToolchains = [ "llvm", "gcc" ]
+$validArchitectures = [ "i486", "i586", "i686", "x86_64", "armv5", "armv6", "armv6k", "armv7", "aarch64", "riscv64" ]
 
 $arch = ""
-$toolchain = ""
+$preset = ""
 $prefix = File.expand_path("~/cross")
 $baseDir = File.expand_path(".")
 $configDir = "#{$baseDir}/pl-files/configure-files"
@@ -14,9 +13,7 @@ $configDir = "#{$baseDir}/pl-files/configure-files"
 def errorHandler(msg, isOpt)
 	print "Error: #{msg}."
 	if isOpt == true
-		puts "Run #{$0} -h for more information"
-	else
-		puts ""
+		puts " Run #{$0} -h for more information"
 	end
 	exit 1
 end
@@ -32,20 +29,20 @@ def parseArgs
 				end
 				$arch = args[1]
 				args.shift
-			when "-t"
+			when "-p"
 				if args.length < 2
 					errorHandler("Not enough arguments", true)
 				end
-				$toolchain = args[1]
+				$preset = args[1]
 				args.shift
-			when "-p"
+			when "-t"
 				if args.length < 2
 					errorHandler("Not enough arguments",true)
 				end
 				$prefix = File.expand_path(args[1])
 				args.shift
 			when "-h"
-				puts "Usage: #{$0} [-a arch|-t toolchain] {-p prefix}"
+				puts "Usage: #{$0} [-a arch|-p preset] {-t toolchain_prefix}"
 				puts " -a	Sets the target architecture"
 				puts "		Valid options:"
 				puts "			i486"
@@ -54,14 +51,13 @@ def parseArgs
 				puts "			x86_64"
 				puts "			armv5"
 				puts "			armv6"
+				puts "			armv6k"
 				puts "			armv7"
 				puts "			aarch64"
 				puts "			riscv64"
-				puts " -t	Sets which toolchain to use"
-				puts "		Valid options:"
-				puts "			llvm"
-				puts "			gcc"
-				puts " -p	Sets the cross toolchain install directory"
+				puts " -p	Sets which preset to use"
+				puts "		The list of valid options may change depending on the changes done to internal build files"
+				puts " -t	Sets the cross toolchain install directory"
 				puts "		Default: ~/cross"
 				print " -h	Shows this help\n\n"
 				puts "For more information, please go to https://github.com/pocketlinux32/portalinux"
@@ -78,8 +74,8 @@ def validateArgs
 		errorHandler("Architecture not set", true)
 	end
 
-	if $toolchain == ""
-		errorHandler("Toolchain not set", true)
+	if $preset == ""
+		errorHandler("Preset not set", true)
 	end
 
 	i = 0
@@ -87,18 +83,13 @@ def validateArgs
 		i = i + 1
 	end
 
-	if $validArchitectures[i] != $arch
+	if i == $validArchitechtures.length
 		errorHandler("Unknown architecture", true)
 	end
 
-	i = 0
-	while $validToolchains[i] != $toolchain and i < $validToolchains.length
-		i = i + 1
+	if File.exist?("#{$configDir}/#{$preset}.yaml") == false
+		errorHandler("Preset not found", false)
 	end
-
-	if $validToolchains[i] != $toolchain
-		errorHandler("Unsupported toolchain", true)
-	end	
 end
 
 def downloadFile(url, file, secure)
@@ -127,10 +118,10 @@ end
 
 def fetchPkgs pkgList
 	for i in pkgList
-		fileParse = YAML.load_file("#{$configDir}/pkg/" + i + ".yaml")
+		fileParse = YAML.load_file("#{$configDir}/pkg/#{i}.yaml")
 
 		if fileParse["github"] == true
-			tempUrl = "https://codeload.github.com/" + fileParse["url"] + "/tar.gz/refs/"
+			tempUrl = "https://codeload.github.com/#{fileParse["url"]}/tar.gz/refs/"
 			if fileParse["tag"] == nil
 				tempUrl = tempUrl + "heads/"
 				if fileParse["branch"] == nil
@@ -142,14 +133,14 @@ def fetchPkgs pkgList
 				tempUrl = tempUrl + "tags/" + fileParse["tag"]
 			end
 
-			downloadFile(tempUrl, "#{$baseDir}/tarballs/" + fileParse["name"] + "-" + fileParse["version"] + ".tar.gz", true)
+			downloadFile(tempUrl, "#{$baseDir}/tarballs/#{fileParse["name"]}-#{fileParse["version"]}.tar.gz", true)
 		else
 			use_secure = false
 			if fileParse["secure"] != nil
 				use_secure = fileParse["secure"]
 			end
 
-			downloadFile(fileParse["url"], "#{$baseDir}/tarballs/" + File.basename(URI.parse(fileParse["url"]).path), use_secure)
+			downloadFile(fileParse["url"], "#{$baseDir}/tarballs/#{File.basename(URI.parse(fileParse["url"]).path)}", use_secure)
 		end		
 	end
 end
@@ -178,7 +169,7 @@ def decompressPkgs
 				system("zstd -dc #{$baseDir}/tarballs/#{i} | tar x")
 			else
 				puts "Error!"
-				puts "Error: Unknown compression type"
+				errorHandler("Unknown compression type", false)
 				exit 1
 		end
 
@@ -199,7 +190,7 @@ def init
 
 	puts "Stage 1: Download packages"
 	
-	presetFile = YAML.load_file("#{$configDir}/" + $toolchain + ".yaml")
+	presetFile = YAML.load_file("#{$configDir}/#{$preset}.yaml")
 	list = presetFile["pkgList"].split(" ")
 
 	fetchPkgs list
@@ -219,7 +210,7 @@ def init
 		configFile = File.open(".config", "w")
 
 		configFile.write("arch: #{$arch}\n")
-		configFile.write("toolchain: #{$toolchain}\n")
+		configFile.write("toolchain: #{$preset}\n")
 		configFile.write("tcprefix: #{$prefix}\n")
 		configFile.close
 
@@ -233,13 +224,13 @@ puts "PortaLinux Configure System v0.11"
 print "(c) 2022-2023 pocketlinux32 & raisinware, Under MPL 2.0\n\n"
 
 if ARGV.length < 1
-	errorHandler "Not enough arguments"
+	errorHandler("Not enough arguments", true)
 end
 
 parseArgs
 validateArgs
 
-puts "Toolchain: #{$toolchain}"
+puts "Build Preset: #{$preset}"
 puts "Architecture: #{$arch}"
 puts "Toolchain Install Directory: #{$prefix}"
 
