@@ -205,7 +205,7 @@ def init
 		configFile = File.open(".config", "w")
 
 		configFile.write("arch: #{$arch}\n")
-		configFile.write("toolchain: #{prefixFile["toolchain"]}\n")
+		configFile.write("toolchain: #{presetFile["toolchain"]}\n")
 		configFile.write("tcprefix: #{$prefix}\n")
 		configFile.close
 
