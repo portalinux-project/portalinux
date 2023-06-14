@@ -181,6 +181,34 @@ def decompressPkgs
 	Dir.chdir("#{$baseDir}")
 end
 
+# Copies files in the overlay directory for each package. Useful for adding
+# custom toybox applets.
+#
+# Args:
+# - pkgList: string array
+def overlayPkgs pkgList
+	for pkg in pkgList
+		# check if overlay exists
+		if Dir.exist?("#{$baseDir}/pl-files/overlays/#{pkg}") == false
+			next
+		end
+
+		fileParse = YAML.load_file("#{$configDir}/pkg/#{pkg}.yaml")
+
+		Dir.chdir("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}")
+		openDir = Dir.open("#{$baseDir}/pl-files/overlays/#{pkg}")
+
+		print "Patching #{pkg}..."
+
+		for i in openDir.each_child
+			system("cp -rf #{openDir.path}/#{i} ./")
+		end
+
+		puts "Done."
+		Dir.chdir("#{$baseDir}")
+	end
+end
+
 def init
 	if Dir.exist?("#{$baseDir}/tarballs") == false
 		Dir.mkdir("#{$baseDir}/tarballs")
@@ -202,7 +230,12 @@ def init
 	decompressPkgs
 
 	puts "Stage 2 Complete! Starting Stage 3"
-	puts "Stage 3: Create config file"
+	puts "Stage 3: Patching and applying overlays"
+
+	overlayPkgs list
+
+	puts "Stage 3 Complete! Starting Stage 4"
+	puts "Stage 4: Create config file"
 
 	if File.exist?(".config") == true
 		puts "Config file exists, skipping..."
