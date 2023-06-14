@@ -146,22 +146,28 @@ def decompressPkgs
 		return
 	end
 
-	Dir.chdir("#{$baseDir}/build")
 	openDir = Dir.open("#{$baseDir}/tarballs")
 
 	for i in openDir.each_child
 		print "Decompressing #{i}..."
 
-		compression = i.split(".").last
+		splitChild = i.split(".")
+		compression = splitChild.last
+		splitChild.pop(2)
+		dirName = splitChild.join(".")		
+
+		Dir.mkdir("#{$baseDir}/build/#{dirName}")
+		Dir.chdir("#{$baseDir}/build/#{dirName}")
+
 		case compression
 			when "gz"
-				system("gunzip -c #{$baseDir}/tarballs/#{i} | tar x")
+				system("gunzip -c #{$baseDir}/tarballs/#{i} | tar x --strip-components=1")
 			when "bz2"
-				system("bunzip2 -c #{$baseDir}/tarballs/#{i} | tar x")
+				system("bunzip2 -c #{$baseDir}/tarballs/#{i} | tar x --strip-components=1")
 			when "xz"
-				system("xz -dc #{$baseDir}/tarballs/#{i} | tar x")
+				system("xz -dc #{$baseDir}/tarballs/#{i} | tar x --strip-components=1")
 			when "zst"
-				system("zstd -dc #{$baseDir}/tarballs/#{i} | tar x")
+				system("zstd -dc #{$baseDir}/tarballs/#{i} | tar x --strip-components=1")
 			else
 				puts "Error!"
 				errorHandler("Unknown compression type", false)
@@ -206,7 +212,7 @@ def init
 
 		configFile.write("arch: #{$arch}\n")
 		configFile.write("toolchain: #{presetFile["toolchain"]}\n")
-		configFile.write("tcprefix: #{$prefix}\n")
+		configFile.write("tcprefix: #{$prefix}/#{presetFile["toolchain"]}\n")
 		configFile.close
 
 		puts "Done."
