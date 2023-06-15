@@ -181,6 +181,44 @@ def decompressPkgs
 	Dir.chdir("#{$baseDir}")
 end
 
+# Applies patches in the patch directory for each package. Useful for adding
+# changes to big projects (eg: LLVM).
+#
+# Args:
+# - pkgList: string array
+def patchPkgs pkgList
+	for pkg in pkgList
+		# check if patch folder exists
+		if Dir.exist?("#{$baseDir}/pl-files/patches/#{pkg}") == false
+			next
+		end
+
+		fileParse = YAML.load_file("#{$configDir}/pkg/#{pkg}.yaml")
+
+		print "Patching #{pkg}..."
+
+		# check if package has already been patched
+		Dir.chdir("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}")
+		if File.exist?(".patched")
+			puts "Skipped."
+			next
+		end
+		Dir.chdir("#{$baseDir}/pl-files/patches/#{pkg}")
+
+		# apply each patch
+		for i in Dir.glob("**/*.patch")
+			pfile = File.expand_path(i)
+			Dir.chdir("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}")
+			system("touch .patched")
+			system("patch -sp1 -i #{pfile}")
+			Dir.chdir("#{$baseDir}/pl-files/patches/#{pkg}")
+		end
+
+		puts "Done."
+		Dir.chdir("#{$baseDir}")
+	end
+end
+
 # Copies files in the overlay directory for each package. Useful for adding
 # custom toybox applets.
 #
@@ -198,7 +236,7 @@ def overlayPkgs pkgList
 		Dir.chdir("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}")
 		openDir = Dir.open("#{$baseDir}/pl-files/overlays/#{pkg}")
 
-		print "Patching #{pkg}..."
+		print "Applying overlay for #{pkg}..."
 
 		for i in openDir.each_child
 			system("cp -rf #{openDir.path}/#{i} ./")
@@ -232,6 +270,7 @@ def init
 	puts "Stage 2 Complete! Starting Stage 3"
 	puts "Stage 3: Patching and applying overlays"
 
+	patchPkgs list
 	overlayPkgs list
 
 	puts "Stage 3 Complete! Starting Stage 4"
