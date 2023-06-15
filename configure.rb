@@ -154,7 +154,7 @@ def decompressPkgs
 		splitChild = i.split(".")
 		compression = splitChild.last
 		splitChild.pop(2)
-		dirName = splitChild.join(".")		
+		dirName = splitChild.join(".")
 
 		Dir.mkdir("#{$baseDir}/build/#{dirName}")
 		Dir.chdir("#{$baseDir}/build/#{dirName}")
