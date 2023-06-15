@@ -154,7 +154,7 @@ def decompressPkgs
 		splitChild = i.split(".")
 		compression = splitChild.last
 		splitChild.pop(2)
-		dirName = splitChild.join(".")		
+		dirName = splitChild.join(".")
 
 		Dir.mkdir("#{$baseDir}/build/#{dirName}")
 		Dir.chdir("#{$baseDir}/build/#{dirName}")
@@ -181,6 +181,72 @@ def decompressPkgs
 	Dir.chdir("#{$baseDir}")
 end
 
+# Applies patches in the patch directory for each package. Useful for adding
+# changes to big projects (eg: LLVM).
+#
+# Args:
+# - pkgList: string array
+def patchPkgs pkgList
+	for pkg in pkgList
+		# check if patch folder exists
+		if Dir.exist?("#{$baseDir}/pl-files/patches/#{pkg}") == false
+			next
+		end
+
+		fileParse = YAML.load_file("#{$configDir}/pkg/#{pkg}.yaml")
+
+		print "Patching #{pkg}..."
+
+		# check if package has already been patched
+		Dir.chdir("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}")
+		if File.exist?(".patched")
+			puts "Skipped."
+			next
+		end
+		Dir.chdir("#{$baseDir}/pl-files/patches/#{pkg}")
+
+		# apply each patch
+		for i in Dir.glob("**/*.patch")
+			pfile = File.expand_path(i)
+			Dir.chdir("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}")
+			system("touch .patched")
+			system("patch -sp1 -i #{pfile}")
+			Dir.chdir("#{$baseDir}/pl-files/patches/#{pkg}")
+		end
+
+		puts "Done."
+		Dir.chdir("#{$baseDir}")
+	end
+end
+
+# Copies files in the overlay directory for each package. Useful for adding
+# custom toybox applets.
+#
+# Args:
+# - pkgList: string array
+def overlayPkgs pkgList
+	for pkg in pkgList
+		# check if overlay exists
+		if Dir.exist?("#{$baseDir}/pl-files/overlays/#{pkg}") == false
+			next
+		end
+
+		fileParse = YAML.load_file("#{$configDir}/pkg/#{pkg}.yaml")
+
+		Dir.chdir("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}")
+		openDir = Dir.open("#{$baseDir}/pl-files/overlays/#{pkg}")
+
+		print "Applying overlay for #{pkg}..."
+
+		for i in openDir.each_child
+			system("cp -rf #{openDir.path}/#{i} ./")
+		end
+
+		puts "Done."
+		Dir.chdir("#{$baseDir}")
+	end
+end
+
 def init
 	if Dir.exist?("#{$baseDir}/tarballs") == false
 		Dir.mkdir("#{$baseDir}/tarballs")
@@ -202,7 +268,13 @@ def init
 	decompressPkgs
 
 	puts "Stage 2 Complete! Starting Stage 3"
-	puts "Stage 3: Create config file"
+	puts "Stage 3: Patching and applying overlays"
+
+	patchPkgs list
+	overlayPkgs list
+
+	puts "Stage 3 Complete! Starting Stage 4"
+	puts "Stage 4: Create config file"
 
 	if File.exist?(".config") == true
 		puts "Config file exists, skipping..."

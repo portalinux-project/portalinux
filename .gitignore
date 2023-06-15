@@ -2,3 +2,4 @@ build/
 tarballs/
 output/
 log.txt
+.config
