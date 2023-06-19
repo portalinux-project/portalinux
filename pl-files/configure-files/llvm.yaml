@@ -1,2 +1,3 @@
 toolchain: "llvm"
-pkgList: "linux llvm toybox musl pl32lib-ng libplml pl-srv"
+pkgList: [ "linux", "llvm", "toybox", "musl", "pl32lib-ng", "libplml", "pl-srv" ]
+supportedArch: [ "i486", "i586", "i686", "x86_64", "armv5", "armv6", "armv6k", "armv7", "aarch64", "riscv64" ]

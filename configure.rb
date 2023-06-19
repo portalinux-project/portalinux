@@ -4,10 +4,9 @@
 require 'yaml'
 require 'net/http'
 
-$validArchitechtures = [ "i486", "i586", "i686", "x86_64", "armv5", "armv6", "armv6k", "armv7", "aarch64", "riscv64" ]
-
-$arch = ""
-$preset = ""
+$supportedArches = nil
+$arch = nil
+$preset = nil
 $prefix = File.expand_path("~/cross")
 $baseDir = File.expand_path(".")
 $configDir = "#{$baseDir}/pl-files/configure-files"
@@ -18,73 +17,6 @@ def errorHandler(msg, isOpt)
 		puts " Run #{$0} -h for more information"
 	end
 	exit 1
-end
-
-def parseArgs
-	args = ARGV
-
-	while args.length > 0
-		case args[0]
-			when "-a"
-				if args.length < 2
-					errorHandler("Not enough arguments", true)
-				end
-				$arch = args[1]
-				args.shift
-			when "-p"
-				if args.length < 2
-					errorHandler("Not enough arguments", true)
-				end
-				$preset = args[1]
-				args.shift
-			when "-t"
-				if args.length < 2
-					errorHandler("Not enough arguments",true)
-				end
-				$prefix = File.expand_path(args[1])
-				args.shift
-			when "-h"
-				puts "Usage: #{$0} [-a arch|-p preset] {-t toolchain_prefix}"
-				puts " -a	Sets the target architecture"
-				puts "		Valid options:"
-				for i in $validArchitechtures
-					puts "			#{i}"
-				end
-				puts " -p	Sets which preset to use"
-				puts "		The list of valid options may change depending on the changes done to internal build files"
-				puts " -t	Sets the cross toolchain install directory"
-				puts "		Default: ~/cross"
-				print " -h	Shows this help\n\n"
-				puts "For more information, please go to https://github.com/pocketlinux32/portalinux"
-				exit
-			else
-				errorHandler("Unknown option", true)
-		end
-		args.shift
-	end
-end
-
-def validateArgs
-	if $arch == ""
-		errorHandler("Architecture not set", true)
-	end
-
-	if $preset == ""
-		errorHandler("Preset not set", true)
-	end
-
-	i = 0
-	while $validArchitechtures[i] != $arch and i < $validArchitechtures.length
-		i = i + 1
-	end
-
-	if i == $validArchitechtures.length
-		errorHandler("Unknown architecture", true)
-	end
-
-	if File.exist?("#{$configDir}/#{$preset}.yaml") == false
-		errorHandler("Preset not found", false)
-	end
 end
 
 def downloadFile(url, file, secure)
@@ -258,7 +190,7 @@ def init
 	puts "Stage 1: Download packages"
 
 	presetFile = YAML.load_file("#{$configDir}/#{$preset}.yaml")
-	list = presetFile["pkgList"].split(" ")
+	list = presetFile["pkgList"]
 
 	fetchPkgs list
 
@@ -291,6 +223,73 @@ def init
 	end
 
 	puts "Stage 3 Complete!"
+end
+
+def parseArgs
+	args = ARGV
+
+	while args.length > 0
+		case args[0]
+			when "-a"
+				if args.length < 2
+					errorHandler("Not enough arguments", true)
+				end
+				$arch = args[1]
+				args.shift
+			when "-p"
+				if args.length < 2
+					errorHandler("Not enough arguments", true)
+				end
+				$preset = args[1]
+				args.shift
+			when "-t"
+				if args.length < 2
+					errorHandler("Not enough arguments",true)
+				end
+				$prefix = File.expand_path(args[1])
+				args.shift
+			when "-h"
+				puts "Usage: #{$0} [-p preset] {-a arch|-t toolchain_prefix}"
+				puts " -a	Sets the target architecture"
+				puts "		Valid options depend on the profile"
+				puts " -p	Sets which preset to use"
+				puts "		The list of valid options may change depending on the changes done to internal build files"
+				puts " -t	Sets the cross toolchain install directory"
+				puts "		Default: ~/cross"
+				print " -h	Shows this help\n\n"
+				puts "For more information, please go to https://github.com/pocketlinux32/portalinux"
+				exit
+			else
+				errorHandler("Unknown option", true)
+		end
+		args.shift
+	end
+end
+
+def validateArgs
+	if $preset == ""
+		errorHandler("Preset not set", true)
+	end
+
+	if File.exist?("#{$configDir}/#{$preset}.yaml") == false
+		errorHandler("Preset not found", false)
+	else
+		parsedFile = YAML.load_file("#{$configDir}/#{$preset}.yaml")
+		$supportedArches = parsedFile["supportedArch"]
+
+		if $arch != nil
+			i = 0
+			while $supportedArches[i] != $arch and i < $supportedArches.length
+				i = i + 1
+			end
+
+			if i == $supportedArches.length
+				errorHandler("Unknown architecture", true)
+			end
+		else
+			$arch = $supportedArches[0]
+		end
+	end
 end
 
 puts "PortaLinux Configure System v0.11"
