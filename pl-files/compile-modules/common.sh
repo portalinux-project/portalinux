@@ -56,8 +56,7 @@ _exec(){
 _compiler_check(){
 	if [ "$LLVM" != "" ]; then
 		cross_cc="$toolchain_bin/clang"
-		cross_cflags="--gcc-toolchain='' --target=$compile_target --sysroot=$sysroot"
-		cross_ldflags="--ld-path=$toolchain_bin/ld.lld --rtlib=compiler-rt"
+		cross_cflags="--target=$compile_target --sysroot=$sysroot"
 		kbuild_flags="HOSTCC='cc' HOSTLD='ld' LLVM='$toolchain_bin' "
 
 		printf "WARNING: LLVM PortaLinux is experimental, and currently only tested and supported on i486-musl. extra-pkgs are currently not supported on LLVM.\n\n"
