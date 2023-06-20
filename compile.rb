@@ -37,10 +37,10 @@ def cleanProjectDir(lvl=2)
 				else
 					FileUtils.rm_rf("#{dirPath}/build")
 				end
-			else if File.exist?("#{dirPath}/Makefile") == true
+			elsif File.exist?("#{dirPath}/Makefile") == true
 				Dir.chdir("#{dirPath}")
 				system("make -s clean >/dev/null 2>/dev/null")
-			else if File.exist?("#{dirPath}/compile") and File.exist?("#{dirPath}/configure.ac") == false
+			elsif File.exist?("#{dirPath}/compile") and File.exist?("#{dirPath}/configure.ac") == false
 				Dir.chdir("#{dirPath}")
 				system("./compile clean")
 			end
@@ -60,7 +60,7 @@ def cleanProjectDir(lvl=2)
 		if Dir.exist?("#{$outputDir}") == true
 			FileUtils.rm_rf("#{$outputDir}")
 		end
-		
+
 		if Dir.exist?("#{$baseDir}/tarballs") == true
 			FileUtils.rm_rf("#{$baseDir}/tarballs")
 		end
@@ -125,7 +125,7 @@ def launchBuildScript
 			if $buildTarget["toolchain"] == "gcc"
 				puts "Launching GCC Build Script..."
 				require 'pl-files/compile-modules/gcc.rb'
-			else if $buildTarget["toolchain"] == "llvm"
+			elsif $buildTarget["toolchain"] == "llvm"
 				puts "Launching LLVM Build Script..."
 				require 'pl-files/compile-modules/llvm.rb'
 			end
