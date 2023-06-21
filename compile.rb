@@ -27,7 +27,7 @@ def cleanProjectDir(lvl=2)
 		buildDirHandle = Dir.open("#{$buildDir}")
 
 		for dir in buildDirHandle.each_child
-			dirPath = File.join_path($buildDir, dir)
+			dirPath = File.join($buildDir, dir)
 			print "Cleaning #{dir}..."
 
 			if Dir.exist?("#{dirPath}/build") == true
@@ -42,17 +42,26 @@ def cleanProjectDir(lvl=2)
 				system("make -s clean >/dev/null 2>/dev/null")
 			elsif File.exist?("#{dirPath}/compile") and File.exist?("#{dirPath}/configure.ac") == false
 				Dir.chdir("#{dirPath}")
-				system("./compile clean")
+				system("./compile clean >/dev/null 2>/dev/null")
 			end
+
 			puts "Done."
 		end
 
 		if lvl == 3
+			print "Cleaning output directory..."
+
 			if Dir.exist?("#{$outputDir}") == true
 				FileUtils.rm_rf("#{$outputDir}")
 			end
+
+			puts "Done."
 		end
+
+		puts "Project directory has been successfully cleaned."
 	else
+		print "Hard clean in progress..."
+
 		if Dir.exist?("#{$buildDir}") == true
 			FileUtils.rm_rf("#{$buildDir}")
 		end
@@ -64,6 +73,12 @@ def cleanProjectDir(lvl=2)
 		if Dir.exist?("#{$baseDir}/tarballs") == true
 			FileUtils.rm_rf("#{$baseDir}/tarballs")
 		end
+
+		if File.exist?("#{$baseDir}/.config") == true
+			File.remove("#{$baseDir}/.config")
+		end
+
+		puts "Finished."
 	end
 
 	exit 0
@@ -77,11 +92,13 @@ def parseArgs
 			when "-b"
 				if args.length < 2
 					errorHandler("Not enough arguments")
+				end
 				$action = args[1]
 				args.shift
 			when "-t"
 				if args.length < 2
 					errorHandler("Not enough arguments")
+				end
 				$threads = Integer(args[1])
 				args.shift
 			when "-c"
@@ -145,6 +162,7 @@ def launchBuildScript
 			kernel_build
 		else
 			errorHandler("Unknown build option", true)
+	end
 end
 
 def init
@@ -170,6 +188,8 @@ def init
 		when "llvm"
 			$buildTarget.push("cross_cc" => "#{$buildTarget["tcprefix"]/bin/clang}")
 			$buildTarget.push("cross_cflags" => "--sysroot=#{$buildTarget["sysroot"]}")
+		else
+			errorHandler("Unknown toolchain.", false)
 	end
 end
 
