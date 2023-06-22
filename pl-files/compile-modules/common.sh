@@ -1,70 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
 
-build="$pldir/build"
-output="$pldir/output"
-output_rootfs="$output/rootfs"
-toolchain_prefix="$(echo ~/cross)"
-logfile="$pldir/log.txt"
-compression="gzip"
-compile_target="i486-pocket-linux-musl"
-linux_arch="i386"
-specific_arch="i486"
-arch="i486"
-libdir="lib"
-abi=""
-with_aoc=""
-sysroot="$toolchain_prefix/$compile_target"
-toolchain_bin="$toolchain_prefix/bin"
-pldir="$(dirname $(realpath $0))"
-plfiles="$pldir/pl-files"
-threads=$(nproc)
-
-_exit_handler(){
-	exit_num=$?
-
-	if [ $exit_num -ne 0 ]; then
-		if [ $exit_num -eq 130 ]; then
-			echo "Interrupt!"
-		else
-			printf "\nSomething wrong happened. Please check $(basename $logfile) or the output above for more info.\n"
-		fi
-	fi
-
-	exit $exit_num
-}
-
-_exec(){
-	set +e
-	printf "$1..."
-	if [ "$4" = "no-silent" ] || [ "$3" = "no-silent" ]; then
-		script -qeac "$2" "$logfile"
-	else
-		script -qeac "$2 2>&1" "$logfile" >/dev/null
-	fi
-	errno=$?
-	if [ $errno -ne 0 ]; then
-		echo "Error!"
-		if [ "$3" != "" ]; then
-			$3
-		fi
-		exit $errno
-	fi
-	echo "Done."
-	set -e
-}
-
-_compiler_check(){
-	if [ "$LLVM" != "" ]; then
-		cross_cc="$toolchain_bin/clang"
-		cross_cflags="--target=$compile_target --sysroot=$sysroot"
-		kbuild_flags="HOSTCC='cc' HOSTLD='ld' LLVM='$toolchain_bin' "
-
-		printf "WARNING: LLVM PortaLinux is experimental, and currently only tested and supported on i486-musl. extra-pkgs are currently not supported on LLVM.\n\n"
-	else
-		cross_cc="$toolchain_bin/$compile_target-gcc"
-	fi
-}
-
 _compile_ac_pkg(){
 	if [ ! -r "$1" ]; then
 		cd "$2"
@@ -213,7 +148,7 @@ _compile_musl(){
 			ranlib="$toolchain_bin/$compile_target-ranlib"
 		fi
 
-		_exec "Configuring musl libc" "ARCH=$(_generate_stuff) LIBCC='$libcc' CC='$cross_cc $cross_cflags $cross_ldflags' ./configure --prefix='$1' --disable-multilib --host=$compile_target $2"
+		_exec "Configuring musl libc" "LIBCC='$libcc' CC='$cross_cc $cross_cflags' ./configure --prefix='$1' --disable-multilib --host=$compile_target $2"
 		_exec "Compiling musl libc" "make -j$threads AR='$ar' RANLIB='$ranlib'"
 		_exec "Installing musl libc" "make AR='$ar' RANLIB='$ranlib' DESTDIR='$install_dir' install"
 	fi

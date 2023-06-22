@@ -8,8 +8,9 @@ require 'fileutils'
 $threads = Etc.nprocessors / 2
 $baseDir = File.expand_path(".")
 $buildDir = "#{$baseDir}/build"
-$rootfsDir = "#{$baseDir}/pl-files/pl-rootfs"
+$rootfsPartsDir = "#{$baseDir}/pl-files/pl-rootfs"
 $outputDir = "#{$baseDir}/output"
+$rootfsDir = "#{$outputDir}/rootfs"
 $buildTarget = Array.new
 
 $action = ""
@@ -20,6 +21,56 @@ def errorHandler(msg, isOpt)
 		puts " Run #{$0} -h for more information"
 	end
 	exit 1
+end
+
+def getPkgInfo pkgName action
+	pkg = YAML.load_file("#{baseDir}/pl-files/configure-files/pkg/#{pkgName}.yaml")
+	case action
+		when "dir"
+			return "#{pkg["name"]}-#{pkg["version"]}"
+		when "version"
+			return "#{pkg["version"]}"
+	end
+end
+
+def blockingSpawn(*args){
+	pid = spawn(*args)
+	Process.wait pid
+}
+
+def musl_build(action, isRootfs=false)
+	muslParams = {"arch" => $buildTarget["linux_arch"], "installDir" => $buildTarget["sysroot"], "prefixToInstallDir" => nil}
+
+	if $buildTarget["arch"] == "aarch64"
+		muslParams["arch"] = $buildTarget["arch"]
+	end
+
+	Dir.chdir("#{$buildDir}/#{getPkgInfo("musl", "dir")}")
+
+	case action
+		when "headers"
+			if File.exist?("#{$buildTarget["sysroot"]}/include/stdio.h") == false
+				system("make ARCH=#{muslParams["arch"]} prefix=#{$buildTarget["sysroot"]} install-headers")
+				Dir.chdir("#{$buildDir}/#{getPkgInfo("linux", "dir")}")
+				system("make ARCH=#{$buildTarget["linux_arch"]} INSTALL_HDR_PATH=#{$buildTarget["sysroot"]} headers_install")
+			end
+		when "libc"
+			if File.exist?("#{installPath}/lib/libc.so") == false
+				muslArgs = Array.new
+				case $buildTarget["toolchain"]
+					when "gcc"
+						muslArgs.push("LIBCC" => "#{$buildTarget["tcprefix"]}/lib/gcc/#{$buildTarget["triple"]}/#{getPkgInfo("gcc", "version")}/libgcc.a")
+						muslArgs.push("AR" => "#{$buildTarget["tcprefix"]}/bin/#{$buildTarget["triple"]}-ar")
+						muslArgs.push("RANLIB" => "#{$buildTarget["tcprefix"]}/bin/#{$buildTarget["triple"]}-ranlib")
+					when "llvm"
+						muslArgs.push("LIBCC" => "#{$buildTarget["sysroot"]}/lib/linux/libclang_rt.builtins-#{$buildTarget["linux_arch"]}.a")
+						muslArgs.push("AR" => "#{$buildTarget["tcprefix"]}/bin/llvm-ar")
+						muslArgs.push("RANLIB" => "#{$buildTarget["tcprefix"]}/bin/llvm-ranlib")
+				end
+
+				blockingSpawn(muslArgs, "./compile --host=#{$buildTarget["triple"]} --prefix=#{$buildTarget["sysroot"]} --disable-multilib")
+				system("make -j#{$threads} AR=#{muslArgs["AR"]} RANLIB=#{muslArgs["RANLIB"]}")
+				system("make install")
 end
 
 def cleanProjectDir(lvl=2)
@@ -40,7 +91,7 @@ def cleanProjectDir(lvl=2)
 			elsif File.exist?("#{dirPath}/Makefile") == true
 				Dir.chdir("#{dirPath}")
 				system("make -s clean >/dev/null 2>/dev/null")
-			elsif File.exist?("#{dirPath}/compile") and File.exist?("#{dirPath}/configure.ac") == false
+			elsif File.exist?("#{dirPath}/compile") == true and File.exist?("#{dirPath}/configure.ac") == false
 				Dir.chdir("#{dirPath}")
 				system("./compile clean >/dev/null 2>/dev/null")
 			end
@@ -165,6 +216,19 @@ def launchBuildScript
 	end
 end
 
+def getLinuxArch arch
+	if arch.scan("86") != Array.new and arch != "x86_64"
+		return "i386"
+	elsif arch.scan("arm") != Array.new or arch == "aarch64"
+		if arch == "aarch64"
+			return "arm64"
+		end
+		return "arm"
+	else
+		return arch
+	end
+end
+
 def init
 	if File.exist?(".config") == false
 		puts "Error: No configuration found. Please run ./configure.rb -h for more information"
@@ -180,13 +244,14 @@ def init
 			$buildTarget["triple"] = $buildTarget["triple"]	+ "hf"
 		end
 	end
-	$buildTarget.push("sysroot" => "#{$buildTarget["tcprefix"]/$buildTarget["triple"]}")
+	$buildTarget.push("linux_arch" => getLinuxArch($buildTarget["arch"]))
+	$buildTarget.push("sysroot" => File.join($buildTarget["tcprefix"], $buildTarget["triple"]))
 
 	case $buildTarget["toolchain"]
 		when "gcc"
 			$buildTarget.push("cross_cc" => "#{$buildTarget["triple"]-gcc}")
 		when "llvm"
-			$buildTarget.push("cross_cc" => "#{$buildTarget["tcprefix"]/bin/clang}")
+			$buildTarget.push("cross_cc" => File.join($buildTarget["tcprefix"], "/bin/clang"))
 			$buildTarget.push("cross_cflags" => "--sysroot=#{$buildTarget["sysroot"]}")
 		else
 			errorHandler("Unknown toolchain.", false)
