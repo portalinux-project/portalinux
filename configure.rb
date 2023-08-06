@@ -214,6 +214,7 @@ def init
 		print "Creating config file..."
 		configFile = File.open(".config", "w")
 
+		configFile.write("preset: #{$preset}\n")
 		configFile.write("prefix: #{$prefix}\n")
 		configFile.write("arch: #{$arch}\n")
 		configFile.write("toolchain: #{presetFile["toolchain"]}\n")

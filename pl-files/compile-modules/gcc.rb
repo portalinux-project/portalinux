@@ -1,6 +1,4 @@
-$pkgVer = nil
-$compileInfo = nil
-$buildTarget = nil
+$config = nil
 
 def compileAutoconf(pkgName, action, flags)
 	if action == "configure" or (action == "compile" && flags.class == Array)
@@ -9,7 +7,7 @@ def compileAutoconf(pkgName, action, flags)
 			confFlags = flags[0]
 		end
 
-		Dir.chdir(File.join($compileInfo["buildDir"], "#{pkgName}-#{pkgVer[pkgName]}"))
+		Dir.chdir(File.join($config["buildDir"], "#{pkgName}-#{config[pkgName]}"))
 		if File.exist?("build") == false
 			Dir.mkdir("build")
 			Dir.chdir("build")
@@ -24,27 +22,21 @@ def compileAutoconf(pkgName, action, flags)
 			compFlags = flags[1]
 			Dir.chdir("build")
 		else
-			if File.exist?("#{$compileInfo["buildDir"]}/#{pkgName}-#{pkgVer[pkgName]}/build")
+			if File.exist?("#{$config["buildDir"]}/#{pkgName}-#{config[pkgName]}/build")
 				errorHandler("Internal Error (package build directory not found). This is most likely a build system bug", false)
 			end
 
-			Dir.chdir(File.join($compileInfo["buildDir"], "#{pkgName}-#{pkgVer[pkgName]}/build"))
+			Dir.chdir(File.join($config["buildDir"], "#{pkgName}-#{config[pkgName]}/build"))
 		end
 
 		system("make #{compFlags}")
 	end
 end
 
-def toolchainSetup(pkgInfo, buildTarget, compileInfo)
-	$pkgVer = pkgInfo
-	$compileInfo = compileInfo
-	$buildTarget = buildTarget
+def toolchainSetup(config)
+	$config = config
 end
 
 def toolchainBuild
-	puts("pkgVer = #{$pkgVer}")
-	puts("compileInfo = #{$compileInfo}")
-	puts("buildTarget = #{$buildTarget}")
-
 	exit 0
 end
