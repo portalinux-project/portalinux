@@ -38,5 +38,7 @@ def toolchainSetup(config)
 end
 
 def toolchainBuild
+	compileAutoconf()
+
 	exit 0
 end
