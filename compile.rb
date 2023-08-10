@@ -20,9 +20,10 @@ def errorHandler(msg, isOpt)
 end
 
 def calculateTime startTime
-	hours = startTime / (60 * 60)
-	minutes = (startTime - (hours * (60 * 60))) / 60
-	seconds = (startTime - (hours * (60 * 60)) - (minutes * 60))
+	totalTime = Time.now.to_i - startTime
+	hours = totalTime / (60 * 60)
+	minutes = (totalTime - (hours * (60 * 60))) / 60
+	seconds = (totalTime - (hours * (60 * 60)) - (minutes * 60))
 	multipleFields = false
 
 	if hours != 0
@@ -199,8 +200,7 @@ def launchBuildScript config
 				require_relative 'pl-files/compile-modules/llvm.rb'
 			end
 
-			toolchainSetup config
-			toolchainBuild
+			toolchainBuild config
 		when "rootfs"
 			puts "Launching Root Filesystem Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/rootfs.rb'
@@ -241,7 +241,7 @@ def parseArgs
 				end
 				$threads = Integer(args[1])
 				if $threads == 0
-					$threads = 1	
+					$threads = 1
 				end
 				args.shift
 			when "-c"
@@ -280,7 +280,7 @@ def parseArgs
 end
 
 puts "PortaLinux Build System v0.11"
-puts "(c) 2022-2023 pocketlinux32 & raisinware, Under MPL 2.0"
+puts "(c) 2020-2023 pocketlinux32 & raisinware, Under MPL 2.0"
 
 parseArgs
 launchBuildScript init()

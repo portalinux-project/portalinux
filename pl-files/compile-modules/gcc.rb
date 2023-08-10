@@ -1,109 +1,86 @@
 require_relative 'common.rb'
 
-$config = nil
-
-def compileAutoconf(pkgName, action, flags)
-	inBuild = false
-	status = nil
-	if action == "configure" or (action == "compile" && flags.class == Array)
-		confFlags = flags
-		if flags.class == Array
-			confFlags = flags[0]
-		end
-
-		Dir.chdir(File.join($config["buildDir"], "#{pkgName}-#{$config[pkgName]}"))
-		if File.exist?("build") == false
-			Dir.mkdir("build")
-			Dir.chdir("build")
-
-			status = system("../configure #{confFlags} 2>#{$config["baseDir"]}/logs/#{pkgName}-error.log 1>#{$config["baseDir"]}/logs/#{pkgName}.log")
-			if status == nil or status == false
-				errorHandler("Package failed to configure", false)
-			end
-			inBuild = true
-		end
-	end
-
-	if action == "compile"
-		compFlags = flags
-		if flags.class == Array
-			compFlags = flags[1]
-		end
-
-		if inBuild == false
-			if File.exist?("#{$config["buildDir"]}/#{pkgName}-#{$config[pkgName]}/build") == false
-				errorHandler("Internal Error (package build directory not found). This is most likely a build system bug", false)
-			end
-
-			Dir.chdir(File.join($config["buildDir"], "#{pkgName}-#{$config[pkgName]}/build"))
-		end
-
-		status = system("make MAKEINFO=true #{compFlags} 2>>#{$config["baseDir"]}/logs/#{pkgName}-error.log 1>>#{$config["baseDir"]}/logs/#{pkgName}.log")
-		if status == nil or status == false
-			errorHandler("Package failed to configure", false)
-		end
-		Dir.chdir("#{$config["baseDir"]}")
-	end
-end
-
-def toolchainSetup(config)
-	$config = config
-end
-
-def toolchainBuild
-	if File.exist?("#{$config["sysroot"]}/bin/as") == false
+def toolchainBuild globalVars
+	if File.exist?("#{globalVars["sysroot"]}/bin/as") == false
 		print "Building Binutils..."
-		compileAutoconf("binutils", "compile", [ "--prefix=#{$config["tcprefix"]} --target=#{$config["triple"]} --disable-werror", "-j#{$config["threads"]}" ])
+		compileAutoconf("binutils", "compile", [ "--prefix=#{globalVars["tcprefix"]} --target=#{globalVars["triple"]} --disable-werror", "-j#{globalVars["threads"]}" ], globalVars)
 		puts "Done."
 		print "Installing Binutils..."
-		compileAutoconf("binutils", "compile", "install-strip")
+		compileAutoconf("binutils", "compile", "install-strip", globalVars)
 		puts "Done."
 	end
 
-	if File.exist?("#{$config["tcprefix"]}/lib/libmpc.so") == false
+	if File.exist?("#{globalVars["tcprefix"]}/lib/libmpc.so") == false
 		print "Building GMP..."
-		compileAutoconf("gmp", "compile", [ "--prefix=#{$config["tcprefix"]}", "-j#{$config["threads"]}" ])
+		compileAutoconf("gmp", "compile", [ "--prefix=#{globalVars["tcprefix"]}", "-j#{globalVars["threads"]}" ], globalVars)
 		puts "Done."
 		print "Installing GMP..."
-		compileAutoconf("gmp", "compile", "install-strip")
+		compileAutoconf("gmp", "compile", "install-strip", globalVars)
 		puts "Done."
 
 		print "Building MPFR..."
-		compileAutoconf("mpfr", "compile", [ "--prefix=#{$config["tcprefix"]} --with-gmp=#{$config["tcprefix"]}", "-j#{$config["threads"]}" ])
+		compileAutoconf("mpfr", "compile", [ "--prefix=#{globalVars["tcprefix"]} --with-gmp=#{globalVars["tcprefix"]}", "-j#{globalVars["threads"]}" ], globalVars)
 		puts "Done."
 		print "Installing MPFR..."
-		compileAutoconf("mpfr", "compile", "install-strip")
+		compileAutoconf("mpfr", "compile", "install-strip", globalVars)
 		puts "Done."
 
 		print "Building MPC..."
-		compileAutoconf("mpc", "compile", [ "--prefix=#{$config["tcprefix"]} --with-gmp=#{$config["tcprefix"]} --with-mpfr=#{$config["tcprefix"]}", "-j#{$config["threads"]}" ])
+		compileAutoconf("mpc", "compile", [ "--prefix=#{globalVars["tcprefix"]} --with-gmp=#{globalVars["tcprefix"]} --with-mpfr=#{globalVars["tcprefix"]}", "-j#{globalVars["threads"]}" ], globalVars)
 		puts "Done."
 		print "Installing MPC..."
-		compileAutoconf("mpc", "compile", "install-strip")
+		compileAutoconf("mpc", "compile", "install-strip", globalVars)
 		puts "Done."
 	end
 
-	if File.exist?("#{$config["tcprefix"]}/bin/#{$config["triple"]}-gcc") == false
+	if File.exist?("#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-gcc") == false
 		print "Building GCC compilers..."
-		compileAutoconf("gcc", "compile", [ "--prefix=#{$config["tcprefix"]} --target=#{$config["triple"]} --disable-werror --disable-libsanitizer --enable-initfini-array --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap --with-gmp=#{$config["tcprefix"]} --with-mpfr=#{$config["tcprefix"]} --with-mpc=#{$config["tcprefix"]}", "-j#{$config["threads"]} all-gcc" ])
+		compileAutoconf("gcc", "compile", [ "--prefix=#{globalVars["tcprefix"]} --target=#{globalVars["triple"]} --disable-werror --disable-libsanitizer --enable-initfini-array --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap --with-gmp=#{globalVars["tcprefix"]} --with-mpfr=#{globalVars["tcprefix"]} --with-mpc=#{globalVars["tcprefix"]}", "-j#{globalVars["threads"]} all-gcc" ], globalVars)
 		puts "Done."
 		print "Installing GCC compilers..."
-		compileAutoconf("gcc", "compile", "install-strip-gcc")
+		compileAutoconf("gcc", "compile", "install-strip-gcc", globalVars)
 		puts "Done."
 	end
 
-	if File.exist?("#{$config["sysroot"]}/include/stdio.h") == false
+	if File.exist?("#{globalVars["sysroot"]}/include/stdio.h") == false
 		print "Installing Linux and C library headers..."
-		muslBuild("headers", $config, false)
+		muslBuild("headers", globalVars, false)
 		puts "Done."
 	end
 
-	if File.exist?("#{$config["tcprefix"]}/lib/gcc/#{$config["triple"]}/#{$config["gcc"]}/libgcc.a") == false
+	if File.exist?("#{globalVars["tcprefix"]}/lib/gcc/#{globalVars["triple"]}/#{globalVars["gcc"]}/libgcc.a") == false
 		print "Building libgcc-static..."
-		compileAutoconf("gcc", "compile", [ "--prefix=#{$config["tcprefix"]} --target=#{$config["triple"]} --disable-werror --disable-libsanitizer --enable-initfini-array --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap", "-j#{$config["threads"]} enable_shared=no all-target-libgcc" ])
+		compileAutoconf("gcc", "compile", [ "--prefix=#{globalVars["tcprefix"]} --target=#{globalVars["triple"]} --disable-werror --disable-libsanitizer --enable-initfini-array --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap", "-j#{globalVars["threads"]} enable_shared=no all-target-libgcc" ], globalVars)
 		puts "Done."
 		print "Installing libgcc-static..."
-		compileAutoconf("gcc", "compile", "install-strip-target-libgcc")
+		compileAutoconf("gcc", "compile", "install-strip-target-libgcc", globalVars)
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libc.so") == false
+		print "Building musl..."
+		muslBuild("libc", globalVars, false)
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libgcc_s.so") == false
+		print "Cleaning libgcc..."
+		compileAutoconf("gcc", "compile", [ "--prefix=#{globalVars["tcprefix"]} --target=#{globalVars["triple"]} --disable-werror --disable-libsanitizer --enable-initfini-array --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap", "-C #{globalVars["triple"]}/libgcc distclean" ], globalVars)
+		puts "Done."
+		print "Building libgcc-shared..."
+		compileAutoconf("gcc", "compile", "-j#{globalVars["threads"]} enable_shared=yes all-target-libgcc", globalVars)
+		puts "Done."
+		print "Installing libgcc-shared..."
+		compileAutoconf("gcc", "compile", "install-strip-target-libgcc", globalVars)
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libstdc++.so") == false
+		print "Building libstdc++..."
+		compileAutoconf("gcc", "compile", [ "--prefix=#{globalVars["tcprefix"]} --target=#{globalVars["triple"]} --disable-werror --disable-libsanitizer --enable-initfini-array --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap", "-j#{globalVars["threads"]}" ], globalVars)
+		puts "Done."
+		print "Installing libstdc++..."
+		compileAutoconf("gcc", "compile", "install-strip-target-libstdc++-v3", globalVars)
 		puts "Done."
 	end
 end
