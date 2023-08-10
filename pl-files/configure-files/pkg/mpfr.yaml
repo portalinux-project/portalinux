@@ -1,4 +1,4 @@
-name: "mpc"
+name: "mpfr"
 version: "4.2.0"
 github: false
 url: "https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.0.tar.xz"

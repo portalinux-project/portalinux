@@ -1,12 +1,4 @@
 # SPDX-License-Identifier: MPL-2.0
-def errorHandler(msg, isDeveloperBug)
-	puts "Error: #{msg}."
-	if isDeveloperBug == true
-		puts "If you're seeing this, this is a bug. Please report this bug to the maintainers of this PortaLinux repository"
-	end
-	exit 1
-end
-
 def blockingSpawn(*args)
 	pid = spawn(*args)
 	Process.wait pid
@@ -20,6 +12,7 @@ def muslBuild(action, globalVars, isRootfs=false)
 	end
 	if isRootfs == true
 		muslParams["installDir"] = "/usr"
+		muslParams["prefixToInstallDir"] = "#{globalVars[outputDir]}/rootfs"
 	end
 	Dir.chdir("#{$buildDir}/musl-#{globalVars["musl"]}")
 
@@ -28,10 +21,10 @@ def muslBuild(action, globalVars, isRootfs=false)
 			if File.exist?("#{muslParams["installDir"]}/include/stdio.h") == false
 				system("make ARCH=#{muslParams["arch"]} prefix=#{globalVars["sysroot"]} install-headers")
 				Dir.chdir("#{$buildDir}/#{getPkgInfo("linux", "dir")}")
-				system("make ARCH=#{globalVars["linux_arch"]} INSTALL_HDR_PATH=#{globalVars]} headers_install")
+				system("make ARCH=#{globalVars["linux_arch"]} INSTALL_HDR_PATH=#{globalVars["sysroot"]} headers_install")
 			end
 		when "libc"
-			if File.exist?("#{installPath}/lib/libc.so") == false
+			if File.exist?("#{}/lib/libc.so") == false
 				muslArgs Hash.new
 				case globalVars["toolchain"]
 					when "gcc"
@@ -44,7 +37,7 @@ def muslBuild(action, globalVars, isRootfs=false)
 						muslArgs.merge!("RANLIB" => "#{globalVars["tcprefix"]}/bin/llvm-ranlib")
 				end
 
-				blockingSpawn(muslArgs, "LIBCC=#{muslArgs["LIBCC"]} AR=#{muslArgs["AR"]} RANLIB=#{muslArgs["RANLIB"]} ./compile --host=#{globalVars["triple"]} --prefix=#{muslParams["installDir"]} --disable-multilib")
+				blockingSpawn(muslArgs, "./configure --host=#{globalVars["triple"]} --prefix=#{muslParams["installDir"]} --disable-multilib")
 				system("make AR=#{muslArgs["AR"]} RANLIB=#{muslArgs["RANLIB"]}")
 				system("make DESTDIR=#{muslParams["prefixToInstallDir"]} install")
 			end

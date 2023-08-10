@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: MPL-2.0
 
 require 'yaml'
-# require 'pl-files/compile-files/plml.rb'
+# require_relative 'pl-files/compile-files/plml.rb'
 require 'etc'
 require 'fileutils'
 
+$threads = Etc.nprocessors / 2
 $baseDir = File.expand_path(".")
 $buildDir = "#{$baseDir}/build"
 $outputDir = "#{$baseDir}/output"
@@ -16,6 +17,37 @@ def errorHandler(msg, isOpt)
 		puts " Run #{$0} -h for more information"
 	end
 	exit 1
+end
+
+def calculateTime startTime
+	hours = startTime / (60 * 60)
+	minutes = (startTime - (hours * (60 * 60))) / 60
+	seconds = (startTime - (hours * (60 * 60)) - (minutes * 60))
+	multipleFields = false
+
+	if hours != 0
+		print "#{hours} hour"
+		if hours > 1
+			print "s"
+		end
+		print " "
+		multipleFields = true
+	end
+
+	if minutes != 0
+		print "#{minutes} minute"
+		if minutes > 1
+			print "s"
+		end
+		print " "
+		multipleFields = true
+	end
+
+	print "#{seconds} second"
+	if seconds != 1
+		print "s"
+	end
+	print "\n"
 end
 
 def generatePkgInfo config
@@ -57,13 +89,15 @@ def cleanProjectDir(lvl=2)
 			puts "Done."
 		end
 
-		if lvl == 3
+		if Dir.exist?("#{$baseDir}/logs") == true
+			print "Cleaning logs directory..."
+			FileUtils.rm_rf("#{$baseDir}/logs")
+			puts "Done"
+		end
+
+		if lvl == 3 and Dir.exist?("#{$outputDir}") == true
 			print "Cleaning output directory..."
-
-			if Dir.exist?("#{$outputDir}") == true
-				FileUtils.rm_rf("#{$outputDir}")
-			end
-
+			FileUtils.rm_rf("#{$outputDir}")
 			puts "Done."
 		end
 
@@ -81,6 +115,10 @@ def cleanProjectDir(lvl=2)
 
 		if Dir.exist?("#{$baseDir}/tarballs") == true
 			FileUtils.rm_rf("#{$baseDir}/tarballs")
+		end
+
+		if Dir.exist?("#{$baseDir}/logs") == true
+			FileUtils.rm_rf("#{$baseDir}/logs")
 		end
 
 		if File.exist?("#{$baseDir}/.config") == true
@@ -112,6 +150,10 @@ def init
 		exit 1
 	end
 
+	if Dir.exist?("logs") == false
+		Dir.mkdir("logs")
+	end
+
 	parsedConfig = YAML.load_file(".config")
 	parsedConfig.store("triple", "#{parsedConfig["arch"]}-pocket-linux-musl")
 	if parsedConfig["arch"].scan("arm") != Array.new
@@ -122,6 +164,8 @@ def init
 	end
 	parsedConfig.store("linux_arch", getLinuxArch(parsedConfig["arch"]))
 
+	parsedConfig.store("threads", $threads)
+	parsedConfig.store("baseDir", $baseDir)
 	parsedConfig.store("buildDir", $buildDir)
 	parsedConfig.store("outputDir", $outputDir)
 	parsedConfig.store("rootfsFilesDir", "#{$baseDir}/pl-files/pl-rootfs")
@@ -141,36 +185,43 @@ def init
 end
 
 def launchBuildScript config
+	time = Time.now.to_i
+	puts "Started compilation on #{Time.at(time).ctime}."
+	puts "Threads: #{$threads}"
+
 	case $action
 		when "toolchain"
 			if config["toolchain"] == "gcc"
-				puts "Launching GCC Build Script..."
+				puts "Launching GCC Build Script...\n\n"
 				require_relative 'pl-files/compile-modules/gcc.rb'
 			elsif config["toolchain"] == "llvm"
-				puts "Launching LLVM Build Script..."
+				puts "Launching LLVM Build Script...\n\n"
 				require_relative 'pl-files/compile-modules/llvm.rb'
 			end
 
 			toolchainSetup config
 			toolchainBuild
 		when "rootfs"
-			puts "Launching Root Filesystem Build Script..."
+			puts "Launching Root Filesystem Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/rootfs.rb'
 
 			rootfsBuild
 		when "boot-img"
-			puts "Launching Root Filesystem Build Script..."
+			puts "Launching Root Filesystem Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/rootfs.rb'
 
 			bootImgMaker
 		when "kernel"
-			puts "Launching Linux Kernel Build Script..."
+			puts "Launching Linux Kernel Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/kernel.rb'
 
 			kernelBuild
 		else
 			errorHandler("Unknown build option", true)
 	end
+
+	print "Compilation took "
+	calculateTime time
 end
 
 def parseArgs
@@ -189,6 +240,9 @@ def parseArgs
 					errorHandler("Not enough arguments")
 				end
 				$threads = Integer(args[1])
+				if $threads == 0
+					$threads = 1	
+				end
 				args.shift
 			when "-c"
 				if args.length > 1
