@@ -18,7 +18,7 @@ def compileAutoconf(pkgName, action, flags, globalVars)
 			confFlags = flags[0]
 		end
 
-		Dir.chdir(File.join(globalVars["buildDir"], "#{pkgName}-#{globalVars[pkgName]}"))
+		Dir.chdir("#{globalVars["buildDir"]}/#{pkgName}-#{globalVars[pkgName]}")
 		if File.exist?("build") == false
 			Dir.mkdir("build")
 			Dir.chdir("build")
@@ -47,7 +47,43 @@ def compileAutoconf(pkgName, action, flags, globalVars)
 
 		status = system("make MAKEINFO=true #{compFlags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 		if status == nil or status == false
+			errorHandler("Package failed to compile", false)
+		end
+		Dir.chdir("#{globalVars["baseDir"]}")
+	end
+end
+
+def compilePl32lib(pkgName, action, flags, globalVars)
+	inBase = false
+	status = nil
+	if action == "configure" or (action == "compile" && flags.class == Array)
+		confFlags = flags
+		if flags.class == Array
+			confFlags = flags[0]
+		end
+
+		Dir.chdir("#{globalVars["buildDir"]}/#{pkgName}-#{globalVars[pkgName]}")
+		status = system("./configure #{confFlags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+		if status == nil or status == false
 			errorHandler("Package failed to configure", false)
+		end
+
+		inBase = true
+	end
+
+	if action == "compile"
+		compFlags = flags
+		if flags.class == Array
+			compFlags = flags[1]
+		end
+
+		if inBase == false
+			Dir.chdir("#{globalVars["buildDir"]}/#{pkgName}-#{globalVars[pkgName]}")
+		end
+
+		status = system("./compile #{compFlags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+		if status == nil or status == false
+			errorHandler("Package failed to compile", false)
 		end
 		Dir.chdir("#{globalVars["baseDir"]}")
 	end

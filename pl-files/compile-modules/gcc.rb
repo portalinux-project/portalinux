@@ -83,4 +83,22 @@ def toolchainBuild globalVars
 		compileAutoconf("gcc", "compile", "install-strip-target-libstdc++-v3", globalVars)
 		puts "Done."
 	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libpl32.so") == false
+		print "Building pl32lib-ng..."
+		compilePl32lib("pl32lib-ng", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+		puts "Done."
+		print "Installing pl32lib-ng..."
+		compilePl32lib("pl32lib-ng", "compile", "install", globalVars)
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libplml.so") == false
+		print "Building libplml..."
+		compilePl32lib("libplml", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+		puts "Done."
+		print "Installing libplml..."
+		compilePl32lib("libplml", "compile", "install", globalVars)
+		puts "Done."
+	end
 end
