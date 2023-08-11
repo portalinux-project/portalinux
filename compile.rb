@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MPL-2.0
 
 require 'yaml'
-# require_relative 'pl-files/compile-files/plml.rb'
 require 'etc'
 require 'fileutils'
+# require_relative 'pl-files/compile-files/plml.rb'
 
 $threads = Etc.nprocessors / 2
 $baseDir = File.expand_path(".")
@@ -16,6 +16,7 @@ def errorHandler(msg, isOpt)
 	if isOpt == true
 		puts " Run #{$0} -h for more information"
 	end
+	puts "\n"
 	exit 1
 end
 
@@ -205,12 +206,12 @@ def launchBuildScript config
 			puts "Launching Root Filesystem Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/rootfs.rb'
 
-			rootfsBuild
+			rootfsBuild config
 		when "boot-img"
 			puts "Launching Root Filesystem Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/rootfs.rb'
 
-			bootImgMaker
+			bootImgMaker config
 		when "kernel"
 			puts "Launching Linux Kernel Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/kernel.rb'

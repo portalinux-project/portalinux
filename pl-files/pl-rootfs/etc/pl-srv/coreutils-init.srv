@@ -1,1 +1,1 @@
-exec = "/usr/bin/sh toybox-init"
+exec = "/usr/bin/sh init-script tb"

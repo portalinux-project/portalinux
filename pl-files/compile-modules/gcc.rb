@@ -58,7 +58,7 @@ def toolchainBuild globalVars
 	end
 
 	if File.exist?("#{globalVars["sysroot"]}/lib/libc.so") == false
-		print "Building musl..."
+		print "Building Musl..."
 		muslBuild("libc", globalVars, false)
 		puts "Done."
 	end

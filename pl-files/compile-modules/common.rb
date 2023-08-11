@@ -98,7 +98,7 @@ def muslBuild(action, globalVars, isRootfs=false)
 	end
 	if isRootfs == true
 		muslParams["installDir"] = "/usr"
-		muslParams["prefixToInstallDir"] = "#{globalVars[outputDir]}/rootfs"
+		muslParams["prefixToInstallDir"] = "#{globalVars["outputDir"]}/rootfs/"
 	end
 	Dir.chdir("#{$buildDir}/musl-#{globalVars["musl"]}")
 
@@ -110,7 +110,7 @@ def muslBuild(action, globalVars, isRootfs=false)
 				system("make ARCH=#{globalVars["linux_arch"]} INSTALL_HDR_PATH=#{globalVars["sysroot"]} headers_install 2>#{globalVars["baseDir"]}/logs/headers-error.log >#{globalVars["baseDir"]}/logs/headers.log")
 			end
 		when "libc"
-			if File.exist?("#{muslParams["installDir"]}/lib/libc.so") == false
+			if File.exist?("#{muslParams["prefixToInstallDir"]}#{muslParams["installDir"]}/lib/libc.so") == false
 				muslArgs = Hash.new
 				case globalVars["toolchain"]
 					when "gcc"
@@ -124,7 +124,12 @@ def muslBuild(action, globalVars, isRootfs=false)
 				end
 				muslArgs.store("CC", "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}")
 
-				status = blockingSpawn(muslArgs, "./configure --host=#{globalVars["triple"]} --prefix=#{muslParams["installDir"]} --disable-multilib 2>#{globalVars["baseDir"]}/logs/libc-error.log >#{globalVars["baseDir"]}/logs/libc.log")
+				extraFlag = ""
+				if isRootfs == true
+					extraFlag = "--includedir=/opt/include"
+				end
+
+				status = blockingSpawn(muslArgs, "./configure --host=#{globalVars["triple"]} --prefix=#{muslParams["installDir"]} #{extraFlag} --disable-multilib 2>#{globalVars["baseDir"]}/logs/libc-error.log >#{globalVars["baseDir"]}/logs/libc.log")
 				if status == nil or status == false
 					errorHandler("Package failed to configure", false)
 				end

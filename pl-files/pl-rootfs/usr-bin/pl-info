@@ -1,0 +1,9 @@
+#!/bin/sh
+source /usr/lib/os-release
+
+printf "PortaLinux $IMAGE_VERSION\\n\\n"
+
+echo "Full ID: $ID-$IMAGE_ID-$VARIANT_ID"
+echo "Variant: $VARIANT"
+echo "Build ID: $BUILD_ID"
+echo "Build Date: $(date -d @$BUILD_ID '+%A, %d/%m/%Y %H:%M')"

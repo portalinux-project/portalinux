@@ -1,2 +1,2 @@
-exec = "/usr/bin/sh pl-shell"
+exec = "/usr/bin/sh init-script"
 respawn = true

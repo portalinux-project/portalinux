@@ -1,0 +1,20 @@
+#!/usr/bin/sh
+
+if [ $1 = "tb" ]; then
+	toybox dmesg -n 1
+
+	cmdList="$(toybox)"
+	for i in $cmdList; do
+		if [ "$i" != "sh" ]; then
+			toybox ln -s /usr/bin/toybox /usr/bin/$i
+			printf "* Creating link: $i        \\r"
+		fi
+	done
+
+	echo "* Created all links        "
+	echo "* Initialization done"
+	exit 0
+else
+	cat /etc/issue
+	exec /bin/sh
+fi
