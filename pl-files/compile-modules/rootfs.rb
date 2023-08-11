@@ -2,7 +2,7 @@ require_relative 'common.rb'
 
 def rootfsBuild globalVars
 	if Dir.exist?("#{globalVars["tcprefix"]}/#{globalVars["triple"]}") == false
-		errorHandler("Toolchain for target #{globalVars["triple"]} not found. Please compile a toolchain and try again.", false)
+		errorHandler("Toolchain for target #{globalVars["triple"]} not found. Please compile a toolchain and try again", false)
 	end
 
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/lib") == false
@@ -101,6 +101,63 @@ def rootfsBuild globalVars
 		tmpFile = File.open("#{globalVars["outputDir"]}/rootfs/usr/lib/os-release", "a")
 		tmpFile.write("#{Time.now.to_i}")
 		tmpFile.close()
+		puts "Done."
+	end
+end
+
+def bootImgMaker globalVars
+	if Dir.exist?("#{globalVars["outputDir"]}/rootfs") == false
+		errorHandler("Root filesystem not found. Please compile a PortaLinux root filesystem and try again")
+	end
+
+	if File.exist?("#{globalVars["outputDir"]}/pl-base-dev.plpak") == false
+		print "Creating pl-base-dev package..."
+		Dir.chdir("#{globalVars["outputDir"]}")
+		FileUtils.mkpath("pl-base-dev/files/opt/lib")
+		FileUtils.move("rootfs/opt/include", "pl-base-dev/files/opt")
+		FileUtils.move(Dir.glob("rootfs/lib/*.a"), "pl-base-dev/files/opt/lib")
+		FileUtils.move(Dir.glob("rootfs/lib/*.o"), "pl-base-dev/files/opt/lib")
+		Dir.chdir("pl-base-dev")
+		system("tar cf files.tar files")
+		configFile = open("pkg_info", "w")
+		configFile.write("pl-base-dev\n")
+		configFile.write("0.11\n")
+		configFile.write("#{globalVars["arch"]}\n")
+		configFile.close()
+		FileUtils.rm_rf("files")
+		system("sha256sum files.tar > files.tar.sha256sum")
+		system("tar cf ../pl-base-dev.tar files.tar files.tar.sha256sum pkg_info")
+		Dir.chdir("..")
+		system("gzip pl-base-dev.tar")
+		FileUtils.rm_rf("pl-base-dev")
+		File.rename("pl-base-dev.tar.gz", "pl-base-dev.plpak")
+		Dir.chdir("#{globalVars["baseDir"]}")
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["outputDir"]}/rootfs.cpio.gz") == false
+		printf "Creating device nodes..."
+		if Process.uid != 0
+			sudoProg = ""
+			if File.exist?("/run/wrappers/bin/sudo")
+				sudoProg = "/run/wrappers/bin/sudo"
+			elsif File.exist?("/usr/bin/sudo")
+				sudoProg = "/usr/bin/sudo"
+			elsif File.exist?("/bin/sudo")
+				sudoProg = "/bin/sudo"
+			else
+				errorHandler("Cannot escalate priviledges. Run this program as the superuser and try again")
+			end
+
+			system("#{sudoProg} #{globalVars["baseDir"]}/pl-files/compile-modules/mknod.sh #{globalVars["outputDir"]}/rootfs")
+		else
+			system("#{globalVars["baseDir"]}/pl-files/compile-modules/mknod.sh #{globalVars["outputDir"]}/rootfs")
+		end
+		puts "Done."
+		print "Generating boot image..."
+		Dir.chdir("#{globalVars["outputDir"]}/rootfs")
+		system("find . | cpio -H newc -ov > ../rootfs.cpio 2>/dev/null")
+		system("gzip ../rootfs.cpio")
 		puts "Done."
 	end
 end

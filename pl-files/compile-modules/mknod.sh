@@ -1,10 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: MPL-2.0
 
-pldir="$(dirname $(realpath $0))/../.."
-plfiles="$pldir/pl-files"
-
-. "$plfiles/compile-modules/defaults.sh"
+output_rootfs="$1"
 
 mknod "$output_rootfs/dev/console" c 5 1 2>/dev/null || true
 mknod "$output_rootfs/dev/tty" c 5 0 2>/dev/null || true
