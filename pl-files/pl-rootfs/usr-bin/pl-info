@@ -1,5 +1,5 @@
 #!/bin/sh
-source /usr/lib/os-release
+source "/usr/lib/os-release"
 
 printf "PortaLinux $IMAGE_VERSION\\n\\n"
 
