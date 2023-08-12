@@ -16,6 +16,7 @@ if [ "$1" = "tb" ]; then
 	exit 0
 else
 	source "/usr/lib/os-release"
-	printf "$(cat /etc/issue)\n"
+	issue_text="$(cat /etc/issue | sed s/IMGVER/$IMAGE_VERSION/g | sed s/CURYEAR/$(date +%Y)/g)"
+	printf "$issue_text\n"
 	exec /bin/sh
 fi

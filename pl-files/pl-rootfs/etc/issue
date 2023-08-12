@@ -1,5 +1,5 @@
-PortaLinux $IMG_VER
-(c) 2020-$(date +%y) pocketlinux32 & raisinware
+PortaLinux IMGVER
+(c) 2020-CURYEAR pocketlinux32 & raisinware
 
 mainline: https://github.com/pocketlinux32/portalinux
 ports: https://github.com/raisinware/portalinux
