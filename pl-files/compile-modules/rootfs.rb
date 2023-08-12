@@ -73,12 +73,6 @@ def rootfsBuild globalVars
 
 		Dir.mkdir("#{globalVars["outputDir"]}/rootfs/usr/etc")
 		FileUtils.copy_entry("#{globalVars["rootfsFilesDir"]}/etc", "#{globalVars["outputDir"]}/rootfs/usr/etc")
-
-		tmpFile = File.open("#{globalVars["rootfsFilesDir"]}/etc/issue", "w")
-		tmpFile.seek(11)
-		tmpFile.write("#{globalVars["version"]}")
-		tmpFile.close()
-
 		muslArch = globalVars["linux_arch"]
 		if muslArch == "arm64"
 			muslArch = "aarch64"

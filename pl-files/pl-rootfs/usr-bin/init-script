@@ -1,6 +1,6 @@
 #!/usr/bin/sh
 
-if [ $1 = "tb" ]; then
+if [ "$1" = "tb" ]; then
 	toybox dmesg -n 1
 
 	cmdList="$(toybox)"
@@ -15,6 +15,7 @@ if [ $1 = "tb" ]; then
 	echo "* Initialization done"
 	exit 0
 else
-	cat /etc/issue
+	source "/usr/lib/os-release"
+	printf "$(cat /etc/issue)\n"
 	exec /bin/sh
 fi
