@@ -1,15 +1,17 @@
 # PortaLinux
 
+** NOTICE: This is a Beta Release***
+
 A Linux distribution that tries to be as lightweight and small as possible
 while also being as secure and compatible with as many components as it can.
 
 # Minimum Requirements
 
-- CPU: Intel 80486
+- CPU: Intel 80486, ARMv5, RISC-V
 - RAM: 48* MiB
 - HDD: 8** MiB
 
-**These metrics may vary depending on the kernel config used**
+**These metrics can vary drastically depending on the kernel config used and targeted architecture**
 
 # Build Requirements
 
@@ -29,86 +31,54 @@ least 16GiB of storage, it will work
 - RAM: 2GiB
 - Storage: 10GiB
 
+# Configure PortaLinux
+
+Before building PortaLinux, you must configure it. To do so, you must run
+`./configure.rb -p` and the preset you want (The built-in presets are `llvm`
+and `gcc`):
+```sh
+./configure.rb -p gcc # Example command
+```
+This command will download and unpack all of the packages needed as well as
+apply any necessary patches and generate a configure file for the build system.
+
 # Build instructions
-
-Before building PortaLinux, you must initialize the script by running the
-following:
-```
-./compile --init
-```
-This will download all of the necessary components to compile the target
-toolchain, the target root filesystem and the target kernel.
-
-Whenever you want to target a system different from the default, you must
-change the compile target with the `--target-compile` option (`$arch` being
-the target architecture and `$dist` being the distribution, `musl` and `gnu`
-being the only valid options).
-```
-./compile --target-system $arch-$dist --init
-```
-
-Before you start compiling anything, make sure your `PATH` contains your
-toolchain install path's bin folder as the first search path:
-```
-PATH=$toolchain_prefix/bin:$PATH
-```
 
 ## Toolchain
 
-To compile the target toolchain, run the following:
+To build a toolchain, run the following:
+```sh
+./compile.rb -b toolchain
 ```
-./compile --build toolchain
-```
-If targeting a different system from the default, use the `--target-system`
-option to change the compile target.
-```
-./compile --target-system $arch-$dist --build toolchain
-```
+This will install a toolchain at `~/cross` under its toolchain type, although
+this might be changed to preset name in the future.
 
 ## Root Filesystem
 
-To compile the target root filesystem, run the following:
+To build the PortaLinux root filesystem, run the following:
+```sh
+./compile.rb -b rootfs
 ```
-./compile --build rootfs
-```
-If targeting a different system from the default, use the `--target-system`
-option to change the compile target.
-```
-./compile --target-system $arch-$dist --build rootfs
-```
+This will generate a chrootable directory containing the PortaLinux root
+filesystem. It will be located in the output directory
 
-## Extra Packages
-To compile some extra packages for development, run the following:
+## Bootable Root Filesystem Image
+
+To generate a bootable rootfs image, run the following:
+```sh
+./compile.rb -b boot-img
 ```
-./compile --build extra-pkgs
-```
-If targeting a different system from the default, use the `--target-system`
-option to change the compile target.
-```
-./compile --target-system $arch-$dist --build extra-pkgs
-```
+This will generate a compressed cpio archive that can be booted with a Linux
+kernel that supports loading an external initramfs file. It will be located
+in the output directory
 
 ## Kernel
 
-Before compiling the kernel, you must configure it by running the following:
+To build the Linux kernel, run the following:
+```sh
+./compile.rb -b kernel
 ```
-./compile --config-kernel
-```
-After you're done configuring the kernel, run the following:
-```
-./compile --build kernel
-```
-
-## Boot Initramfs Archive
-To create an initramfs compressed cpio archive, run the following:
-```
-./compile --build boot-img
-```
-If you need to change the compression, you must add the compression utility as
-a second argument to `--build`. If you need to run the compression tool with
-flags, you'll need to enclose the compression command with the flags in quotes.
-```
-./compile --build $compression_tool
-# or
-./compile --build "$compression_tool_with_flags"
-```
+It will prompt you for the default kernel configuration to be used and whether
+or not you want to configure it further. It will compile the kernel afterwards
+and put the bootable image, alongside any device tree blobs generated
+(if ARM target), in the output folder
