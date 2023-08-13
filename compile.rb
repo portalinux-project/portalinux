@@ -32,7 +32,7 @@ def calculateTime startTime
 		if hours > 1
 			print "s"
 		end
-		print " "
+		print ", "
 		multipleFields = true
 	end
 
@@ -41,7 +41,7 @@ def calculateTime startTime
 		if minutes > 1
 			print "s"
 		end
-		print " "
+		print " and "
 		multipleFields = true
 	end
 
@@ -216,7 +216,7 @@ def launchBuildScript config
 			puts "Launching Linux Kernel Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/kernel.rb'
 
-			kernelBuild
+			kernelBuild config
 		else
 			errorHandler("Unknown build option", true)
 	end
