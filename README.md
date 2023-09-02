@@ -1,6 +1,6 @@
 # PortaLinux
 
-** NOTICE: This is a Beta Release***
+**NOTICE: This is a Beta Release**
 
 A Linux distribution that tries to be as lightweight and small as possible
 while also being as secure and compatible with as many components as it can.
