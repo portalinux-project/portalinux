@@ -36,10 +36,10 @@ def kernelBuild globalVars
 	puts "Installing kernel files..."
 
 	Dir.chdir("#{globalVars["buildDir"]}/linux-#{globalVars["linux"]}/arch/#{globalVars["linux_arch"]}/boot")
-	realPath = File.dirname(File.readlink(Dir.foreach(".").grep(/Image/).shift))
-	Dir.chdir(realPath)
-	FileUtils.copy(Dir.foreach(".").grep(/Image/), "#{globalVars["outputDir"]}")
+	realPath = File.readlink(Dir.foreach(".").grep(/Image/).shift)
+	FileUtils.copy(realPath, "#{globalVars["outputDir"]}")
 
+	Dir.chdir(File.dirname(realPath))
 	if Dir.exist?("dts")
 		FileUtils.copy_entry("dts", "#{globalVars["outputDir"]}")
 	end

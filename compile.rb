@@ -156,6 +156,10 @@ def init
 		Dir.mkdir("logs")
 	end
 
+	if Dir.exist?($outputDir) == false
+		Dir.mkdir($outputDir)
+	end
+
 	parsedConfig = YAML.load_file(".config")
 	parsedConfig.store("triple", "#{parsedConfig["arch"]}-pocket-linux-musl")
 	if parsedConfig["arch"].scan("arm") != Array.new
