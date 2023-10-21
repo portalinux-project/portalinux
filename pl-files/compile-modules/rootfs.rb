@@ -82,10 +82,11 @@ def rootfsBuild globalVars
 		puts "Done."
 	end
 
-	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/bin/pl-info") == false
-		print "Installing PortaLinux Scripts..."
+	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/bin/plkeyb") == false
+		print "Installing PortaLinux Utilities..."
 		FileUtils.copy([ "#{globalVars["rootfsFilesDir"]}/usr-bin/init-script", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-install", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-info" ], "#{globalVars["outputDir"]}/rootfs/usr/bin")
 		FileUtils.chmod(0777, [ "#{globalVars["outputDir"]}/rootfs/usr/bin/init-script", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-install", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-info" ])
+		system("#{globalVars["cross_cc"]} #{globalVars["cross_cflags"]} #{"rootfsFilesDir"}/usr-bin/plkeyb.c -o #{globalVars["outputDir"]}/rootfs/usr/bin/plkeyb");
 		puts "Done."
 	end
 
@@ -109,6 +110,8 @@ def bootImgMaker globalVars
 		Dir.chdir("#{globalVars["outputDir"]}")
 		FileUtils.mkpath("pl-base-dev/files/opt/lib")
 		FileUtils.move("rootfs/opt/include", "pl-base-dev/files/opt")
+		FileUtils.move("rootfs/opt/share", "pl-base-dev/files/opt")
+		FileUtils.move("rootfs/opt/etc", "pl-base-dev/files/opt")
 		FileUtils.move(Dir.glob("rootfs/lib/*.a"), "pl-base-dev/files/opt/lib")
 		FileUtils.move(Dir.glob("rootfs/lib/*.o"), "pl-base-dev/files/opt/lib")
 		Dir.chdir("pl-base-dev")
@@ -148,6 +151,14 @@ def bootImgMaker globalVars
 			system("#{globalVars["baseDir"]}/pl-files/compile-modules/mknod.sh #{globalVars["outputDir"]}/rootfs")
 		end
 		puts "Done."
+		#print "Cleaning up root filesystem..."
+		#Dir.chdir("#{globalVars["outputDir"]}/rootfs/usr/bin")
+		#for file in Dir.each_child(".")
+		#	if file != "toybox" and file != "sh" and file != "loadkeys" and file.match?("pl-*") == false
+		#		File.delete(file)
+		#	end
+		#end
+		#puts "Done."
 		print "Generating boot image..."
 		Dir.chdir("#{globalVars["outputDir"]}/rootfs")
 		system("find . | cpio -H newc -ov > ../rootfs.cpio 2>/dev/null")

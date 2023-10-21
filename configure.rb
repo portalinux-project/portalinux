@@ -224,7 +224,7 @@ def init
 		puts "Done."
 	end
 
-	puts "Stage 3 Complete!"
+	puts "Stage 4 Complete!"
 end
 
 def parseArgs
