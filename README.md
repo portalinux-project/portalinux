@@ -7,7 +7,7 @@ while also being as secure and compatible with as many components as it can.
 
 # Minimum Requirements
 
-- CPU: Intel 80486, ARMv5, RISC-V
+- CPU: Intel 80486, ARMv5, RISCV64
 - RAM: 48* MiB
 - HDD: 8** MiB
 
