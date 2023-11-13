@@ -27,12 +27,27 @@ def rootfsBuild globalVars
 		puts "Done."
 	end
 
+	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/lib/libz.so") == false
+		print "Building zlib..."
+		Dir.chdir("#{globalVars["buildDir"]}/zlib-#{globalVars["zlib"]}")
+		if File.exist?("build") == false
+			Dir.mkdir("build")
+		end
+		Dir.chdir("build")
+		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}", "AR" => "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-ar"}, "../configure --prefix=/usr --includedir=/opt/include 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		blockingSpawn("make -j#{globalVars["threads"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		puts "Done."
+		print "Installing zlib..."
+		blockingSpawn("make install DESTDIR=#{globalVars["outputDir"]}/rootfs 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log")
+		puts "Done."
+	end
+
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/bin/toybox") == false
 		print "Building Toybox..."
 		Dir.chdir("#{globalVars["buildDir"]}/toybox-#{globalVars["toybox"]}")
 		system("make defconfig 2>#{globalVars["baseDir"]}/logs/toybox-error.log >#{globalVars["baseDir"]}/logs/toybox.log")
 		configFile = File.open(".config", "a")
-		configFile.write("CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\n")
+		configFile.write("CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\nCONFIG_TOYBOX_LIBZ=y\n")
 		configFile.close()
 		system("make -j#{globalVars["threads"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS=#{globalVars["cross_cflags"]} 2>>#{globalVars["baseDir"]}/logs/toybox-error.log >>#{globalVars["baseDir"]}/logs/toybox.log")
 		puts "Done"
@@ -41,21 +56,12 @@ def rootfsBuild globalVars
 		puts "Done."
 	end
 
-	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/lib/libpl32.so") == false
-		print "Building pl32lib-ng..."
-		compilePl32lib("pl32lib-ng", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/lib/libplrt.so") == false
+		print "Building pl-rt..."
+		compilePl32lib("pl-rt", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
 		puts "Done."
-		print "Installing pl32lib-ng..."
-		compilePl32lib("pl32lib-ng", "compile", "install", globalVars)
-		puts "Done."
-	end
-
-	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/lib/libplml.so") == false
-		print "Building libplml..."
-		compilePl32lib("libplml", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
-		puts "Done."
-		print "Installing libplml..."
-		compilePl32lib("libplml", "compile", "install", globalVars)
+		print "Installing pl-rt..."
+		compilePl32lib("pl-rt", "compile", "install", globalVars)
 		puts "Done."
 	end
 

@@ -1,3 +1,3 @@
 toolchain: "gcc"
-pkgList: [ "linux", "binutils", "gcc", "gmp", "mpc", "mpfr", "toybox", "musl", "pl32lib-ng", "libplml", "pl-srv" ]
+pkgList: [ "linux", "binutils", "gcc", "gmp", "mpc", "mpfr", "toybox", "musl", "pl-rt",  "pl-srv", "zlib" ]
 supportedArch: [ "i486", "i586", "i686", "x86_64", "armv5", "armv6", "armv6k", "armv7", "aarch64", "riscv64" ]

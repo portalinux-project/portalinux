@@ -84,21 +84,27 @@ def toolchainBuild globalVars
 		puts "Done."
 	end
 
-	if File.exist?("#{globalVars["sysroot"]}/lib/libpl32.so") == false
-		print "Building pl32lib-ng..."
-		compilePl32lib("pl32lib-ng", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+	if File.exist?("#{globalVars["sysroot"]}/lib/libz.so") == false
+		print "Building zlib..."
+		Dir.chdir("#{globalVars["buildDir"]}/zlib-#{globalVars["zlib"]}")
+		if File.exist?("build") == false
+			Dir.mkdir("build")
+		end
+		Dir.chdir("build")
+		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}", "AR" => "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-ar"}, "../configure --prefix=#{globalVars["sysroot"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		blockingSpawn("make -j#{globalVars["threads"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
 		puts "Done."
-		print "Installing pl32lib-ng..."
-		compilePl32lib("pl32lib-ng", "compile", "install", globalVars)
+		print "Installing zlib..."
+		blockingSpawn("make install 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log")
 		puts "Done."
 	end
 
-	if File.exist?("#{globalVars["sysroot"]}/lib/libplml.so") == false
-		print "Building libplml..."
-		compilePl32lib("libplml", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+	if File.exist?("#{globalVars["sysroot"]}/lib/libplrt.so") == false
+		print "Building pl-rt..."
+		compilePl32lib("pl-rt", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
 		puts "Done."
-		print "Installing libplml..."
-		compilePl32lib("libplml", "compile", "install", globalVars)
+		print "Installing pl-rt..."
+		compilePl32lib("pl-rt", "compile", "install", globalVars)
 		puts "Done."
 	end
 end
