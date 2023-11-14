@@ -20,10 +20,7 @@ verify_pkg(){
 	fi
 	echo "Done."
 
-	pkg_name=$(cat pkg_info | sed '1q;d')
-	pkg_ver=$(cat pkg_info | sed '2q;d')
-	pkg_arch=$(cat pkg_info | sed '3q;d')
-
+	source pkg_info
 	if [ -f "$pldb_path/$pkg_name.pldb" ] && [ $(cat $pldb_path/$pkg_name.pldb | sed '2q;d') = "$pkg_ver" ]; then
 		echo "Error: Package $pkg_name is already installed"
 		exit 3
@@ -120,7 +117,7 @@ uninstall_pkg(){
 	fi
 }
 
-echo "PortaLinux Package Installer v0.03"
+echo "PortaLinux Package Installer v0.04"
 printf "(c) 2022 pocketlinux32, Under MPL v2.0\\n\\n"
 
 if [ $(id -u) -ne 0 ]; then
