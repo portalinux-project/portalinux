@@ -206,11 +206,21 @@ def launchBuildScript config
 			end
 
 			toolchainBuild config
+			if File.exist?("#{baseDir}/custom.rb")
+				puts "Custom build script found. Launching script...\n\n"
+				require_relative("custom.rb")
+				customToolchainBuild config
+			end
 		when "rootfs"
 			puts "Launching Root Filesystem Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/rootfs.rb'
 
 			rootfsBuild config
+			if File.exist?("#{baseDir}/custom.rb")
+				puts "Custom build script found. Launching script...\n\n"
+				require_relative("custom.rb")
+				customRootfsBuild config
+			end
 		when "boot-img"
 			puts "Launching Root Filesystem Build Script...\n\n"
 			require_relative 'pl-files/compile-modules/rootfs.rb'

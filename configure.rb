@@ -36,6 +36,9 @@ def downloadFile(url, file, secure)
 	connection = Net::HTTP.new(uri.host, port)
 	connection.use_ssl = secure
 	response = connection.get(uri.path)
+	if response.code >= 400
+		errorHandler(response.body, false)
+	end
 	downloadedFile = File.open(file, "wb")
 	downloadedFile.write(response.body)
 	downloadedFile.close
@@ -179,7 +182,7 @@ def overlayPkgs pkgList
 	end
 end
 
-def init
+def init extraPkgs
 	if Dir.exist?("#{$baseDir}/tarballs") == false
 		Dir.mkdir("#{$baseDir}/tarballs")
 	end
@@ -191,6 +194,11 @@ def init
 
 	presetFile = YAML.load_file("#{$configDir}/#{$preset}.yaml")
 	list = presetFile["pkgList"]
+	if extraPkgs != nil
+		for file in extraPkgs
+			list.push file
+		end
+	end
 
 	fetchPkgs list
 
@@ -228,6 +236,7 @@ def init
 end
 
 def parseArgs
+	extraPkgs = nil
 	args = ARGV
 
 	while args.length > 0
@@ -244,6 +253,15 @@ def parseArgs
 				end
 				$preset = args[1]
 				args.shift
+			when "-P"
+				if args.length < 2
+					errorHandler("Not enough arguments", true)
+				end
+				if extraPkgs == nil
+					extraPkgs = Array.new
+				end
+				extraPkgs.push(args[1])
+				args.shift
 			when "-t"
 				if args.length < 2
 					errorHandler("Not enough arguments",true)
@@ -256,6 +274,8 @@ def parseArgs
 				puts "		Valid options depend on the profile"
 				puts " -p	Sets which preset to use"
 				puts "		The list of valid options may change depending on the changes done to internal build files"
+				puts " -P	Adds an extra package to configure for building"
+				puts "		Custom packages can be added in pl-files/configure-files/pkg"
 				puts " -t	Sets the cross toolchain install directory"
 				puts "		Default: ~/cross"
 				print " -h	Shows this help\n\n"
@@ -266,6 +286,7 @@ def parseArgs
 		end
 		args.shift
 	end
+	return extraPkgs
 end
 
 def validateArgs
@@ -301,11 +322,11 @@ if ARGV.length < 1
 	errorHandler("Not enough arguments", true)
 end
 
-parseArgs
+extraPkgs = parseArgs
 validateArgs
 
 puts "Build Preset: #{$preset}"
 puts "Architecture: #{$arch}"
 puts "Toolchain Install Directory: #{$prefix}"
 
-init
+init extraPkgs
