@@ -57,6 +57,12 @@ def generatePkgInfo config
 	pkgList = preset["pkgList"]
 	retHash = Hash.new
 
+	if config["extrapkg"] != nil
+		for pkgs in config["extrapkg"]
+			pkgList.push(pkgs)
+		end
+	end
+
 	for pkgName in pkgList
 		pkg = YAML.load_file("#{$baseDir}/pl-files/configure-files/pkg/#{pkgName}.yaml")
 		retHash.store("#{pkg["name"]}", "#{pkg["version"]}")
@@ -206,9 +212,9 @@ def launchBuildScript config
 			end
 
 			toolchainBuild config
-			if File.exist?("#{baseDir}/custom.rb")
+			if File.exist?("#{$baseDir}/custom.rb")
 				puts "Custom build script found. Launching script...\n\n"
-				require_relative("custom.rb")
+				require_relative 'custom.rb'
 				customToolchainBuild config
 			end
 		when "rootfs"
@@ -216,9 +222,9 @@ def launchBuildScript config
 			require_relative 'pl-files/compile-modules/rootfs.rb'
 
 			rootfsBuild config
-			if File.exist?("#{baseDir}/custom.rb")
+			if File.exist?("#{$baseDir}/custom.rb")
 				puts "Custom build script found. Launching script...\n\n"
-				require_relative("custom.rb")
+				require_relative 'custom.rb'
 				customRootfsBuild config
 			end
 		when "boot-img"

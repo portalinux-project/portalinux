@@ -36,7 +36,7 @@ def downloadFile(url, file, secure)
 	connection = Net::HTTP.new(uri.host, port)
 	connection.use_ssl = secure
 	response = connection.get(uri.path)
-	if response.code >= 400
+	if response.code.to_i >= 400
 		errorHandler(response.body, false)
 	end
 	downloadedFile = File.open(file, "wb")
@@ -227,6 +227,9 @@ def init extraPkgs
 		configFile.write("arch: #{$arch}\n")
 		configFile.write("toolchain: #{presetFile["toolchain"]}\n")
 		configFile.write("tcprefix: #{$prefix}/#{presetFile["toolchain"]}\n")
+		if extraPkgs != nil
+			configFile.write("extrapkg: #{extraPkgs}")
+		end
 		configFile.close
 
 		puts "Done."

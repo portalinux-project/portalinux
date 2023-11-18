@@ -9,7 +9,7 @@ def blockingSpawn(*args)
 	end
 end
 
-def compileAutoconf(pkgName, action, flags, globalVars)
+def compileAutoconf(pkgName, action, flags, globalVars, isRootfs=false)
 	inBuild = false
 	status = nil
 	if action == "configure" or (action == "compile" && flags.class == Array)
@@ -23,7 +23,12 @@ def compileAutoconf(pkgName, action, flags, globalVars)
 			Dir.mkdir("build")
 			Dir.chdir("build")
 
-			status = system("../configure #{confFlags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+			envVars = nil
+			if isRootfs == true
+				envVars = "CC='#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} #{globalVars["cross_cflags"]}' CFLAGS=-Os"
+			end
+
+			status = system("#{envVars} ../configure #{confFlags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 			if status == nil or status == false
 				errorHandler("Package failed to configure", false)
 			end

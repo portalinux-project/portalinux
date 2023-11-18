@@ -108,14 +108,14 @@ end
 
 def bootImgMaker globalVars
 	if Dir.exist?("#{globalVars["outputDir"]}/rootfs") == false
-		errorHandler("Root filesystem not found. Please compile a PortaLinux root filesystem and try again")
+		errorHandler("Root filesystem not found. Please compile a PortaLinux root filesystem and try again", false)
 	end
 
 	if File.exist?("#{globalVars["outputDir"]}/pl-base-dev.plpak") == false
 		print "Creating pl-base-dev package..."
 		Dir.chdir("#{globalVars["outputDir"]}")
 		FileUtils.mkpath("pl-base-dev/files/opt/lib")
-		FileUtils.move("rootfs/opt/include", "pl-base-dev/files/opt")
+		FileUtils.move(Dir.glob("rootfs/opt/*"), "pl-base-dev/files/opt")
 		FileUtils.move(Dir.glob("rootfs/lib/*.a"), "pl-base-dev/files/opt/lib")
 		FileUtils.move(Dir.glob("rootfs/lib/*.o"), "pl-base-dev/files/opt/lib")
 		Dir.chdir("pl-base-dev")
