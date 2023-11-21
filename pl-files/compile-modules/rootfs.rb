@@ -118,6 +118,7 @@ def bootImgMaker globalVars
 		FileUtils.move(Dir.glob("rootfs/opt/*"), "pl-base-dev/files/opt")
 		FileUtils.move(Dir.glob("rootfs/lib/*.a"), "pl-base-dev/files/opt/lib")
 		FileUtils.move(Dir.glob("rootfs/lib/*.o"), "pl-base-dev/files/opt/lib")
+		FileUtils.move("rootfs/usr/share/man", "pl-base-dev/files/opt/share", force: true)
 		Dir.chdir("pl-base-dev")
 		system("tar cf files.tar files")
 		configFile = open("pkg_info", "w")
