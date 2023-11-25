@@ -91,8 +91,8 @@ def rootfsBuild globalVars
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/bin/plkeyb") == false
 		print "Installing PortaLinux Utilities..."
 		system("#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} #{globalVars["cross_cflags"]} #{globalVars["rootfsFilesDir"]}/usr-bin/plkeyb.c -o #{globalVars["outputDir"]}/rootfs/usr/bin/plkeyb")
-		FileUtils.copy([ "#{globalVars["rootfsFilesDir"]}/usr-bin/init-script", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-install", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-info" ], "#{globalVars["outputDir"]}/rootfs/usr/bin")
-		FileUtils.chmod(0777, [ "#{globalVars["outputDir"]}/rootfs/usr/bin/init-script", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-install", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-info" ])
+		FileUtils.copy([ "#{globalVars["rootfsFilesDir"]}/usr-bin/init-script", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-install", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-info", "#{globalVars["rootfsFilesDir"]}/usr-bin/automount" ], "#{globalVars["outputDir"]}/rootfs/usr/bin")
+		FileUtils.chmod(0777, [ "#{globalVars["outputDir"]}/rootfs/usr/bin/init-script", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-install", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-info", "#{globalVars["outputDir"]}/rootfs/usr/bin/automount" ])
 		puts "Done."
 	end
 

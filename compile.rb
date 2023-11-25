@@ -12,11 +12,10 @@ $buildDir = "#{$baseDir}/build"
 $outputDir = "#{$baseDir}/output"
 
 def errorHandler(msg, isOpt)
-	print "Error: #{msg}."
+	puts "Error: #{msg}."
 	if isOpt == true
 		puts " Run #{$0} -h for more information"
 	end
-	puts "\n"
 	exit 1
 end
 
@@ -252,13 +251,13 @@ def parseArgs
 		case args[0]
 			when "-b"
 				if args.length < 2
-					errorHandler("Not enough arguments")
+					errorHandler("Not enough arguments", true)
 				end
 				$action = args[1]
 				args.shift
 			when "-t"
 				if args.length < 2
-					errorHandler("Not enough arguments")
+					errorHandler("Not enough arguments", true)
 				end
 				$threads = Integer(args[1])
 				if $threads == 0

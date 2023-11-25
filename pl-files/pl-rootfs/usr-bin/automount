@@ -1,0 +1,23 @@
+#!/bin/sh
+
+printf "* Looking for devices..."
+if [ "$(blkid)" == "" ]; then
+	echo "No devices found"
+	echo "* Cancelling automount..."
+	exit
+fi
+
+echo "Found devices"
+for device in $(blkid | cut -d: -f1); do
+	for i in $(seq 6); do
+		if [ $(blkid | grep $device | cut -d' ' -f$i | grep TYPE -c) -gt 0 ]; then
+			filesystem="$(blkid | grep $device | cut -d' ' -f$i | cut -d= -f2 | grep -ov \")"
+			if [ ! -d /mnt/$(basename $device) ]; then
+				printf "* Mounting $device ($filesystem)..."
+				mkdir /mnt/$(basename $device)
+				mount $device -t $filesystem -o ro /mnt/$(basename $device)
+				echo "Done"
+			fi
+		fi
+	done
+done
