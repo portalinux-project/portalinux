@@ -39,7 +39,7 @@ main_prog(){
 	fi
 }
 
-silent="$2"
+silent="$1"
 while [ "$end_loop" = "" ]; do
 	main_prog
 	sleep 1
