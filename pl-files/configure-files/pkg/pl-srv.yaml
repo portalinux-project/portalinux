@@ -1,5 +1,5 @@
 name: "pl-srv"
-version: "0.04.4"
-branch: "main"
+version: "0.05"
 github: true
+tag: "v0.05"
 url: "portalinux-project/pl-srv"

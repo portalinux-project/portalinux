@@ -1,23 +1,47 @@
 #!/bin/sh
+silent=""
+end_loop=""
 
-printf "* Looking for devices..."
-if [ "$(blkid)" == "" ]; then
-	echo "No devices found"
-	echo "* Cancelling automount..."
-	exit
-fi
+virt_printf(){
+	if [ "$silent" = "no-silent" ]; then
+		printf $@
+	fi
+}
 
-echo "Found devices"
-for device in $(blkid | cut -d: -f1); do
-	for i in $(seq 6); do
-		if [ $(blkid | grep $device | cut -d' ' -f$i | grep TYPE -c) -gt 0 ]; then
-			filesystem="$(blkid | grep $device | cut -d' ' -f$i | cut -d= -f2 | grep -ov \")"
-			if [ ! -d /mnt/$(basename $device) ]; then
-				printf "* Mounting $device ($filesystem)..."
-				mkdir /mnt/$(basename $device)
-				mount $device -t $filesystem -o ro /mnt/$(basename $device)
-				echo "Done"
-			fi
-		fi
-	done
+virt_echo(){
+	if [ "$silent" = "no-silent" ]; then
+		echo $@
+	fi
+}
+
+main_prog(){
+	virt_printf "* Looking for devices..."
+	if [ "$(blkid)" == "" ]; then
+		virt_echo "No devices found"
+		virt_echo "* Cancelling automount..."
+	else
+		virt_echo "Found devices"
+		for device in $(blkid | cut -d: -f1); do
+			for i in $(seq 6); do
+				if [ $(blkid | grep $device | cut -d' ' -f$i | grep TYPE -c) -gt 0 ]; then
+					filesystem="$(blkid | grep $device | cut -d' ' -f$i | cut -d= -f2 | grep -ov \")"
+					if [ ! -d /mnt/$(basename $device) ]; then
+						virt_printf "* Mounting $device ($filesystem)..."
+						mkdir /mnt/$(basename $device)
+						mount $device -t $filesystem -o ro /mnt/$(basename $device)
+						virt_echo "Done"
+					fi
+				fi
+			done
+		done
+	fi
+}
+
+silent="$2"
+while [ "$end_loop" = "" ]; do
+	main_prog
+	sleep 1
+	if [ "$silent" = "no-silent" ]; then
+		end_loop="yes"
+	fi
 done

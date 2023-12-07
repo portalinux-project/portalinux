@@ -7,7 +7,7 @@ def rootfsBuild globalVars
 
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/lib") == false
 		print "Creating rootfs structure..."
-		for dir in [ "dev", "sys", "proc", "opt", "usr/bin", "usr/lib", "root", "mnt", "home", "tmp", "var/pl-srv" ]
+		for dir in [ "dev", "sys", "proc", "opt", "usr/bin", "usr/lib", "root", "mnt", "home", "tmp", "var/pl-srv/srv" ]
 			FileUtils.mkpath("#{globalVars["outputDir"]}/rootfs/#{dir}")
 		end
 		Dir.chdir("#{globalVars["outputDir"]}/rootfs")
@@ -84,6 +84,7 @@ def rootfsBuild globalVars
 			muslArch = "aarch64"
 		end
 		File.rename("#{globalVars["outputDir"]}/rootfs/usr/etc/ld-musl.path", "#{globalVars["outputDir"]}/rootfs/usr/etc/ld-musl-#{muslArch}.path")
+		FileUtils.chmod(0777, "#{globalVars["outputDir"]}/rootfs/usr/etc/pl-srv/basic-startup")
 
 		puts "Done."
 	end
@@ -91,8 +92,8 @@ def rootfsBuild globalVars
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/bin/plkeyb") == false
 		print "Installing PortaLinux Utilities..."
 		system("#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} #{globalVars["cross_cflags"]} #{globalVars["rootfsFilesDir"]}/usr-bin/plkeyb.c -o #{globalVars["outputDir"]}/rootfs/usr/bin/plkeyb")
-		FileUtils.copy([ "#{globalVars["rootfsFilesDir"]}/usr-bin/init-script", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-install", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-info", "#{globalVars["rootfsFilesDir"]}/usr-bin/automount" ], "#{globalVars["outputDir"]}/rootfs/usr/bin")
-		FileUtils.chmod(0777, [ "#{globalVars["outputDir"]}/rootfs/usr/bin/init-script", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-install", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-info", "#{globalVars["outputDir"]}/rootfs/usr/bin/automount" ])
+		FileUtils.copy([ "#{globalVars["rootfsFilesDir"]}/usr-bin/init-script", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-install", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-info", "#{globalVars["rootfsFilesDir"]}/usr-bin/automount", "#{globalVars["rootfsFilesDir"]}/usr-bin/ls" ], "#{globalVars["outputDir"]}/rootfs/usr/bin")
+		FileUtils.chmod(0777, [ "#{globalVars["outputDir"]}/rootfs/usr/bin/shell-respawn", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-install", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-info", "#{globalVars["outputDir"]}/rootfs/usr/bin/automount", "#{globalVars["outputDir"]}/rootfs/usr/bin/ls" ])
 		puts "Done."
 	end
 
