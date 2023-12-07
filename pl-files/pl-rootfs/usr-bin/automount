@@ -25,11 +25,13 @@ main_prog(){
 			for i in $(seq 6); do
 				if [ $(blkid | grep $device | cut -d' ' -f$i | grep TYPE -c) -gt 0 ]; then
 					filesystem="$(blkid | grep $device | cut -d' ' -f$i | cut -d= -f2 | grep -ov \")"
+					virt_printf "* Mounting $device ($filesystem)..."
 					if [ ! -d /mnt/$(basename $device) ]; then
-						virt_printf "* Mounting $device ($filesystem)..."
 						mkdir /mnt/$(basename $device)
 						mount $device -t $filesystem -o ro /mnt/$(basename $device)
-						virt_echo "Done"
+						virt_echo "Done."
+					else
+						virt_echo "Already Mounted."
 					fi
 				fi
 			done

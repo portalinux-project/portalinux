@@ -10,5 +10,6 @@ for i in $cmdList; do
 done
 
 echo "* Created all links        "
+automount no-silent
 echo "* Initialization done"
 exit 0
