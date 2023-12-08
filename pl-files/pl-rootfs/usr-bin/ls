@@ -1,6 +1,6 @@
 #!/bin/sh
 args=$@
-if [ $(echo "$@" | grep -c "--color") -eq 0 ]; then
+if [ "$(echo '$@' | grep -c '\--color')" -eq 0 ]; then
 	args="--color=auto $args"
 fi
 

@@ -4,13 +4,13 @@ end_loop=""
 
 virt_printf(){
 	if [ "$silent" = "no-silent" ]; then
-		printf $@
+		printf "$1"
 	fi
 }
 
 virt_echo(){
 	if [ "$silent" = "no-silent" ]; then
-		echo $@
+		echo "$1"
 	fi
 }
 
@@ -22,14 +22,15 @@ main_prog(){
 	else
 		virt_echo "Found devices"
 		for device in $(blkid | cut -d: -f1); do
-			for i in $(seq 6); do
+			for i in $(seq $(expr $(blkid | grep $device | grep -o ' ' | wc -l) + 1)); do
 				if [ $(blkid | grep $device | cut -d' ' -f$i | grep TYPE -c) -gt 0 ]; then
 					filesystem="$(blkid | grep $device | cut -d' ' -f$i | cut -d= -f2 | grep -ov \")"
 					virt_printf "* Mounting $device ($filesystem)..."
-					if [ ! -d /mnt/$(basename $device) ]; then
+					if [ ! -d "/mnt/$(basename $device)" ]; then
 						mkdir /mnt/$(basename $device)
-						mount $device -t $filesystem -o ro /mnt/$(basename $device)
+						mount "$device" -t "$filesystem" -o ro "/mnt/$(basename $device)"
 						virt_echo "Done."
+						break
 					else
 						virt_echo "Already Mounted."
 					fi
@@ -37,6 +38,12 @@ main_prog(){
 			done
 		done
 	fi
+
+	for folder in $(ls /mnt); do
+		if [ $(ls /dev | grep -c "/dev/$folder") -eq 0 ]; then
+			rmdir /mnt/$folder
+		fi
+	done
 }
 
 silent="$1"
