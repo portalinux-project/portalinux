@@ -58,6 +58,21 @@ def compileAutoconf(pkgName, action, flags, globalVars, isRootfs=false)
 	end
 end
 
+def installCMake(pkgName, flags, globalVars, cmakeDir)
+    status = nil
+	Dir.chdir("#{globalVars["buildDir"]}/#{pkgName}-#{globalVars[pkgName]}")
+
+    if File.exist?(cmakeDir) == false
+		errorHandler("Internal Error (package build directory not found). This is most likely a build system bug", false)
+	end
+
+    Dir.chdir(cmakeDir)
+    status = system("cmake --install . #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+    if status == nil or status == false
+        errorHandler("Package failed to install", false)
+    end
+end
+
 def compilePl32lib(pkgName, action, flags, globalVars)
 	inBase = false
 	status = nil
