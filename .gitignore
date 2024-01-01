@@ -1,5 +1,5 @@
 build/
 tarballs/
 output/
-log.txt
+logs/**
 .config
