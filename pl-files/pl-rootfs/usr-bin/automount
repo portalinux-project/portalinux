@@ -16,7 +16,7 @@ virt_echo(){
 
 main_prog(){
 	virt_printf "* Looking for devices..."
-	if [ "$(blkid)" == "" ]; then
+	if [ "$(blkid)" = "" ]; then
 		virt_echo "No devices found"
 		virt_echo "* Cancelling automount..."
 	else

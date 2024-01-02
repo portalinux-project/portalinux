@@ -15,7 +15,7 @@ def rootfsBuild globalVars
 		for dir in [ "bin", "sbin", "etc", "lib" ]
 			FileUtils.ln_s("./usr/#{dir}", "#{dir}")
 		end
-		FileUtils.ln_s("/usr/bin/toybox", "usr/bin/sh")
+		FileUtils.ln_s("/usr/bin/dash", "usr/bin/sh")
 		FileUtils.ln_s("/usr/bin/pl-init", "init")
 		puts "Done"
 		Dir.chdir("#{globalVars["baseDir"]}")
@@ -47,12 +47,23 @@ def rootfsBuild globalVars
 		Dir.chdir("#{globalVars["buildDir"]}/toybox-#{globalVars["toybox"]}")
 		system("make defconfig 2>#{globalVars["baseDir"]}/logs/toybox-error.log >#{globalVars["baseDir"]}/logs/toybox.log")
 		configFile = File.open(".config", "a")
-		configFile.write("CONFIG_SH=y\nCONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\nCONFIG_TOYBOX_LIBZ=y\n")
+		configFile.write("CONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\nCONFIG_TOYBOX_LIBZ=y\n")
 		configFile.close()
 		system("make -j#{globalVars["threads"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS=#{globalVars["cross_cflags"]} 2>>#{globalVars["baseDir"]}/logs/toybox-error.log >>#{globalVars["baseDir"]}/logs/toybox.log")
 		puts "Done"
 		print "Installing Toybox..."
 		FileUtils.move("toybox", "#{globalVars["outputDir"]}/rootfs/usr/bin")
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/bin/dash") == false
+		print "Building Dash..."
+		Dir.chdir("#{globalVars["buildDir"]}/dash-#{globalVars["dash"]}")
+		system("./autogen.sh 1>#{globalVars["baseDir"]}/logs/dash-autogen.log 2>#{globalVars["baseDir"]}/logs/dash-autogen-error.log")
+		compileAutoconf("dash", "compile", [ "--prefix=/usr --host=i486-pocket-linux-musl --datarootdir=/opt", "-j#{globalVars["threads"]}" ], globalVars, true)
+		puts "Done."
+		print "Installing Dash..."
+		compileAutoconf("dash", "compile", "install DESTDIR=#{globalVars["outputDir"]}/rootfs", globalVars, true)
 		puts "Done."
 	end
 

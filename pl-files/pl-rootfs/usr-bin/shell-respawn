@@ -1,6 +1,6 @@
 #!/usr/bin/sh
 
-source "/usr/lib/os-release"
+. "/usr/lib/os-release"
 issue_text="$(cat /etc/issue | sed s/IMGVER/$IMAGE_VERSION/g | sed s/CURYEAR/$(date -d @$BUILD_ID +%Y)/g)"
 printf "$issue_text\n"
 exec /bin/sh
