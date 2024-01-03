@@ -40,8 +40,8 @@ main_prog(){
 	fi
 
 	for folder in $(ls /mnt); do
-		if [ $(ls /dev | grep -c "/dev/$folder") -eq 0 ]; then
-			rmdir /mnt/$folder
+		if [ $(ls /dev | grep -c "$folder") -eq 0 ]; then
+			rmdir /mnt/$folder 2>/dev/null
 		fi
 	done
 }
