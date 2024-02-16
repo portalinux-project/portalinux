@@ -1,5 +1,6 @@
 name: "pl-rt"
-version: "1.00-rc1"
+version: "1.00"
 github: true
-tag: "v1.00-rc1"
+#tag: "v1.00"
+branch: "main"
 url: "portalinux-project/pl-rt"
