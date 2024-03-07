@@ -300,7 +300,7 @@ def parseArgs
 end
 
 puts "PortaLinux Build System v0.11"
-puts "(c) 2020-2023 pocketlinux32 & raisinware, Under MPL 2.0"
+puts "(c) 2020-2024 CinnamonWolfy & raisinware, Under MPL 2.0"
 
 parseArgs
 launchBuildScript init()

@@ -319,7 +319,7 @@ def validateArgs
 end
 
 puts "PortaLinux Configure System v0.11"
-print "(c) 2022-2023 pocketlinux32 & raisinware, Under MPL 2.0\n\n"
+print "(c) 2020-2024 CinnamonWolfy & raisinware, Under MPL 2.0\n\n"
 
 if ARGV.length < 1
 	errorHandler("Not enough arguments", true)

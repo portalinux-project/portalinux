@@ -7,7 +7,7 @@ def rootfsBuild globalVars
 
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/lib") == false
 		print "Creating rootfs structure..."
-		for dir in [ "dev", "sys", "proc", "opt", "usr/bin", "usr/lib", "root", "mnt", "home", "tmp", "var/pl-srv/srv" ]
+		for dir in [ "dev", "sys", "proc", "opt", "usr/bin", "usr/lib", "root", "mnt", "home", "tmp", "var/pl-srv/srv", "var/log" ]
 			FileUtils.mkpath("#{globalVars["outputDir"]}/rootfs/#{dir}")
 		end
 		Dir.chdir("#{globalVars["outputDir"]}/rootfs")

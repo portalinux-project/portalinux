@@ -1,4 +1,4 @@
 name: "linux"
-version: "6.1.69"
+version: "6.1.80"
 github: false
-url: "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.1.69.tar.xz"
+url: "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.1.80.tar.xz"
