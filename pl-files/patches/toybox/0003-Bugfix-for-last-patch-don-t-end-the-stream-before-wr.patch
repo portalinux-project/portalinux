@@ -1,0 +1,39 @@
+From a675c9a96c34e26ceaf882698da586df4dda9517 Mon Sep 17 00:00:00 2001
+From: Rob Landley <rob@landley.net>
+Date: Tue, 27 Feb 2024 22:36:54 -0600
+Subject: [PATCH 3/4] Bugfix for last patch: don't end the stream before
+ writing the data.
+
+---
+ toys/pending/xzcat.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/toys/pending/xzcat.c b/toys/pending/xzcat.c
+index 5177f243..7f85d9e0 100644
+--- a/toys/pending/xzcat.c
++++ b/toys/pending/xzcat.c
+@@ -2860,16 +2860,16 @@ void do_xzcat(int fd, char *name)
+     if (ret == XZ_OK || ret == XZ_UNSUPPORTED_CHECK)
+       continue;
+ 
+-    else if (ret == XZ_STREAM_END) {
+-      xz_dec_end(s);
+-      return;
+-    }
+-
+     if (fwrite(out, 1, b.out_pos, stdout) != b.out_pos) {
+       msg = "Write error\n";
+       goto error;
+     }
+ 
++    if (ret == XZ_STREAM_END) {
++      xz_dec_end(s);
++      return;
++    }
++
+     msg = (ret-3 < ARRAY_LEN(errors)) ? errors[ret-3] : "Bug!";
+     goto error;
+   }
+-- 
+2.44.0
+
