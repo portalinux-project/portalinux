@@ -58,20 +58,20 @@ def compileAutoconf(pkgName, action, flags, globalVars, isRootfs=false)
 	end
 end
 
-def installCMake(pkgName, flags, globalVars, cmakeDir)
-    status = nil
-	Dir.chdir("#{globalVars["buildDir"]}/#{pkgName}-#{globalVars[pkgName]}")
+#def installCMake(pkgName, flags, globalVars, cmakeDir)
+#    status = nil
+#	Dir.chdir("#{globalVars["buildDir"]}/#{pkgName}-#{globalVars[pkgName]}")
 
-    if File.exist?(cmakeDir) == false
-		errorHandler("Internal Error (package build directory not found). This is most likely a build system bug", false)
-	end
+#    if File.exist?(cmakeDir) == false
+#		errorHandler("Internal Error (package build directory not found). This is most likely a build system bug", false)
+#	end
 
-    Dir.chdir(cmakeDir)
-    status = system("cmake --install . #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
-    if status == nil or status == false
-        errorHandler("Package failed to install", false)
-    end
-end
+#    Dir.chdir(cmakeDir)
+#    status = system("cmake --install . #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+#    if status == nil or status == false
+#        errorHandler("Package failed to install", false)
+#    end
+#end
 
 def compilePl32lib(pkgName, action, flags, globalVars)
 	inBase = false
@@ -125,9 +125,9 @@ def muslBuild(action, globalVars, isRootfs=false)
 	case action
 		when "headers"
 			if File.exist?("#{muslParams["installDir"]}/include/stdio.h") == false
-				system("make ARCH=#{muslParams["arch"]} prefix=#{globalVars["sysroot"]} install-headers 2>#{globalVars["baseDir"]}/logs/headers-error.log >#{globalVars["baseDir"]}/logs/headers.log")
+				system("make ARCH=#{muslParams["arch"]} prefix=#{muslParams["installDir"]} install-headers 2>#{globalVars["baseDir"]}/logs/headers-error.log >#{globalVars["baseDir"]}/logs/headers.log")
 				Dir.chdir("#{$buildDir}/linux-#{globalVars["linux"]}")
-				system("make ARCH=#{globalVars["linux_arch"]} INSTALL_HDR_PATH=#{globalVars["sysroot"]} headers_install 2>#{globalVars["baseDir"]}/logs/headers-error.log >#{globalVars["baseDir"]}/logs/headers.log")
+				system("make ARCH=#{globalVars["linux_arch"]} INSTALL_HDR_PATH=#{muslParams["installDir"]} headers_install 2>>#{globalVars["baseDir"]}/logs/headers-error.log >>#{globalVars["baseDir"]}/logs/headers.log")
 			end
 		when "libc"
 			if File.exist?("#{muslParams["prefixToInstallDir"]}#{muslParams["installDir"]}/lib/libc.so") == false

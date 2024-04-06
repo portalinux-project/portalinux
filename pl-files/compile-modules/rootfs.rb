@@ -11,7 +11,7 @@ def rootfsBuild globalVars
 			FileUtils.mkpath("#{globalVars["outputDir"]}/rootfs/#{dir}")
 		end
 		Dir.chdir("#{globalVars["outputDir"]}/rootfs")
-		FileUtils.ln_s("./usr/bin", "usr/sbin")
+		FileUtils.ln_s("./bin", "usr/sbin")
 		for dir in [ "bin", "sbin", "etc", "lib" ]
 			FileUtils.ln_s("./usr/#{dir}", "#{dir}")
 		end

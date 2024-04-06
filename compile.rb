@@ -87,7 +87,7 @@ def cleanProjectDir(lvl=2)
 				end
 			elsif File.exist?("#{dirPath}/Makefile") == true
 				Dir.chdir("#{dirPath}")
-				system("make -s clean >/dev/null 2>/dev/null")
+				system("make -s distclean >/dev/null 2>/dev/null")
 			elsif File.exist?("#{dirPath}/compile") == true and File.exist?("#{dirPath}/configure.ac") == false
 				Dir.chdir("#{dirPath}")
 				system("./compile clean >/dev/null 2>/dev/null")
@@ -105,6 +105,12 @@ def cleanProjectDir(lvl=2)
 		if lvl == 3 and Dir.exist?("#{$outputDir}") == true
 			print "Cleaning output directory..."
 			FileUtils.rm_rf("#{$outputDir}")
+			puts "Done."
+		end
+
+		if lvl == 3 and File.exist?("#{$baseDir}/.config") == true
+			print "Removing config file..."
+			File.delete("#{$baseDir}/.config")
 			puts "Done."
 		end
 
