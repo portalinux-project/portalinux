@@ -110,7 +110,7 @@ def cleanProjectDir(lvl=2)
 
 		if lvl == 3 and File.exist?("#{$baseDir}/.config") == true
 			print "Removing config file..."
-			File.delete("#{$baseDir}/.config")
+			FileUtils.rm_rf("#{$baseDir}/.config")
 			puts "Done."
 		end
 

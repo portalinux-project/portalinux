@@ -133,8 +133,7 @@ def patchPkgs pkgList
 		print "Patching #{pkg}..."
 
 		# check if package has already been patched
-		Dir.chdir("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}")
-		if File.exist?(".patched")
+		if File.exist?("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}/.patched")
 			puts "Skipped."
 			next
 		end
@@ -216,11 +215,11 @@ def init extraPkgs
 	puts "Stage 3 Complete! Starting Stage 4"
 	puts "Stage 4: Create config file"
 
-	if File.exist?(".config") == true
+	if File.exist?("#{$baseDir}/.config") == true
 		puts "Config file exists, skipping..."
 	else
 		print "Creating config file..."
-		configFile = File.open(".config", "w")
+		configFile = File.open("#{$baseDir}/.config", "w")
 
 		configFile.write("preset: #{$preset}\n")
 		configFile.write("prefix: #{$prefix}\n")
