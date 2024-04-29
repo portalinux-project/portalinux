@@ -22,7 +22,7 @@ def kernelBuild globalVars
 		print "Would you like to configure further? (N/y) "
 		yn = gets.chomp
 		if yn == "y" or yn == "yes" or yn == "Y"
-			system("make menuconfig")
+			system("make ARCH=#{globalVars["linux_arch"]} menuconfig")
 		end
 
 		matches = File.foreach(".config").grep("CONFIG_MODULES")
@@ -36,12 +36,26 @@ def kernelBuild globalVars
 	puts "Installing kernel files..."
 
 	Dir.chdir("#{globalVars["buildDir"]}/linux-#{globalVars["linux"]}/arch/#{globalVars["linux_arch"]}/boot")
-	realPath = File.readlink(Dir.foreach(".").grep(/Image/).shift)
+	
+	realPath = ""
+	if globalVars["linux_arch"].match?("86") and globalVars["linux_arch"] != "x86_64"
+		realPath = File.readlink("bzImage")
+	elsif globalVars["linux_arch"] == "x86_64"
+		realPath = "bzImage"
+	else
+		list = Dir.entries(".")
+		while realPath == "" and list.size > 0
+			holder = list.shift
+			if holder == "zImage" or holder == "bzImage"
+				realPath = holder
+			end
+		end
+			
+	end 
 	FileUtils.copy(realPath, "#{globalVars["outputDir"]}")
 
-	Dir.chdir(File.dirname(realPath))
 	if Dir.exist?("dts")
-		FileUtils.copy_entry("dts", "#{globalVars["outputDir"]}")
+		FileUtils.copy(Dir.glob("dts/*.dtb"), "#{globalVars["outputDir"]}")
 	end
 
 	Dir.chdir("../../..")
