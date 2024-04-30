@@ -60,7 +60,7 @@ def rootfsBuild globalVars
 		print "Building Dash..."
 		Dir.chdir("#{globalVars["buildDir"]}/dash-#{globalVars["dash"]}")
 		system("./autogen.sh 1>#{globalVars["baseDir"]}/logs/dash-autogen.log 2>#{globalVars["baseDir"]}/logs/dash-autogen-error.log")
-		compileAutoconf("dash", "compile", [ "--prefix=/usr --host=i486-pocket-linux-musl --datarootdir=/opt", "-j#{globalVars["threads"]}" ], globalVars, true)
+		compileAutoconf("dash", "compile", [ "--prefix=/usr --host=#{globalVars["triple"]} --datarootdir=/opt", "-j#{globalVars["threads"]}" ], globalVars, true)
 		puts "Done."
 		print "Installing Dash..."
 		compileAutoconf("dash", "compile", "install DESTDIR=#{globalVars["outputDir"]}/rootfs", globalVars, true)

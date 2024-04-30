@@ -23,9 +23,9 @@ def compileAutoconf(pkgName, action, flags, globalVars, isRootfs=false)
 			Dir.mkdir("build")
 			Dir.chdir("build")
 
-			envVars = nil
+			envVars = "PATH=#{globalVars["tcprefix"]}/bin:#{ENV["PATH"]}"
 			if isRootfs == true
-				envVars = "CC='#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} #{globalVars["cross_cflags"]}' CFLAGS=-Os"
+				envVars = "#{envVars} CC='#{globalVars["cross_cc"]} #{globalVars["cross_cflags"]}' CFLAGS=-Os"
 			end
 
 			status = system("#{envVars} ../configure #{confFlags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
@@ -50,7 +50,7 @@ def compileAutoconf(pkgName, action, flags, globalVars, isRootfs=false)
 			Dir.chdir(File.join(globalVars["buildDir"], "#{pkgName}-#{globalVars[pkgName]}/build"))
 		end
 
-		status = system("make MAKEINFO=true #{compFlags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+		status = system("make #{compFlags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 		if status == nil or status == false
 			errorHandler("Package failed to compile", false)
 		end

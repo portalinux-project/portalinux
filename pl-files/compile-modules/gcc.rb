@@ -3,7 +3,7 @@ require_relative 'common.rb'
 def toolchainBuild globalVars
 	if File.exist?("#{globalVars["sysroot"]}/bin/as") == false
 		print "Building Binutils..."
-		compileAutoconf("binutils", "compile", [ "--prefix=#{globalVars["tcprefix"]} --target=#{globalVars["triple"]} --disable-doc --disable-werror", "-j#{globalVars["threads"]}" ], globalVars)
+		compileAutoconf("binutils", "compile", [ "--prefix=#{globalVars["tcprefix"]} --target=#{globalVars["triple"]} --with-arch=#{globalVars["arch"]} --disable-multilib --disable-doc --disable-werror", "-j#{globalVars["threads"]}" ], globalVars)
 		puts "Done."
 		print "Installing Binutils..."
 		compileAutoconf("binutils", "compile", "install-strip", globalVars)
@@ -12,21 +12,21 @@ def toolchainBuild globalVars
 
 	if File.exist?("#{globalVars["tcprefix"]}/lib/libmpc.so") == false
 		print "Building GMP..."
-		compileAutoconf("gmp", "compile", [ "--prefix=#{globalVars["tcprefix"]}", "-j#{globalVars["threads"]}" ], globalVars)
+		compileAutoconf("gmp", "compile", [ "--prefix=#{globalVars["tcprefix"]} --disable-multilib", "-j#{globalVars["threads"]}" ], globalVars)
 		puts "Done."
 		print "Installing GMP..."
 		compileAutoconf("gmp", "compile", "install-strip", globalVars)
 		puts "Done."
 
 		print "Building MPFR..."
-		compileAutoconf("mpfr", "compile", [ "--prefix=#{globalVars["tcprefix"]} --with-gmp=#{globalVars["tcprefix"]}", "-j#{globalVars["threads"]}" ], globalVars)
+		compileAutoconf("mpfr", "compile", [ "--prefix=#{globalVars["tcprefix"]} --disable-multilib --with-gmp=#{globalVars["tcprefix"]}", "-j#{globalVars["threads"]}" ], globalVars)
 		puts "Done."
 		print "Installing MPFR..."
 		compileAutoconf("mpfr", "compile", "install-strip", globalVars)
 		puts "Done."
 
 		print "Building MPC..."
-		compileAutoconf("mpc", "compile", [ "--prefix=#{globalVars["tcprefix"]} --with-gmp=#{globalVars["tcprefix"]} --with-mpfr=#{globalVars["tcprefix"]}", "-j#{globalVars["threads"]}" ], globalVars)
+		compileAutoconf("mpc", "compile", [ "--prefix=#{globalVars["tcprefix"]} --disable-multilib --with-gmp=#{globalVars["tcprefix"]} --with-mpfr=#{globalVars["tcprefix"]}", "-j#{globalVars["threads"]}" ], globalVars)
 		puts "Done."
 		print "Installing MPC..."
 		compileAutoconf("mpc", "compile", "install-strip", globalVars)
@@ -35,7 +35,7 @@ def toolchainBuild globalVars
 
 	if File.exist?("#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-gcc") == false
 		print "Building GCC compilers..."
-		compileAutoconf("gcc", "compile", [ "--prefix=#{globalVars["tcprefix"]} --target=#{globalVars["triple"]} --disable-werror --disable-libsanitizer --enable-initfini-array --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap --with-gmp=#{globalVars["tcprefix"]} --with-mpfr=#{globalVars["tcprefix"]} --with-mpc=#{globalVars["tcprefix"]} --disable-doc", "-j#{globalVars["threads"]} all-gcc" ], globalVars)
+		compileAutoconf("gcc", "compile", [ "--prefix=#{globalVars["tcprefix"]} --target=#{globalVars["triple"]} --disable-multilib --disable-werror --disable-libsanitizer --enable-initfini-array --enable-languages=c,c++ --disable-libstdcxx-debug --disable-bootstrap --with-gmp=#{globalVars["tcprefix"]} --with-mpfr=#{globalVars["tcprefix"]} --with-mpc=#{globalVars["tcprefix"]} --disable-doc", "-j#{globalVars["threads"]} all-gcc" ], globalVars)
 		puts "Done."
 		print "Installing GCC compilers..."
 		compileAutoconf("gcc", "compile", "install-strip-gcc", globalVars)
