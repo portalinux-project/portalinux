@@ -115,6 +115,8 @@ def muslBuild(action, globalVars, isRootfs=false)
 
 	if globalVars["arch"] == "aarch64"
 		muslParams["arch"] = globalVars["arch"]
+	elsif globalVars["arch"].scan("riscv") != Array.new
+		muslParams["arch"] = globalVars["arch"]
 	end
 	if isRootfs == true
 		muslParams["installDir"] = "/usr"
