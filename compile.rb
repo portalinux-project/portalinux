@@ -152,6 +152,8 @@ def getLinuxArch arch
 			return "arm64"
 		end
 		return "arm"
+	elsif arch.scan("riscv") != Array.new
+		return "riscv"
 	else
 		return arch
 	end
