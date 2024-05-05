@@ -49,7 +49,9 @@ def rootfsBuild globalVars
 		configFile = File.open(".config", "a")
 		configFile.write("CONFIG_DD=y\nCONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\nCONFIG_TOYBOX_LIBZ=y\nCONFIG_XZCAT=y\n")
 		configFile.close()
-		system("make -j#{globalVars["threads"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS=#{globalVars["cross_cflags"]} 2>>#{globalVars["baseDir"]}/logs/toybox-error.log >>#{globalVars["baseDir"]}/logs/toybox.log")
+		if system("make -j#{globalVars["threads"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS=#{globalVars["cross_cflags"]} 2>>#{globalVars["baseDir"]}/logs/toybox-error.log >>#{globalVars["baseDir"]}/logs/toybox.log") != true
+			errorHandler("Toybox failed to compile", false)
+		end
 		puts "Done"
 		print "Installing Toybox..."
 		FileUtils.move("toybox", "#{globalVars["outputDir"]}/rootfs/usr/bin")
