@@ -1,0 +1,24 @@
+diff --git a/gcc/gcc.cc b/gcc/gcc.cc
+index 16bb07f2c..a6f5c3e14 100644
+--- a/gcc/gcc.cc
++++ b/gcc/gcc.cc
+@@ -4156,6 +4156,10 @@ driver_handle_option (struct gcc_options *opts,
+ 	exit (0);
+       }
+ 
++    // hack to fix gcc being dumb and doing multilib when it shouldn't
++    case OPT_print_multi_os_directory:
++      exit (0);
++
+     case OPT_dumpversion:
+       printf ("%s\n", spec_version);
+       exit (0);
+@@ -4215,7 +4219,7 @@ driver_handle_option (struct gcc_options *opts,
+     case OPT_print_multi_lib:
+     case OPT_print_multi_directory:
+     case OPT_print_sysroot:
+-    case OPT_print_multi_os_directory:
++    //case OPT_print_multi_os_directory:
+     case OPT_print_multiarch:
+     case OPT_print_sysroot_headers_suffix:
+     case OPT_time:
