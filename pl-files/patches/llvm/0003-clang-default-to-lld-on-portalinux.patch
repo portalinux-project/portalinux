@@ -1,0 +1,25 @@
+From 504ddcd5bebf5ba778c3967a3ad265090d54014b Mon Sep 17 00:00:00 2001
+From: raisin <raisinware@outlook.com>
+Date: Sun, 5 May 2024 22:58:48 -0700
+Subject: [PATCH 3/3] clang: default to lld on portalinux
+
+---
+ clang/lib/Driver/ToolChains/Linux.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/clang/lib/Driver/ToolChains/Linux.cpp b/clang/lib/Driver/ToolChains/Linux.cpp
+index 20a16f2c8fa4..3a132ec5fc6c 100644
+--- a/clang/lib/Driver/ToolChains/Linux.cpp
++++ b/clang/lib/Driver/ToolChains/Linux.cpp
+@@ -862,7 +862,7 @@ void Linux::addExtraOpts(llvm::opt::ArgStringList &CmdArgs) const {
+ }
+ 
+ const char *Linux::getDefaultLinker() const {
+-  if (getTriple().isAndroid())
++  if (getTriple().isAndroid() || getTriple().isPortaLinux())
+     return "ld.lld";
+   return Generic_ELF::getDefaultLinker();
+ }
+-- 
+2.43.2
+
