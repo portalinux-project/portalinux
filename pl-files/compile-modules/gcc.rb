@@ -107,4 +107,13 @@ def toolchainBuild globalVars
 		compilePl32lib("pl-rt", "compile", "install", globalVars)
 		puts "Done."
 	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libpltermlib.so") == false
+		print "Building pltermlib..."
+		compilePl32lib("pltermlib", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+		puts "Done."
+		print "Installing pltermlib..."
+		compilePl32lib("pltermlib", "compile", "install", globalVars)
+		puts "Done."
+	end
 end

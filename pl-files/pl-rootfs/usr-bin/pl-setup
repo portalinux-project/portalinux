@@ -1,0 +1,45 @@
+#!/bin/sh
+# PortaLinux Persistence Setup v0.01
+# (c) 2024 CinnamonWolfy, Under MPL 2.0
+
+selected_disk=""
+diskfs=""
+get_disk_fs(){
+	diskfs="$(blkid | grep $1 | grep -eo 'TYPE=.[a-z]*' | cut -d\" -f2)"
+}
+
+select_disk(){
+	echo "Here are all available disks:"
+	disks=$(blkid | cut -d: -f1 | sort)
+	entry_num=1
+	for disk in $disks; do
+		get_disk_fs $disk
+		echo "$entry_num) $disk ($diskfs)"
+		entry_num=$(expr $entry_num + 1)
+	done
+	read -p "Select a drive (number or exact string):" disksel
+	if [ "$(echo $disksel | grep -eo '^[0-9]*$')" != ""  ] && [ "$(echo $disks | sed -n '$disksel p')" != "" ]; then
+		selected_disk="$(echo $disks | sed -n '$disksel p')"
+		get_disk_fs $selected_disk
+		echo "Selected disk $selected_disk ($diskfs)"
+	elif [ $(echo "$disks" | grep "$disksel" -c) -eq 1 ]; then
+		selected_disk="$(echo $disks | grep $disksel)"
+		get_disk_fs $selected_disk
+		echo "Selected disk $selected_disk ($diskfs)"
+	else
+		echo "Error: Invalid disk. Exiting..."
+		exit
+	fi
+}
+
+initialize_disk(){
+	if [ ! -d "/mnt/$(basename $selected_disk)" ]; then
+}
+
+if [ "$(mountpoint /opt && echo $?)" = "" ]; then
+	read -p "No persistence volume mounted. Set up and enable persistence? [N/y]" yn
+	if [ "$yn" = "y" ] || [ "$yn" = "Y" ]; then
+		select_disk
+		initialize_disk
+	fi
+fi
