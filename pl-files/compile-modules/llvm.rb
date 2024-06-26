@@ -2,6 +2,21 @@ require_relative 'common.rb'
 
 $llvmTargets="AArch64;ARM;BPF;Hexagon;LoongArch;Mips;PowerPC;RISCV;Sparc;SystemZ;X86"
 
+def installCMake(pkgName, flags, globalVars, cmakeDir)
+	status = nil
+		Dir.chdir("#{globalVars["buildDir"]}/#{pkgName}-#{globalVars[pkgName]}")
+
+	if File.exist?(cmakeDir) == false
+			errorHandler("Internal Error (package build directory not found). This is most likely a build system bug", false)
+		end
+
+	Dir.chdir(cmakeDir)
+	status = system("cmake --install . #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+	if status == nil or status == false
+		errorHandler("Package failed to install", false)
+	end
+end
+
 def compileClang(pkgName, flags, globalVars)
 	status = nil
 	Dir.chdir("#{globalVars["buildDir"]}/#{pkgName}-#{globalVars[pkgName]}")
