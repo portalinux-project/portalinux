@@ -1,19 +1,20 @@
 #!/bin/sh
+device_list="$(blkid -s TYPE)"
 end_loop=""
 
 main_prog(){
 	printf "* Looking for devices..."
-	if [ "$(blkid)" = "" ]; then
+	if [ "$device_list" = "" ]; then
 		echo "No devices found"
 		echo "* Cancelling automount..."
 	else
 		echo "Found devices"
-		for device in $(blkid | cut -d: -f1); do
-			filesystem="$(blkid | grep $1 | grep -eo 'TYPE=.[a-z]*' | cut -d\" -f2)"
+		for device in $(echo $device_list | cut -d: -f1); do
+			filesystem="$(echo $device_list | grep $device | cut -d\" -f2)"
 			if [ "$filesystem" != "" ]; then
 				printf "* Mounting $device ($filesystem)..."
 				if [ ! -d "/mnt/$(basename $device)" ]; then
-					mkdir /mnt/$(basename $device)
+					mkdir "/mnt/$(basename $device)"
 					mount "$device" -t "$filesystem" -o ro "/mnt/$(basename $device)"
 					echo "Done."
 					break

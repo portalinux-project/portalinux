@@ -2,15 +2,16 @@
 # PortaLinux Persistence Setup v0.01
 # (c) 2024 CinnamonWolfy, Under MPL 2.0
 
+raw_disklist="$(blkid -s TYPE)"
 selected_disk=""
 diskfs=""
 get_disk_fs(){
-	diskfs="$(blkid | grep $1 | grep -eo 'TYPE=.[a-z]*' | cut -d\" -f2)"
+	diskfs="$(echo $raw_disklist | grep $1 | cut -d\" -f2)"
 }
 
 select_disk(){
 	echo "Here are all available disks:"
-	disks=$(blkid | cut -d: -f1 | sort)
+	disks=$(echo $raw_disklist | cut -d: -f1 | sort)
 	entry_num=1
 	for disk in $disks; do
 		get_disk_fs $disk
@@ -18,7 +19,7 @@ select_disk(){
 		entry_num=$(expr $entry_num + 1)
 	done
 	read -p "Select a drive (number or exact string):" disksel
-	if [ "$(echo $disksel | grep -eo '^[0-9]*$')" != ""  ] && [ "$(echo $disks | sed -n '$disksel p')" != "" ]; then
+	if [ "$(echo $disksel | grep -o -e '^[0-9]*$')" != ""  ] && [ "$(echo $disks | sed -n '$disksel p')" != "" ]; then
 		selected_disk="$(echo $disks | sed -n '$disksel p')"
 		get_disk_fs $selected_disk
 		echo "Selected disk $selected_disk ($diskfs)"
@@ -33,7 +34,28 @@ select_disk(){
 }
 
 initialize_disk(){
-	if [ ! -d "/mnt/$(basename $selected_disk)" ]; then
+	if [ ! -d "/mnt/$(basename $selected_disk)" ] || [ "$(mountpoint /mnt/$(basename && echo $?)" = "" ]; then
+		mkdir "/mnt/$(basename $selected_disk)" -p
+		mount $selected_disk -t $diskfs -o rw "/mnt/$(basename $selected_disk)"
+	else
+		mount -o remount,rw $selected_disk "/mnt/$(basename $selected_disk)"
+	fi
+
+	if [ "$diskfs" = "vfat" ]; then
+		dd if=/dev/zero of=/mnt/$(basename $selected_disk)/persist.img bs=1M count=256
+		mke2fs -j /mnt/$(basename $selected_disk)/persist.img
+		mount /mnt/$(basename $selected_disk)/persist.img /opt
+		echo "opt_mountpoint=persist.img" > /mnt/$(basename $selected_disk)/.pl-persist
+	elif [ "$(echo $diskfs | grep ext)" != "" ]; then
+		mount --bind /mnt/$(basename $selected_disk) /opt
+		echo "opt_mountpoint=." > /mnt/$(basename $selected_disk)/.pl-persist
+	fi
+
+	mkdir /opt/data/home/root -p
+	cp /usr/etc /opt/data -r
+	cp /var /opt/data -r
+
+	echo "Persistence drive complete"
 }
 
 if [ "$(mountpoint /opt && echo $?)" = "" ]; then
