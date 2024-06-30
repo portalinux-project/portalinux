@@ -42,6 +42,36 @@ def compileClang(pkgName, flags, globalVars)
 	end
 end
 
+def createCMakeToolchainFile(globalVars, crossfile)
+	crossdata = <<EOF
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR "#{globalVars["arch"]}")
+set(CMAKE_SYSROOT "#{globalVars["sysroot"]}")
+
+set(triple "#{globalVars["triple"]}")
+set(CMAKE_ASM_COMPILER_TARGET ${triple})
+set(CMAKE_C_COMPILER_TARGET ${triple})
+set(CMAKE_CXX_COMPILER_TARGET ${triple})
+set(CMAKE_EXE_LINKER_FLAGS "--ld-path='#{globalVars["tcprefix"]}/bin/ld.lld' --rtlib=compiler-rt")
+set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
+
+set(CMAKE_C_COMPILER "#{globalVars["tcprefix"]}/bin/clang")
+set(CMAKE_CXX_COMPILER "#{globalVars["tcprefix"]}/bin/clang++")
+set(CMAKE_NM "#{globalVars["tcprefix"]}/bin/llvm-nm")
+set(CMAKE_AR "#{globalVars["tcprefix"]}/bin/llvm-ar")
+set(CMAKE_RANLIB "#{globalVars["tcprefix"]}/bin/llvm-ranlib")
+
+
+# these variables tell CMake to avoid using any binary it finds in
+# the sysroot, while picking headers and libraries exclusively from it
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+EOF
+	File.write(crossfile, crossdata)
+end
+
 def toolchainBuild globalVars
 	if File.exist?("#{globalVars["tcprefix"]}/bin/clang") == false
 		puts "Building LLVM, Clang, LLD..."
@@ -50,6 +80,20 @@ def toolchainBuild globalVars
 		installCMake("llvm", "--strip", globalVars, "build-clang")
 		puts "Done."
 	end
+
+	if File.exist?("#{globalVars["sysroot"]}/include/stdio.h") == false
+		print "Installing Linux and C library headers..."
+		muslBuild("headers", globalVars, false)
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/cross.cmake") == false
+		createCMakeToolchainFile(globalVars, "#{globalVars["sysroot"]}/cross.cmake")
+	end
+
+	# if File.exist?("#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a") == false
+	# 	#
+	# end
 
 	errorHandler("Remaining LLVM support unimplemented.", false)
 end
