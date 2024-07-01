@@ -115,7 +115,7 @@ def rootfsBuild globalVars
 		print "Installing PortaLinux Utilities..."
 		system("#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} #{globalVars["cross_cflags"]} #{globalVars["rootfsFilesDir"]}/usr-bin/plkeyb.c -o #{globalVars["outputDir"]}/rootfs/usr/bin/plkeyb")
 		FileUtils.copy([ "#{globalVars["rootfsFilesDir"]}/usr-bin/shell-respawn", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-install", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-info", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-setup", "#{globalVars["rootfsFilesDir"]}/usr-bin/automount", "#{globalVars["rootfsFilesDir"]}/usr-bin/ls" ], "#{globalVars["outputDir"]}/rootfs/usr/bin")
-		FileUtils.chmod(0777, [ "#{globalVars["outputDir"]}/rootfs/usr/bin/shell-respawn", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-install", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-info", "#{globalVars["rootfsFilesDir"]}/usr-bin/pl-setup", "#{globalVars["outputDir"]}/rootfs/usr/bin/automount", "#{globalVars["outputDir"]}/rootfs/usr/bin/ls" ])
+		FileUtils.chmod(0777, [ "#{globalVars["outputDir"]}/rootfs/usr/bin/shell-respawn", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-install", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-info", "#{globalVars["outputDir"]}/rootfs/usr/bin/pl-setup", "#{globalVars["outputDir"]}/rootfs/usr/bin/automount", "#{globalVars["outputDir"]}/rootfs/usr/bin/ls" ])
 		puts "Done."
 	end
 
