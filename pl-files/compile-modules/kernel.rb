@@ -46,7 +46,7 @@ def kernelBuild globalVars
 		list = Dir.entries(".")
 		while realPath == "" and list.size > 0
 			holder = list.shift
-			if holder == "zImage" or holder == "bzImage" or "Image.gz"
+			if holder == "zImage" or holder == "bzImage" or holder == "Image.gz" or holder == "Image.Z"
 				realPath = holder
 			end
 		end

@@ -9,7 +9,8 @@ main_prog(){
 		echo "* Cancelling automount..."
 	else
 		echo "Found devices"
-		for device in $(echo $device_list | cut -d: -f1); do
+		for device_entry in $device_list; do
+			device=$(echo $device_entry | cut -d: -f1)
 			filesystem="$(echo $device_list | grep $device | cut -d\" -f2)"
 			if [ "$filesystem" != "" ]; then
 				printf "* Mounting $device ($filesystem)..."
