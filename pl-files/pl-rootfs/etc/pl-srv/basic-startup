@@ -11,5 +11,10 @@ done
 
 echo "* Created all links        "
 automount no-silent
+if [ -f "/etc/keymaps/defkmap.kmap" ]; then
+	printf "Applying custom default keymap..."
+	plkeyb defkmap.kmap
+	echo "Done."
+fi
 echo "* Initialization done"
 exit 0

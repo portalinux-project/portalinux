@@ -107,6 +107,7 @@ def rootfsBuild globalVars
 		end
 		File.rename("#{globalVars["outputDir"]}/rootfs/usr/etc/ld-musl.path", "#{globalVars["outputDir"]}/rootfs/usr/etc/ld-musl-#{muslArch}.path")
 		FileUtils.chmod(0777, "#{globalVars["outputDir"]}/rootfs/usr/etc/pl-srv/basic-startup")
+		Dir.mkdir("#{globalVars["outputDir"]}/rootfs/usr/etc/keymaps")
 
 		puts "Done."
 	end
