@@ -1,0 +1,34 @@
+#!/bin/sh
+device_list="$(ls /mnt)"
+
+printf "* Looking for persistence device..."
+if [ "$device_list" ]; then
+	echo "No devices mounted. Running without persistence..."
+	exit 1
+else
+	for device in $device_list; do
+		if [ -f "/mnt/$device/.pl-persist" ]; done
+			echo "Found persistence partition at /dev/$(device)."
+			. /mnt/$device/.pl-persist
+			if [ "$opt_mountpoint" = "." ]; then
+				printf "* Enabling native persistence..."
+				umount /mnt/$device
+				mount /dev/$device /opt
+				echo "Done."
+			elif [ "$opt_mountpoint" != "" ]; then
+				printf "* Enabling virtual persistence..."
+				mount -o remount,rw /dev/$device /mnt/$device
+				mount /mnt/$device/$opt_mountpoint /opt
+				echo "Done."
+			else
+				echo "* Invalid persistence config detected. Running without persistence..."
+				exit 1
+			fi
+
+			exit 0
+		fi
+	done
+
+	echo "* No persistence partition found. Running without persistence..."
+	exit 1
+fi

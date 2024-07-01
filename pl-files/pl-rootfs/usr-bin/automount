@@ -1,5 +1,5 @@
 #!/bin/sh
-device_list="$(blkid -s TYPE)"
+device_list=""
 end_loop=""
 
 main_prog(){
@@ -33,6 +33,7 @@ main_prog(){
 }
 
 while [ "$end_loop" = "" ]; do
+	device_list="$(blkid -s TYPE)"
 	main_prog
 	sleep 1
 	if [ "$1" != "" ]; then
