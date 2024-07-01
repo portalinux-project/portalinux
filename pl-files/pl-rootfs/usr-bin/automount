@@ -9,8 +9,7 @@ main_prog(){
 		echo "* Cancelling automount..."
 	else
 		echo "Found devices"
-		for device_entry in $device_list; do
-			device=$(echo $device_entry | cut -d: -f1)
+		for device in $device_list; do
 			filesystem="$(echo $device_list | grep $device | cut -d\" -f2)"
 			if [ "$filesystem" != "" ]; then
 				printf "* Mounting $device ($filesystem)..."
@@ -34,7 +33,7 @@ main_prog(){
 }
 
 while [ "$end_loop" = "" ]; do
-	device_list="$(blkid -s TYPE)"
+	device_list="$(blkid -s TYPE | cut -d: -f1 | sort)"
 	main_prog
 	sleep 1
 	if [ "$1" != "" ]; then
