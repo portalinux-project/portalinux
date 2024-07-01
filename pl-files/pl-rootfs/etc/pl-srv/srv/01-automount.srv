@@ -1,2 +1,3 @@
 exec = "/usr/bin/automount"
 respawn = true
+background = true
