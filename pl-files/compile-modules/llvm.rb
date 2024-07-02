@@ -42,6 +42,30 @@ def compileClang(pkgName, flags, globalVars)
 	end
 end
 
+def compileLLVMLibs(pkgName, buildDir, flags, globalVars)
+	status = nil
+	Dir.chdir("#{globalVars["buildDir"]}/llvm-#{globalVars["llvm"]}")
+
+	if File.exist?("build-#{pkgName}") == true
+		FileUtils.rm_rf("build-#{pkgName}")
+	end
+
+	Dir.mkdir("build-#{pkgName}")
+	Dir.chdir("build-#{pkgName}")
+
+	status = system("cmake ../#{buildDir} -GNinja #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+	if status == nil
+		Dir.chdir("..")
+		FileUtils.rm_rf("build-#{pkgName}")
+		errorHandler("Package failed to configure", false)
+	end
+
+	status = system("cmake --build . -j#{globalVars["threads"]} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log | tee #{globalVars["baseDir"]}/logs/#{pkgName}.log")
+	if status == nil or status == false
+		errorHandler("Package failed to build", false)
+	end
+end
+
 def createCMakeToolchainFile(globalVars, crossfile)
 	crossdata = <<EOF
 set(CMAKE_SYSTEM_NAME Linux)
@@ -52,8 +76,6 @@ set(triple "#{globalVars["triple"]}")
 set(CMAKE_ASM_COMPILER_TARGET ${triple})
 set(CMAKE_C_COMPILER_TARGET ${triple})
 set(CMAKE_CXX_COMPILER_TARGET ${triple})
-set(CMAKE_EXE_LINKER_FLAGS "--ld-path='#{globalVars["tcprefix"]}/bin/ld.lld' --rtlib=compiler-rt")
-set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
 
 set(CMAKE_C_COMPILER "#{globalVars["tcprefix"]}/bin/clang")
 set(CMAKE_CXX_COMPILER "#{globalVars["tcprefix"]}/bin/clang++")
@@ -74,8 +96,8 @@ end
 
 def toolchainBuild globalVars
 	if File.exist?("#{globalVars["tcprefix"]}/bin/clang") == false
-		puts "Building LLVM, Clang, LLD..."
-		compileClang("llvm", "-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX='#{globalVars["tcprefix"]}' -DLLVM_TARGETS_TO_BUILD='#{$llvmTargets}' -DLLVM_ENABLE_PROJECTS=clang;lld -DLLVM_HAVE_LIBXAR=0 -DLLVM_LINK_LLVM_DYLIB=1 -DCLANG_LINK_CLANG_DYLIB=1", globalVars)
+		print "Building LLVM, Clang, LLD..."
+		compileClang("llvm", "-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX='#{globalVars["tcprefix"]}' -DLLVM_TARGETS_TO_BUILD='#{$llvmTargets}' -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_HAVE_LIBXAR=0 -DLLVM_LINK_LLVM_DYLIB=1 -DCLANG_LINK_CLANG_DYLIB=1", globalVars)
 		print "Done. Installing LLVM, Clang, LLD..."
 		installCMake("llvm", "--strip", globalVars, "build-clang")
 		puts "Done."
@@ -91,9 +113,13 @@ def toolchainBuild globalVars
 		createCMakeToolchainFile(globalVars, "#{globalVars["sysroot"]}/cross.cmake")
 	end
 
-	# if File.exist?("#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a") == false
-	# 	#
-	# end
+	if File.exist?("#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a") == false
+		print "Building LLVM builtins..."
+		compileLLVMLibs("builtins", "compiler-rt", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 -DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1", globalVars)
+		print "Done.\nInstalling LLVM builtins..."
+		installCMake("llvm", "--strip", globalVars, "build-builtins")
+		puts "Done."
+	end
 
 	errorHandler("Remaining LLVM support unimplemented.", false)
 end
