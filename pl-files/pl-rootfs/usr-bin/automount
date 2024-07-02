@@ -10,7 +10,7 @@ main_prog(){
 	else
 		echo "Found devices"
 		for device in $device_list; do
-			filesystem="$(echo $device_list | grep $device | cut -d\" -f2)"
+			filesystem="$(blkid -s TYPE | grep $device | cut -d\" -f2)"
 			if [ "$filesystem" != "" ]; then
 				printf "* Mounting $device ($filesystem)..."
 				if [ ! -d "/mnt/$(basename $device)" ]; then

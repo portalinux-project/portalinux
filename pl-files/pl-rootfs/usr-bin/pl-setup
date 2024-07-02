@@ -2,31 +2,41 @@
 # PortaLinux Persistence Setup v0.01
 # (c) 2024 CinnamonWolfy, Under MPL 2.0
 
-raw_disklist="$(blkid -s TYPE)"
+raw_disklist="$(blkid -s TYPE | sort)"
+disklist=""
 selected_disk=""
-diskfs=""
-get_disk_fs(){
-	diskfs="$(echo $raw_disklist | grep $1 | cut -d\" -f2)"
+selected_disk_fs=""
+
+parse_raw_disklist(){
+	for entry_chunk in $raw_disklist; do
+		if [ "$disklist" = "" ]; then
+			disklist="$(echo $entry_chunk | cut -d: -f1)"
+		elif [ "$(echo $entry_chunk | grep TYPE)" != "" ]; then
+			disklist="$disklist|$(echo $entry_chunk | cut -d\" -f2)"
+		else
+			disklist="$disklist $(echo $entry_chunk | cut -d: -f1)"
+		fi
+	done
 }
 
 select_disk(){
 	echo "Here are all available disks:"
-	disks=$(echo $raw_disklist | cut -d: -f1 | sort)
 	entry_num=1
-	for disk in $disks; do
-		get_disk_fs $disk
+	for disk_entry in $disklist; do
+		disk=$(echo $disk_entry | cut -d'|' -f1)
+		diskfs=$(echo $disk_entry | cut -d'|' -f2)
 		echo "$entry_num) $disk ($diskfs)"
 		entry_num=$(expr $entry_num + 1)
 	done
 	read -p "Select a drive (number or exact string):" disksel
-	if [ "$(echo $disksel | grep -o -e '^[0-9]*$')" != ""  ] && [ "$(echo $disks | sed -n '$disksel p')" != "" ]; then
-		selected_disk="$(echo $disks | sed -n '$disksel p')"
-		get_disk_fs $selected_disk
-		echo "Selected disk $selected_disk ($diskfs)"
-	elif [ $(echo "$disks" | grep "$disksel" -c) -eq 1 ]; then
-		selected_disk="$(echo $disks | grep $disksel)"
-		get_disk_fs $selected_disk
-		echo "Selected disk $selected_disk ($diskfs)"
+	if [ "$(echo $disksel | grep -o -e '^[0-9]*$')" != ""  ] && [ "$(echo $disklist | cut -d' ' -f$disksel)" != "" ]; then
+		selected_disk="$(echo $disklist | cut -d'|' -f1)"
+		selected_disk_fs="$(echo $disklist | cut -d'|' -f2)"
+		echo "Selected disk $selected_disk ($selected_disk_fs)"
+	elif [ $(echo "$disklist" | grep "$disksel" -c) -eq 1 ]; then
+		selected_disk="$disksel"
+		selected_disk_fs="$(echo $disklist | grep -o $disksel|.[a-z]*)"
+		echo "Selected disk $selected_disk ($selected_disk_fs)"
 	else
 		echo "Error: Invalid disk. Exiting..."
 		exit
@@ -36,18 +46,19 @@ select_disk(){
 initialize_disk(){
 	if [ ! -d "/mnt/$(basename $selected_disk)" ] || [ "$(mountpoint /mnt/$(basename && echo $?)" = "" ]; then
 		mkdir "/mnt/$(basename $selected_disk)" -p
-		mount $selected_disk -t $diskfs -o rw "/mnt/$(basename $selected_disk)"
+		mount $selected_disk -t $selected_disk_fs -o rw "/mnt/$(basename $selected_disk)"
 	else
 		mount -o remount,rw $selected_disk "/mnt/$(basename $selected_disk)"
 	fi
 
-	if [ "$diskfs" = "vfat" ]; then
+	if [ "$selected_disk_fs" = "vfat" ]; then
 		dd if=/dev/zero of=/mnt/$(basename $selected_disk)/persist.img bs=1M count=256
 		mke2fs -j /mnt/$(basename $selected_disk)/persist.img
 		mount /mnt/$(basename $selected_disk)/persist.img /opt
 		echo "opt_mountpoint=persist.img" > /mnt/$(basename $selected_disk)/.pl-persist
-	elif [ "$(echo $diskfs | grep ext)" != "" ]; then
-		mount --bind /mnt/$(basename $selected_disk) /opt
+	elif [ "$(echo $selected_disk_fs | grep ext)" != "" ]; then
+		umount /mnt/$(basename $selected_disk)
+		mount $selected_disk /opt
 		echo "opt_mountpoint=." > /mnt/$(basename $selected_disk)/.pl-persist
 	fi
 
