@@ -12,7 +12,7 @@ parse_raw_disklist(){
 		if [ "$disklist" = "" ]; then
 			disklist="$(echo $entry_chunk | cut -d: -f1)"
 		elif [ "$(echo $entry_chunk | grep TYPE)" != "" ]; then
-			disklist="$disklist|$(echo $entry_chunk | cut -d\" -f2)"
+			disklist="$disklist|$(echo $entry_chunk | cut -d'\"' -f2)"
 		else
 			disklist="$disklist $(echo $entry_chunk | cut -d: -f1)"
 		fi
@@ -44,7 +44,7 @@ select_disk(){
 }
 
 initialize_disk(){
-	if [ ! -d "/mnt/$(basename $selected_disk)" ] || [ "$(mountpoint /mnt/$(basename && echo $?)" = "" ]; then
+	if [ ! -d "/mnt/$(basename $selected_disk)" ] || [ "$(mountpoint /mnt/$(basename $selected_disk) && echo $?)" = "" ]; then
 		mkdir "/mnt/$(basename $selected_disk)" -p
 		mount $selected_disk -t $selected_disk_fs -o rw "/mnt/$(basename $selected_disk)"
 	else
