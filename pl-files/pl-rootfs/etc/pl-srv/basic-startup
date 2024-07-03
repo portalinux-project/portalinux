@@ -11,6 +11,7 @@ done
 
 echo "* Created all links        "
 automount no-silent
+enable-persistence
 if [ -f "/etc/keymaps/defkmap.kmap" ]; then
 	printf "* Applying custom default keymap..."
 	plkeyb defkmap.kmap

@@ -69,7 +69,7 @@ initialize_disk(){
 	echo "Persistence drive complete"
 }
 
-if [ "$(mountpoint /opt && echo $?)" = "" ]; then
+if [ "$(mountpoint /opt > /dev/null && echo $?)" = "" ]; then
 	read -p "No persistence volume mounted. Set up and enable persistence? [N/y]" yn
 	if [ "$yn" = "y" ] || [ "$yn" = "Y" ]; then
 		select_disk

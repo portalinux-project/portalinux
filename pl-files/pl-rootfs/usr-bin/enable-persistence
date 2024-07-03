@@ -2,13 +2,13 @@
 device_list="$(ls /mnt)"
 
 printf "* Looking for persistence device..."
-if [ "$device_list" ]; then
+if [ "$device_list" = "" ]; then
 	echo "No devices mounted. Running without persistence..."
 	exit 1
 else
 	for device in $device_list; do
-		if [ -f "/mnt/$device/.pl-persist" ]; done
-			echo "Found persistence partition at /dev/$(device)."
+		if [ -f "/mnt/$device/.pl-persist" ]; then
+			echo "Found persistence partition at /dev/$device."
 			. /mnt/$device/.pl-persist
 			if [ "$opt_mountpoint" = "." ]; then
 				printf "* Enabling native persistence..."
