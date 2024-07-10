@@ -1,11 +1,12 @@
-PortaLinux IMGVER
-(c) 2020-CURYEAR pocketlinux32 & raisinware
+PortaLinux 0.11
+(c) 2020-2024 CinnamonWolfy & raisinware
 
-mainline: https://github.com/pocketlinux32/portalinux
-ports: https://github.com/raisinware/portalinux
+mainline: https://github.com/portalinux-project/portalinux
 
-PortaLinux is a Free and Open Source hobby project. We are only doing this on
-our free time. WE ARE GIVING THIS SOFTWARE AS-IS AND WE ARE NOT RESPONSIBLE FOR
-ANY DAMAGES.
+PortaLinux is a Free and Open Source
+hobby project. We are only doing this on
+our free time. WE ARE GIVING THIS SOFTWARE
+AS-IS AND WE ARE NOT RESPONSIBLE FOR ANY 
+DAMAGES.
 
 - pocketlinux32 and raisinware

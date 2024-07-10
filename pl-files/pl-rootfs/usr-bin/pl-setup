@@ -21,6 +21,7 @@ parse_raw_disklist(){
 
 select_disk(){
 	echo "Here are all available disks:"
+	parse_raw_disklist
 	entry_num=1
 	for disk_entry in $disklist; do
 		disk=$(echo $disk_entry | cut -d'|' -f1)
