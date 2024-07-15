@@ -1,4 +1,4 @@
-require_relative 'common.rb'
+require 'common'
 
 $llvmTargets="AArch64;ARM;BPF;Hexagon;LoongArch;Mips;PowerPC;RISCV;Sparc;SystemZ;X86"
 

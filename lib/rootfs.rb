@@ -1,4 +1,4 @@
-require_relative 'common.rb'
+require 'common'
 
 def rootfsBuild globalVars
 	if Dir.exist?("#{globalVars["tcprefix"]}/#{globalVars["triple"]}") == false

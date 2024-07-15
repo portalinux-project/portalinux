@@ -1,4 +1,4 @@
-require_relative 'common.rb'
+require 'common'
 
 def toolchainBuild globalVars
 	if File.exist?("#{globalVars["sysroot"]}/bin/as") == false

@@ -1,10 +1,12 @@
 #!/usr/bin/env ruby
 # SPDX-License-Identifier: MPL-2.0
 
+$LOAD_PATH.append(File.expand_path("./lib"))
+
 require 'yaml'
 require 'etc'
 require 'fileutils'
-# require_relative 'pl-files/compile-files/plml.rb'
+# require 'pl-files/compile-files/plml'
 
 $threads = Etc.nprocessors / 2
 $baseDir = File.expand_path(".")
@@ -212,36 +214,36 @@ def launchBuildScript config
 		when "toolchain"
 			if config["toolchain"] == "gcc"
 				puts "Launching GCC Build Script...\n\n"
-				require_relative 'pl-files/compile-modules/gcc.rb'
+				require 'gcc'
 			elsif config["toolchain"] == "llvm"
 				puts "Launching LLVM Build Script...\n\n"
-				require_relative 'pl-files/compile-modules/llvm.rb'
+				require 'llvm'
 			end
 
 			toolchainBuild config
-			if File.exist?("#{$baseDir}/custom.rb")
+			if File.exist?("#{$baseDir}/custom")
 				puts "Custom build script found. Launching script...\n\n"
-				require_relative 'custom.rb'
+				require_relative 'custom'
 				customToolchainBuild config
 			end
 		when "rootfs"
 			puts "Launching Root Filesystem Build Script...\n\n"
-			require_relative 'pl-files/compile-modules/rootfs.rb'
+			require 'rootfs'
 
 			rootfsBuild config
 			if File.exist?("#{$baseDir}/custom.rb")
 				puts "Custom build script found. Launching script...\n\n"
-				require_relative 'custom.rb'
+				require_relative 'custom'
 				customRootfsBuild config
 			end
 		when "boot-img"
 			puts "Launching Root Filesystem Build Script...\n\n"
-			require_relative 'pl-files/compile-modules/rootfs.rb'
+			require 'rootfs'
 
 			bootImgMaker config
 		when "kernel"
 			puts "Launching Linux Kernel Build Script...\n\n"
-			require_relative 'pl-files/compile-modules/kernel.rb'
+			require 'kernel'
 
 			kernelBuild config
 		else

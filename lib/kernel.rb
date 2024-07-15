@@ -1,4 +1,4 @@
-require_relative 'common.rb'
+require 'common'
 
 def kernelBuild globalVars
 	Dir.chdir("#{globalVars["buildDir"]}/linux-#{globalVars["linux"]}")
