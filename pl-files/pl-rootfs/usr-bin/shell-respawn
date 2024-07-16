@@ -1,5 +1,5 @@
 #!/usr/bin/sh
 
-issue_text="$(cat /etc/issue)"
-printf "$issue_text\n"
-exec /bin/sh
+cat /etc/issue | sed "s/%r/$(uname -r)/g" | sed "s/%m/$(uname -m)/g" | sed "s/%l/\/dev\/tty1/g"
+echo
+exec /usr/bin/getty -i 9600 /dev/tty1

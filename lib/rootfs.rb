@@ -175,9 +175,9 @@ def bootImgMaker globalVars
 				errorHandler("Cannot escalate priviledges. Run this program as the superuser and try again")
 			end
 
-			system("#{sudoProg} #{globalVars["baseDir"]}/pl-files/compile-modules/mknod.sh #{globalVars["outputDir"]}/rootfs")
+			system("#{sudoProg} #{globalVars["baseDir"]}/lib/mknod.sh #{globalVars["outputDir"]}/rootfs")
 		else
-			system("#{globalVars["baseDir"]}/pl-files/compile-modules/mknod.sh #{globalVars["outputDir"]}/rootfs")
+			system("#{globalVars["baseDir"]}/lib/mknod.sh #{globalVars["outputDir"]}/rootfs")
 		end
 		puts "Done."
 		print "Generating boot image..."
