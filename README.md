@@ -48,7 +48,7 @@ apply any necessary patches and generate a configure file for the build system.
 
 To build a toolchain, run the following:
 ```sh
-./compile.rb -b toolchain
+./build.rb -b toolchain
 ```
 This will install a toolchain at `~/cross` under its toolchain type, although
 this might be changed to preset name in the future.
@@ -57,7 +57,7 @@ this might be changed to preset name in the future.
 
 To build the PortaLinux root filesystem, run the following:
 ```sh
-./compile.rb -b rootfs
+./build.rb -b rootfs
 ```
 This will generate a chrootable directory containing the PortaLinux root
 filesystem. It will be located in the output directory
@@ -66,7 +66,7 @@ filesystem. It will be located in the output directory
 
 To generate a bootable rootfs image, run the following:
 ```sh
-./compile.rb -b boot-img
+./build.rb -b boot-img
 ```
 This will generate a compressed cpio archive that can be booted with a Linux
 kernel that supports loading an external initramfs file. It will be located
@@ -76,7 +76,7 @@ in the output directory
 
 To build the Linux kernel, run the following:
 ```sh
-./compile.rb -b kernel
+./build.rb -b kernel
 ```
 It will prompt you for the default kernel configuration to be used and whether
 or not you want to configure it further. It will compile the kernel afterwards
