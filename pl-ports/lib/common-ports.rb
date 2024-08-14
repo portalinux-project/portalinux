@@ -75,15 +75,15 @@ module PLPorts
 
 			case compression
 				when "gz"
-					system("gunzip -c #{fileParentDir}/#{filename} | tar x --strip-components=1")
+					shellRun("gunzip -c #{fileParentDir}/#{filename} | tar x --strip-components=1")
 				when "bz2"
-					system("bunzip2 -c #{fileParentDir}/#{filename} | tar x --strip-components=1")
+					shellRun("bunzip2 -c #{fileParentDir}/#{filename} | tar x --strip-components=1")
 				when "xz"
-					system("xz -dc #{fileParentDir}/#{filename} | tar x --strip-components=1")
+					shellRun("xz -dc #{fileParentDir}/#{filename} | tar x --strip-components=1")
 				when "zst"
-					system("zstd -dc #{fileParentDir}/#{filename} | tar x --strip-components=1")
+					shellRun("zstd -dc #{fileParentDir}/#{filename} | tar x --strip-components=1")
 				when "popk"
-					system("zcat #{fileParentDir}/#{filename} | tar x --strip-components=1")
+					shellRun("zcat #{fileParentDir}/#{filename} | tar x --strip-components=1")
 				else
 					puts "Error!"
 					errorHandler("Unknown compression type")
@@ -103,8 +103,8 @@ module PLPorts
 				for i in Dir.glob("*.patch")
 					pfile = File.expand_path(i)
 					Dir.chdir("#{buildDir}")
-					system("touch .patched")
-					system("patch -sp1 -i #{pfile}")
+					shellRun("touch .patched")
+					shellRun("patch -sp1 -i #{pfile}")
 					Dir.chdir("#{patchDir}")
 				end
 				puts "Done."

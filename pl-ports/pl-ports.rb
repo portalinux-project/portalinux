@@ -12,6 +12,16 @@ $installPkg = false
 
 def fetchPackage(packageName)
 	# TODO: implement package fetching
+	if File.exist?("#{packageName}.popk") == false
+		PLPorts::Common.errorHandler("Fetching is not implemented. You must give a package that exists within the current directory")
+	end
+
+	PLPorts::Common.extractFile("#{packageName}.popk")
+end
+
+def printPackageInfo(packageName)
+	Dir.chdir("#{packageName}")
+	# TODO: implement info printing
 end
 
 def installPackage(packageName)
@@ -72,5 +82,8 @@ print "(c) 2024 CinnamonWolfy, Under MPL 2.0\n\n"
 
 parseArgs
 for package in $pkgNames
-	installPackage(package)
+	fetchPackage(package)
+	if $installPkg == true
+		installPackage(package)
+	end
 end
