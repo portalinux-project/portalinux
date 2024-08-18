@@ -27,16 +27,14 @@ module PLPorts
 		end
 
 		def self.shellRun(shellCommand)
-			pid = system(shellCommand)
-			Process.wait pid
-			if $?.exitstatus != 0
+			success = system(shellCommand)
+			if success == false
 				errorHandler("Program exited with nonzero code #{$?.exitstatus}")
 			end
 		end
 
 		def self.downloadFile(url, file, secure)
 			if File.exist?(file) == true
-				puts "Skipped."
 				return 1
 			end
 
@@ -56,11 +54,12 @@ module PLPorts
 			downloadedFile = File.open(file, "wb")
 			downloadedFile.write(response.body)
 			downloadedFile.close
+
+			return 0
 		end
 	
 		def self.extractArchive(filename, decompressPath)
 			if Dir.exist?("#{decompressPath}") == true
-				puts "Skipped."
 				return 1
 			end
 
@@ -88,10 +87,12 @@ module PLPorts
 					puts "Error!"
 					errorHandler("Unknown compression type")
 			end
+
+			return 0
 		end
 
 		def self.patchAndOverlay(patchDir, overlayDir, buildDir)
-			print "Patching sources..."
+			print "* Patching sources..."
 
 			# check if package has patches or has already been patched
 			if Dir.exist?(patchDir) == false or File.exist?("#{buildDir}/.patched")
@@ -110,7 +111,7 @@ module PLPorts
 				puts "Done."
 			end
 
-			print "Applying overlay to sources..."
+			print "* Applying overlay to sources..."
 
 			# check if overlay exists
 			if Dir.exist?("#{overlayDir}") == false
@@ -134,6 +135,7 @@ module PLPorts
 
 			@pkgName = pkgInfo['name']
 			@pkgVersion = pkgInfo['version']
+			@pkgAuthor = pkgInfo['author']
 			@pkgUrl = pkgInfo['url']
 			@pkgConfigFlags = pkgInfo['configure-flags']
 			@pkgCompileFlags = pkgInfo['compile-flags']
@@ -147,13 +149,34 @@ module PLPorts
 		end
 
 		def fetch()
-			print "Downloading sources..."
-			Common.downloadFile(@pkgUrl, "#{File.basename @pkgUrl}")
-			puts "Done."
-			print "Extracting sources..."
-			Common.extractArchive("#{File.basename @pkgUrl}")
-			puts "Done."
+			print "* Downloading sources..."
+			filename = "#{File.basename @pkgUrl}"
+			secure = false
+			if @pkgUrl.match?("https") == true or @pkgUrl.match?("github.com")
+				secure = true
+				if @pkgUrl.match?("github.com")
+					filename = "#{@pkgName}-#{@pkgVersion}.tar.gz"
+				end
+			end
+
+			completion = Common.downloadFile(@pkgUrl, filename, secure)
+			if completion == 1
+				puts "Skipped."
+			else
+				puts "Done."
+			end
+
+			print "* Extracting sources..."
+			completion = Common.extractArchive(filename, @pkgBuildDir)
+			if completion == 1
+				puts "Skipped."
+			else
+				puts "Done."
+			end
+
 			Common.patchAndOverlay(@pkgPatchDir, @pkgOverlayDir, @pkgBuildDir)
+
+			Dir.chdir(@pkgBuildDir)
 		end
 	end
 end

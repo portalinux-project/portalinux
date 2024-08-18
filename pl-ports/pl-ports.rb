@@ -16,19 +16,33 @@ def fetchPackage(packageName)
 		PLPorts::Common.errorHandler("Fetching is not implemented. You must give a package that exists within the current directory")
 	end
 
-	PLPorts::Common.extractFile("#{packageName}.popk")
+	print "* Extracting #{packageName}..."
+	extracted = PLPorts::Common.extractArchive("#{packageName}.popk", packageName)
+	if extracted == 1
+		puts "Skipped."
+		Dir.chdir(packageName)
+	else
+		puts "Done."
+	end
 end
 
 def printPackageInfo(packageName)
-	Dir.chdir("#{packageName}")
-	# TODO: implement info printing
+	pkgInfo = YAML.load_file("./properties.yaml")
+	puts
+	puts "Package name: #{pkgInfo["name"]}"
+	puts "Package version: #{pkgInfo["version"]}"
+	puts "Package Author: #{pkgInfo["author"]}"
+	puts "Source URL: #{pkgInfo["url"]}"
+	puts
 end
 
 def installPackage(packageName)
-	Dir.chdir("#{packageName}")
 	load 'build.rb'
+	print "* Initializing package..."
 	Package.init()
+	puts "Done."
 	Package.fetch()
+	print "* Running Package.build()...\n\n"
 	Package.build()
 	Package.install()
 	Dir.chdir("#{$rootDir}")
@@ -83,6 +97,7 @@ print "(c) 2024 CinnamonWolfy, Under MPL 2.0\n\n"
 parseArgs
 for package in $pkgNames
 	fetchPackage(package)
+	printPackageInfo(package)
 	if $installPkg == true
 		installPackage(package)
 	end
