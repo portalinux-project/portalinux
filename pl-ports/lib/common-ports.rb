@@ -135,10 +135,10 @@ module PLPorts
 
 			@pkgName = pkgInfo['name']
 			@pkgVersion = pkgInfo['version']
-			@pkgAuthor = pkgInfo['author']
 			@pkgUrl = pkgInfo['url']
 			@pkgConfigFlags = pkgInfo['configure-flags']
 			@pkgCompileFlags = pkgInfo['compile-flags']
+			@pkgRootDir = File.expand_path('.')
 			@pkgBuildDir = File.expand_path(buildDir)
 			@pkgPatchDir = File.expand_path(patchDir)
 			@pkgOverlayDir = File.expand_path(overlayDir)
