@@ -28,7 +28,7 @@ an example of `properties.yaml` below:
 ```yaml
 name: "package" # Name of package (Required)
 version: "1.0.0" # Version of package (Required)
-author: "CinnamonWolfy" (Optional, but it won't remain that way)
+author: "CinnamonWolfy" # (Optional, but it won't remain that way)
 url: "https://example.com/package/package-1.0.0-src.tar.gz" # Source Download URL (Required)
 configure-flags: "--prefix=/opt --enable-experimental-features" # Configuration Flags (Technically optional, but required for most packages, since no package installs to /opt by default)
 compile-flags: "-O3 -march=native" # Compilation Flags (Completely optional)
