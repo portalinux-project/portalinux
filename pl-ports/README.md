@@ -51,3 +51,22 @@ are generated from `properties.yaml` that you, the reader, will probably need:
 - `@pkgBuildDir`: Directory where the sources are extracted to. Inferred from function parameter `buildDir` (defaults to `@pkgRootDir/src`)
 - `@pkgPatchDir`: Directory where patches are stored at. Inferred from function parameter `patchDir` (defaults to `@pkgRootDir/src`)
 - `@pkgOverlayDir`: Directory where extra files that should be copied to `@pkgBuildDir`. Inferred from function parameter `overlayDir` (defaults to `@pkgRootDir/overlay`)
+
+Here is an example for `build.rb`:
+
+```ruby
+require 'common-ports.rb'
+
+class Package
+	extend PLPorts::BasePackage
+
+	def self.build()
+		system("./configure #{@pkgConfigFlags} CFLAGS=#{@pkgCompileFlags}")
+		system("make build")
+	end
+
+	def self.install()
+		system("make install")
+	end
+end
+```
