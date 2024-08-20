@@ -70,3 +70,12 @@ class Package
 	end
 end
 ```
+# Example Package
+
+There is an example package in this directory that downloads and installs the
+PortaLinux Runtime (`pl-rt`) to `~/.local`. To try installing this package, run
+this:
+
+```
+./pl-ports install pl-rt
+```
