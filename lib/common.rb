@@ -128,6 +128,7 @@ def muslBuild(action, globalVars, isRootfs=false)
 						muslArgs.store("LIBCC", "#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a")
 						muslArgs.store("AR", "#{globalVars["tcprefix"]}/bin/llvm-ar")
 						muslArgs.store("RANLIB", "#{globalVars["tcprefix"]}/bin/llvm-ranlib")
+						muslArgs.store("CFLAGS", "#{globalVars["cross_cflags"]}")
 				end
 				muslArgs.store("CC", "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}")
 
