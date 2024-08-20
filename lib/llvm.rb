@@ -121,5 +121,11 @@ def toolchainBuild globalVars
 		puts "Done."
 	end
 
+	if File.exist?("#{globalVars["sysroot"]}/lib/libc.so") == false
+		print "Building Musl..."
+		muslBuild("libc", globalVars, false)
+		puts "Done."
+	end
+
 	errorHandler("Remaining LLVM support unimplemented.", false)
 end
