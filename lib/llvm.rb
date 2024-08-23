@@ -119,12 +119,22 @@ def toolchainBuild globalVars
 		print "Done.\nInstalling LLVM builtins..."
 		installCMake("llvm", "--strip", globalVars, "build-builtins")
 		puts "Done."
+		# TODO: make symlinks to fix linking
 	end
 
 	if File.exist?("#{globalVars["sysroot"]}/lib/libc.so") == false
 		print "Building Musl..."
 		muslBuild("libc", globalVars, false)
 		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/linux/libclang_rt.atomic-#{globalVars["linux_arch"]}.so") == false
+		print "Building libatomic..."
+		compileLLVMLibs("libatomic", "compiler-rt", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 -DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1 -DCOMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1", globalVars)
+		print "Done.\nInstalling libatomic..."
+		installCMake("llvm", "--strip", globalVars, "build-libatomic")
+		puts "Done."
+		# TODO: make symlinks to fix linking
 	end
 
 	errorHandler("Remaining LLVM support unimplemented.", false)
