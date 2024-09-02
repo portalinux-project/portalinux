@@ -122,6 +122,8 @@ module PLPorts
 				puts "Done."
 			end
 		end
+
+		
 	end
 
 	module BasePackage
@@ -136,6 +138,8 @@ module PLPorts
 			@pkgName = pkgInfo['name']
 			@pkgVersion = pkgInfo['version']
 			@pkgUrl = pkgInfo['url']
+			@pkgStageAmnt = pkgInfo['stages']
+			@pkgCompiler = pkgInfo['compiler']
 			@pkgConfigFlags = pkgInfo['configure-flags']
 			@pkgCompileFlags = pkgInfo['compile-flags']
 			@pkgRootDir = File.expand_path('.')
@@ -145,6 +149,14 @@ module PLPorts
 
 			if @pkgName == nil or @pkgVersion == nil or @pkgUrl == nil
 				Common.errorHandler("Invalid properties.yaml")
+			end
+
+			if @pkgStageAmnt == nil
+				@pkgStageAmnt = 0
+			end
+
+			if @pkgCompiler == nil
+				@pkgCompile = "cc"
 			end
 		end
 

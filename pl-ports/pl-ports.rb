@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # SPDX-License-Identifier: MPL-2.0
-# PortaLinux Ports System, v0.01
+
+# PortaLinux Ports System, v0.02
 # (c) 2024 CinnamonWolfy, Under MPL 2.0
 
 $LOAD_PATH.append(File.expand_path("./lib"))
@@ -42,8 +43,20 @@ def installPackage(packageName)
 	Package.init()
 	puts "Done."
 	Package.fetch()
-	print "* Running Package.build()...\n\n"
-	Package.build()
+
+	stageAmnt = Package.getStageAmnt()
+	if stageAmnt > 0
+		currentStage = 0
+		while currentStage < stageAmnt
+			print "* Running Package.build() (Stage #{currentStage + 1})...\n\n"
+			currentStage += 1
+			Package.build(currentStage)
+		end
+	else
+		print "* Running Package.build()...\n\n"
+		Package.build()
+	end
+	print "* Running Package.install()...\n\n"
 	Package.install()
 	Dir.chdir("#{$rootDir}")
 end
@@ -91,7 +104,7 @@ def parseArgs
 	end
 end
 
-puts "PortaLinux Ports System, v0.01"
+puts "PortaLinux Ports System, v0.02"
 print "(c) 2024 CinnamonWolfy, Under MPL 2.0\n\n"
 
 parseArgs
