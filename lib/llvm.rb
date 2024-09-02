@@ -113,11 +113,16 @@ def toolchainBuild globalVars
 		createCMakeToolchainFile(globalVars, "#{globalVars["sysroot"]}/cross.cmake")
 	end
 
-	if File.exist?("#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a") == false
+	if File.exist?("#{globalVars["sysroot"]}/lib/crtbeginS.o") == false
 		print "Building LLVM builtins..."
 		compileLLVMLibs("builtins", "compiler-rt", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 -DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1", globalVars)
 		print "Done.\nInstalling LLVM builtins..."
 		installCMake("llvm", "--strip", globalVars, "build-builtins")
+		# TODO: put this in its own function
+		system("ln -sf ./linux/clang_rt.crtbegin-#{globalVars["linux_arch"]}.o \"#{globalVars["sysroot"]}/lib/crtbeginS.o\"")
+		system("ln -sf ./linux/clang_rt.crtend-#{globalVars["linux_arch"]}.o \"#{globalVars["sysroot"]}/lib/crtendS.o\"")
+		system("mkdir -p '#{globalVars["tcprefix"]}/lib/clang/18/lib/linux/'")
+		system("ln -sf \"#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a\" \"#{globalVars["tcprefix"]}/lib/clang/18/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a\"")
 		puts "Done."
 	end
 
@@ -125,6 +130,16 @@ def toolchainBuild globalVars
 		print "Building Musl..."
 		muslBuild("libc", globalVars, false)
 		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libatomic.so") == false
+		print "Building libatomic..."
+		compileLLVMLibs("libatomic", "compiler-rt", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 -DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1 -DCOMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1", globalVars)
+		print "Done.\nInstalling libatomic..."
+		installCMake("llvm", "--strip", globalVars, "build-libatomic")
+		system("ln -sf ./linux/libclang_rt.atomic-#{globalVars["linux_arch"]}.so \"#{globalVars["sysroot"]}/lib/libatomic.so\"")
+		puts "Done."
+		# TODO: make symlinks to fix linking
 	end
 
 	errorHandler("Remaining LLVM support unimplemented.", false)
