@@ -71,7 +71,7 @@ def rootfsBuild globalVars
 
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/lib/libplrt.so") == false
 		print "Building pl-rt..."
-		compilePl32lib("pl-rt", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+		compilePl32lib("pl-rt", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross-cc"]}'", "build" ], globalVars)
 		puts "Done."
 		print "Installing pl-rt..."
 		compilePl32lib("pl-rt", "compile", "install", globalVars)
@@ -80,7 +80,7 @@ def rootfsBuild globalVars
 
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/lib/libplterm.so") == false
 		print "Building pltermlib..."
-		compilePl32lib("pltermlib", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+		compilePl32lib("pltermlib", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross-cc"]'", "build" ], globalVars)
 		puts "Done."
 		print "Installing pltermlib..."
 		compilePl32lib("pltermlib", "compile", "install", globalVars)
@@ -89,7 +89,7 @@ def rootfsBuild globalVars
 
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/bin/pl-init") == false
 		print "Building pl-srv..."
-		compilePl32lib("pl-srv", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+		compilePl32lib("pl-srv", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross-cc"]'", "build" ], globalVars)
 		puts "Done."
 		print "Installing pl-srv..."
 		compilePl32lib("pl-srv", "compile", "install", globalVars)

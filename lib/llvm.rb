@@ -96,15 +96,14 @@ end
 
 def toolchainBuild globalVars
 	if File.exist?("#{globalVars["tcprefix"]}/bin/clang") == false
-		print "Building LLVM, Clang, LLD..."
+		print "Building LLVM, Clang, LLD...\n"
 		compileClang("llvm", "-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX='#{globalVars["tcprefix"]}' -DLLVM_TARGETS_TO_BUILD='#{$llvmTargets}' -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_HAVE_LIBXAR=0 -DLLVM_LINK_LLVM_DYLIB=1 -DCLANG_LINK_CLANG_DYLIB=1", globalVars)
-		print "Done. Installing LLVM, Clang, LLD..."
+		print "Done. Installing LLVM, Clang, LLD...\n"
 		installCMake("llvm", "--strip", globalVars, "build-clang")
-		puts "Done."
 	end
 
 	if File.exist?("#{globalVars["sysroot"]}/include/stdio.h") == false
-		print "Installing Linux and C library headers..."
+		print "Done. Installing Linux and C library headers..."
 		muslBuild("headers", globalVars, false)
 		puts "Done."
 	end
@@ -139,8 +138,38 @@ def toolchainBuild globalVars
 		installCMake("llvm", "--strip", globalVars, "build-libatomic")
 		system("ln -sf ./linux/libclang_rt.atomic-#{globalVars["linux_arch"]}.so \"#{globalVars["sysroot"]}/lib/libatomic.so\"")
 		puts "Done."
-		# TODO: make symlinks to fix linking
 	end
 
-	errorHandler("Remaining LLVM support unimplemented.", false)
+	if File.exist?("#{globalVars["sysroot"]}/lib/libz.so") == false
+		print "Building zlib..."
+		Dir.chdir("#{globalVars["buildDir"]}/zlib-#{globalVars["zlib"]}")
+		if File.exist?("build") == false
+			Dir.mkdir("build")
+		end
+		Dir.chdir("build")
+		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/clang", "AR" => "#{globalVars["tcprefix"]}/bin/llvm-ar"}, "../configure --prefix=#{globalVars["sysroot"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		blockingSpawn("make -j#{globalVars["threads"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		puts "Done."
+		print "Installing zlib..."
+		blockingSpawn("make install 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log")
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libplrt.so") == false
+		print "Building pl-rt..."
+		compilePl32lib("pl-rt", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross_cflags"]}'", "build" ], globalVars)
+		puts "Done."
+		print "Installing pl-rt..."
+		compilePl32lib("pl-rt", "compile", "install", globalVars)
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libpltermlib.so") == false
+		print "Building pltermlib..."
+		compilePl32lib("pltermlib", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross_cflags"]}'", "build" ], globalVars)
+		puts "Done."
+		print "Installing pltermlib..."
+		compilePl32lib("pltermlib", "compile", "install", globalVars)
+		puts "Done."
+	end
 end
