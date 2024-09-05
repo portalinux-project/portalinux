@@ -95,6 +95,7 @@ EOF
 end
 
 def toolchainBuild globalVars
+	# toolchain
 	if File.exist?("#{globalVars["tcprefix"]}/bin/clang") == false
 		print "Building LLVM, Clang, LLD...\n"
 		compileClang("llvm", "-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX='#{globalVars["tcprefix"]}' -DLLVM_TARGETS_TO_BUILD='#{$llvmTargets}' -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_HAVE_LIBXAR=0 -DLLVM_LINK_LLVM_DYLIB=1 -DCLANG_LINK_CLANG_DYLIB=1", globalVars)
@@ -102,16 +103,19 @@ def toolchainBuild globalVars
 		installCMake("llvm", "--strip", globalVars, "build-clang")
 	end
 
+	# linux headers
 	if File.exist?("#{globalVars["sysroot"]}/include/stdio.h") == false
 		print "Done. Installing Linux and C library headers..."
 		muslBuild("headers", globalVars, false)
 		puts "Done."
 	end
 
+	# cmake cross compile file
 	if File.exist?("#{globalVars["sysroot"]}/cross.cmake") == false
 		createCMakeToolchainFile(globalVars, "#{globalVars["sysroot"]}/cross.cmake")
 	end
 
+	# compiler builtins
 	if File.exist?("#{globalVars["sysroot"]}/lib/crtbeginS.o") == false
 		print "Building LLVM builtins..."
 		compileLLVMLibs("builtins", "compiler-rt", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 -DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1", globalVars)
@@ -125,18 +129,29 @@ def toolchainBuild globalVars
 		puts "Done."
 	end
 
+	# libc
 	if File.exist?("#{globalVars["sysroot"]}/lib/libc.so") == false
 		print "Building Musl..."
 		muslBuild("libc", globalVars, false)
 		puts "Done."
 	end
 
+	# libatomic
 	if File.exist?("#{globalVars["sysroot"]}/lib/libatomic.so") == false
 		print "Building libatomic..."
 		compileLLVMLibs("libatomic", "compiler-rt", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 -DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1 -DCOMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1", globalVars)
 		print "Done.\nInstalling libatomic..."
 		installCMake("llvm", "--strip", globalVars, "build-libatomic")
 		system("ln -sf ./linux/libclang_rt.atomic-#{globalVars["linux_arch"]}.so \"#{globalVars["sysroot"]}/lib/libatomic.so\"")
+		puts "Done."
+	end
+
+	# C++ Runtimes
+	if File.exist?("#{globalVars["sysroot"]}/lib/libc++.so") == false
+		print "Building LLVM C++ Runtimes (libunwind, libcxxabi, pstl, and libcxx)..."
+		compileLLVMLibs("runtimes", "runtimes", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DLLVM_ENABLE_RUNTIMES='libunwind;libcxxabi;pstl;libcxx' -DLIBUNWIND_USE_COMPILER_RT=1 -DLIBCXXABI_USE_COMPILER_RT=1 -DLIBCXX_USE_COMPILER_RT=1 -DLIBCXXABI_USE_LLVM_UNWINDER=1 -DLIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=0 -DLIBCXX_HAS_MUSL_LIBC=1", globalVars)
+		print "Done.\nInstalling LLVM C++ Runtimes..."
+		installCMake("llvm", "--strip", globalVars, "build-runtimes")
 		puts "Done."
 	end
 
