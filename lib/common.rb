@@ -14,7 +14,7 @@ def compileAutoconf(pkgName, action, flags, globalVars, isRootfs=false)
 	status = nil
 	envVars = "PATH=#{globalVars["tcprefix"]}/bin:#{ENV["PATH"]}"
 	if isRootfs == true
-		envVars = "#{envVars} CC='#{globalVars["cross_cc"]} #{globalVars["cross_cflags"]}' CFLAGS=-Os"
+		envVars = "#{envVars} CC='#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}' CFLAGS='-Os #{globalVars["cross_cflags"]}'"
 	end
 
 	if action == "configure" or (action == "compile" && flags.class == Array)

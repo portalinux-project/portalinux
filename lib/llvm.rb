@@ -163,7 +163,7 @@ def toolchainBuild globalVars
 		end
 		Dir.chdir("build")
 		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/clang", "AR" => "#{globalVars["tcprefix"]}/bin/llvm-ar"}, "../configure --prefix=#{globalVars["sysroot"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
-		blockingSpawn("make -j#{globalVars["threads"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/clang", "AR" => "#{globalVars["tcprefix"]}/bin/llvm-ar"}, "make -j#{globalVars["threads"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
 		puts "Done."
 		print "Installing zlib..."
 		blockingSpawn("make install 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log")
@@ -179,7 +179,7 @@ def toolchainBuild globalVars
 		puts "Done."
 	end
 
-	if File.exist?("#{globalVars["sysroot"]}/lib/libpltermlib.so") == false
+	if File.exist?("#{globalVars["sysroot"]}/lib/libplterm.so") == false
 		print "Building pltermlib..."
 		compilePl32lib("pltermlib", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross_cflags"]}'", "build" ], globalVars)
 		puts "Done."
