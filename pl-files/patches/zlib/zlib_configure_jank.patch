@@ -1,0 +1,14 @@
+diff --git a/configure b/configure
+index 97f689e..a8edbd9 100755
+--- a/configure
++++ b/configure
+@@ -444,8 +444,7 @@ EOF
+ if test $shared -eq 1; then
+   echo Checking for shared library support... | tee -a configure.log
+   # we must test in two steps (cc then ld), required at least on SunOS 4.x
+-  if try $CC -c $SFLAGS $test.c &&
+-     try $LDSHARED $SFLAGS -o $test$shared_ext $test.o; then
++  if try $CC -c $SFLAGS $test.c; then
+     echo Building shared library $SHAREDLIBV with $CC. | tee -a configure.log
+   elif test -z "$old_cc" -a -z "$old_cflags"; then
+     echo No shared library support. | tee -a configure.log
