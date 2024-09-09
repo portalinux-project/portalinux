@@ -16,20 +16,20 @@ for arch in $GCC_ARCH_LIST
 do
 	# toolchain
 	./configure.rb -p gcc -t "$TOOLCHAIN_DIR" -a $arch
-	./compile.rb -b toolchain
-	./compile.rb -b toolchain # try this a second time to make sure the lib64
+	./build.rb -b toolchain
+	./build.rb -b toolchain # try this a second time to make sure the lib64
 	                          # bug never resurfaces
 
 	# rootfs
 	mkdir -p "$TOOLCHAIN_DIR/gcc/output"
-	./compile.rb -b rootfs
+	./build.rb -b rootfs
 	mv output "$TOOLCHAIN_DIR/gcc/output/$arch"
 
 	# logs
 	mkdir -p "$TOOLCHAIN_DIR/gcc/logs"
 	mv logs "$TOOLCHAIN_DIR/gcc/logs/$arch"
 
-	./compile.rb -c 3
+	./build.rb -c 3
 	rm -rf build/
 done
 
@@ -40,19 +40,19 @@ for arch in $GCC_ARCH_LIST
 do
 	# toolchain
 	./configure.rb -p llvm -t "$TOOLCHAIN_DIR" -a $arch
-	./compile.rb -b toolchain
-	./compile.rb -b toolchain # try this a second time to make sure the lib64
+	./build.rb -b toolchain
+	./build.rb -b toolchain # try this a second time to make sure the lib64
 	                          # bug never resurfaces
 
 	# rootfs
 	mkdir -p "$TOOLCHAIN_DIR/gcc/output"
-	./compile.rb -b rootfs
+	./build.rb -b rootfs
 	mv output "$TOOLCHAIN_DIR/gcc/output/$arch"
 
 	# logs
 	mkdir -p "$TOOLCHAIN_DIR/gcc/logs"
 	mv logs "$TOOLCHAIN_DIR/gcc/logs/$arch"
 
-	./compile.rb -c 3
+	./build.rb -c 3
 	rm -rf build/
 done
