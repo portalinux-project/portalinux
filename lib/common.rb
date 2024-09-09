@@ -148,6 +148,9 @@ def muslBuild(action, globalVars, isRootfs=false)
 				system("make DESTDIR=#{muslParams["prefixToInstallDir"]} install 2>>#{globalVars["baseDir"]}/logs/libc-error.log >>#{globalVars["baseDir"]}/logs/libc.log")
 			end
 
-			File.delete()
+			if File.exist("#{globalVars["outputDir"]}/rootfs/bin/musl-clang")
+				File.delete("#{globalVars["outputDir"]}/rootfs/bin/musl-clang")
+				File.delete("#{globalVars["outputDir"]}/rootfs/bin/ld.musl-clang")
+			end
 	end
 end
