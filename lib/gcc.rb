@@ -108,7 +108,7 @@ def toolchainBuild globalVars
 		puts "Done."
 	end
 
-	if File.exist?("#{globalVars["sysroot"]}/lib/libpltermlib.so") == false
+	if File.exist?("#{globalVars["sysroot"]}/lib/libplterm.so") == false
 		print "Building pltermlib..."
 		compilePl32lib("pltermlib", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
 		puts "Done."
