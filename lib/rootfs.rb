@@ -53,7 +53,7 @@ def rootfsBuild globalVars
 		configFile = File.open(".config", "a")
 		configFile.write("CONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\nCONFIG_XZCAT=y\nCONFIG_FSCK=y\nCONFIG_MKE2FS=y\nCONFIG_MKE2FS_JOURNAL=y\nCONFIG_PASSWD=y\nCONFIG_GZIP=y\n")
 		configFile.close()
-		if system("make -j#{globalVars["threads"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='--target=i486-pocket-linux-musl #{globalVars["cross_cflags"]}' 2>>#{globalVars["baseDir"]}/logs/toybox-error.log >>#{globalVars["baseDir"]}/logs/toybox.log") != true
+		if system("make -j#{globalVars["threads"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='#{globalVars["cross_cflags"]}' 2>>#{globalVars["baseDir"]}/logs/toybox-error.log >>#{globalVars["baseDir"]}/logs/toybox.log") != true
 			errorHandler("Toybox failed to compile", false)
 		end
 		puts "Done"

@@ -147,5 +147,7 @@ def muslBuild(action, globalVars, isRootfs=false)
 				end
 				system("make DESTDIR=#{muslParams["prefixToInstallDir"]} install 2>>#{globalVars["baseDir"]}/logs/libc-error.log >>#{globalVars["baseDir"]}/logs/libc.log")
 			end
+
+			File.delete()
 	end
 end
