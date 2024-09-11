@@ -119,13 +119,21 @@ def muslBuild(action, globalVars, isRootfs=false)
 		when "libc"
 			if File.exist?("#{muslParams["prefixToInstallDir"]}#{muslParams["installDir"]}/lib/libc.so") == false
 				muslArgs = Hash.new
+				llvm_arch = "#{globalVars["linux_arch"]}"
+				if globalVars["triple"].include? "eabihf"
+					llvm_arch = "armhf"
+				elsif globalVars["arch"] == "aarch64"
+					llvm_arch = "aarch64"
+				elsif globalVars["arch"].include? "riscv"
+					llvm_arch = globalVars["arch"]
+				end
 				case globalVars["toolchain"]
 					when "gcc"
 						muslArgs.store("LIBCC", "#{globalVars["tcprefix"]}/lib/gcc/#{globalVars["triple"]}/#{globalVars["gcc"]}/libgcc.a")
 						muslArgs.store("AR", "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-ar")
 						muslArgs.store("RANLIB", "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-ranlib")
 					when "llvm"
-						muslArgs.store("LIBCC", "#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a")
+						muslArgs.store("LIBCC", "#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{llvm_arch}.a")
 						muslArgs.store("AR", "#{globalVars["tcprefix"]}/bin/llvm-ar")
 						muslArgs.store("RANLIB", "#{globalVars["tcprefix"]}/bin/llvm-ranlib")
 						muslArgs.store("CFLAGS", "#{globalVars["cross_cflags"]}")

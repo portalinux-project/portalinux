@@ -11,7 +11,7 @@ def installCMake(pkgName, flags, globalVars, cmakeDir)
 		end
 
 	Dir.chdir(cmakeDir)
-	status = system("cmake --install . #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+	status = system("cmake --install . #{flags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 	if status == nil or status == false
 		errorHandler("Package failed to install", false)
 	end
@@ -25,7 +25,7 @@ def compileClang(pkgName, flags, globalVars)
 		Dir.mkdir("build-clang")
 		Dir.chdir("build-clang")
 
-		status = system("cmake ../llvm -GNinja #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+		status = system("cmake ../llvm -GNinja #{flags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 		if status == nil
 			Dir.chdir("..")
 			FileUtils.rm_rf("build-clang")
@@ -53,14 +53,14 @@ def compileLLVMLibs(pkgName, buildDir, flags, globalVars)
 	Dir.mkdir("build-#{pkgName}")
 	Dir.chdir("build-#{pkgName}")
 
-	status = system("cmake ../#{buildDir} -GNinja #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+	status = system("cmake ../#{buildDir} -GNinja #{flags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 	if status == nil
 		Dir.chdir("..")
 		FileUtils.rm_rf("build-#{pkgName}")
 		errorHandler("Package failed to configure", false)
 	end
 
-	status = system("cmake --build . -j#{globalVars["threads"]} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log | tee #{globalVars["baseDir"]}/logs/#{pkgName}.log")
+	status = system("cmake --build . -j#{globalVars["threads"]} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 	if status == nil or status == false
 		errorHandler("Package failed to build", false)
 	end
@@ -121,11 +121,20 @@ def toolchainBuild globalVars
 		compileLLVMLibs("builtins", "compiler-rt", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 -DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1", globalVars)
 		print "Done.\nInstalling LLVM builtins..."
 		installCMake("llvm", "--strip", globalVars, "build-builtins")
+
 		# TODO: put this in its own function
-		system("ln -sf ./linux/clang_rt.crtbegin-#{globalVars["linux_arch"]}.o \"#{globalVars["sysroot"]}/lib/crtbeginS.o\"")
-		system("ln -sf ./linux/clang_rt.crtend-#{globalVars["linux_arch"]}.o \"#{globalVars["sysroot"]}/lib/crtendS.o\"")
+		llvm_arch = "#{globalVars["linux_arch"]}"
+		if globalVars["triple"].include? "eabihf"
+			llvm_arch = "armhf"
+		elsif globalVars["arch"] == "aarch64"
+			llvm_arch = "aarch64"
+		elsif globalVars["arch"].include? "riscv"
+			llvm_arch = globalVars["arch"]
+		end
+		system("ln -sf ./linux/clang_rt.crtbegin-#{llvm_arch}.o \"#{globalVars["sysroot"]}/lib/crtbeginS.o\"")
+		system("ln -sf ./linux/clang_rt.crtend-#{llvm_arch}.o \"#{globalVars["sysroot"]}/lib/crtendS.o\"")
 		system("mkdir -p '#{globalVars["tcprefix"]}/lib/clang/18/lib/linux/'")
-		system("ln -sf \"#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a\" \"#{globalVars["tcprefix"]}/lib/clang/18/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a\"")
+		system("ln -s \"#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{llvm_arch}.a\" \"#{globalVars["tcprefix"]}/lib/clang/18/lib/linux/libclang_rt.builtins-#{llvm_arch}.a\"")
 		puts "Done."
 	end
 
