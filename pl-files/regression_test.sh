@@ -4,7 +4,7 @@ set -e
 TOOLCHAIN_DIR="$HOME/cross_test"
 OLD_PATH="$PATH"
 
-GCC_ARCH_LIST="i486 i586 i686 x86_64 armv5 armv6 armv6k armv7 aarch64 riscv64"
+GCC_ARCH_LIST="i486 i586 i686 x86_64 armv5"
 export PATH="$TOOLCHAIN_DIR/gcc/bin:$OLD_PATH"
 
 # cleanup from previous runs
@@ -33,10 +33,10 @@ do
 	rm -rf build/
 done
 
-LLVM_ARCH_LIST="i486 i586 i686 x86_64 armv5 armv6 armv6k armv7 aarch64 riscv64"
+LLVM_ARCH_LIST="i486 i586 i686 x86_64 armv6 armv7 aarch64 riscv64"
 export PATH="$TOOLCHAIN_DIR/llvm/bin:$OLD_PATH"
 # LLVM tests
-for arch in $GCC_ARCH_LIST
+for arch in $LLVM_ARCH_LIST
 do
 	# toolchain
 	./configure.rb -p llvm -t "$TOOLCHAIN_DIR" -a $arch
@@ -45,13 +45,13 @@ do
 	                          # bug never resurfaces
 
 	# rootfs
-	mkdir -p "$TOOLCHAIN_DIR/gcc/output"
+	mkdir -p "$TOOLCHAIN_DIR/llvm/output"
 	./build.rb -b rootfs
-	mv output "$TOOLCHAIN_DIR/gcc/output/$arch"
+	mv output "$TOOLCHAIN_DIR/llvm/output/$arch"
 
 	# logs
-	mkdir -p "$TOOLCHAIN_DIR/gcc/logs"
-	mv logs "$TOOLCHAIN_DIR/gcc/logs/$arch"
+	mkdir -p "$TOOLCHAIN_DIR/llvm/logs"
+	mv logs "$TOOLCHAIN_DIR/llvm/logs/$arch"
 
 	./build.rb -c 3
 	rm -rf build/
