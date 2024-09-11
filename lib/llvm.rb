@@ -77,8 +77,8 @@ set(CMAKE_ASM_COMPILER_TARGET ${triple})
 set(CMAKE_C_COMPILER_TARGET ${triple})
 set(CMAKE_CXX_COMPILER_TARGET ${triple})
 
-set(CMAKE_C_COMPILER "#{globalVars["tcprefix"]}/bin/clang")
-set(CMAKE_CXX_COMPILER "#{globalVars["tcprefix"]}/bin/clang++")
+set(CMAKE_C_COMPILER "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang")
+set(CMAKE_CXX_COMPILER "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang++")
 set(CMAKE_NM "#{globalVars["tcprefix"]}/bin/llvm-nm")
 set(CMAKE_AR "#{globalVars["tcprefix"]}/bin/llvm-ar")
 set(CMAKE_RANLIB "#{globalVars["tcprefix"]}/bin/llvm-ranlib")
@@ -92,6 +92,29 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 EOF
 	File.write(crossfile, crossdata)
+end
+
+def createCompilerWrappers(globalVars)
+	# c wrapper
+	wrapperdata_c = <<EOF
+#!/bin/sh
+"#{globalVars["tcprefix"]}/bin/clang" "--target=#{globalVars["triple"]}" "--sysroot=#{globalVars["sysroot"]}" "$@"
+EOF
+
+	File.write("#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang", wrapperdata_c)
+	system("ln -sf './#{globalVars["triple"]}-clang' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-gcc'")
+	system("ln -sf './#{globalVars["triple"]}-clang' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-cc'")
+
+	# c++ wrapper
+	wrapperdata_cxx = <<EOF
+#!/bin/sh
+"#{globalVars["tcprefix"]}/bin/clang++" "--target=#{globalVars["triple"]}" "--sysroot=#{globalVars["sysroot"]}" "$@"
+EOF
+
+	File.write("#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang++", wrapperdata_cxx)
+	system("ln -sf './#{globalVars["triple"]}-clang++' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-g++'")
+	system("ln -sf './#{globalVars["triple"]}-clang++' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-c++'")
+	system("chmod +x '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang++'")
 end
 
 def toolchainBuild globalVars
@@ -110,8 +133,9 @@ def toolchainBuild globalVars
 		puts "Done."
 	end
 
-	# cmake cross compile file
+	# cmake cross compile file + compiler wrappers
 	if File.exist?("#{globalVars["sysroot"]}/cross.cmake") == false
+		createCompilerWrappers(globalVars)
 		createCMakeToolchainFile(globalVars, "#{globalVars["sysroot"]}/cross.cmake")
 	end
 
@@ -171,8 +195,8 @@ def toolchainBuild globalVars
 			Dir.mkdir("build")
 		end
 		Dir.chdir("build")
-		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/clang", "AR" => "#{globalVars["tcprefix"]}/bin/llvm-ar"}, "../configure --prefix=#{globalVars["sysroot"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
-		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/clang", "AR" => "#{globalVars["tcprefix"]}/bin/llvm-ar"}, "make -j#{globalVars["threads"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}", "AR" => "#{globalVars["tcprefix"]}/bin/llvm-ar"}, "../configure --prefix=#{globalVars["sysroot"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}", "AR" => "#{globalVars["tcprefix"]}/bin/llvm-ar"}, "make -j#{globalVars["threads"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
 		puts "Done."
 		print "Installing zlib..."
 		blockingSpawn("make install 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log")
