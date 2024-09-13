@@ -11,7 +11,7 @@ def installCMake(pkgName, flags, globalVars, cmakeDir)
 		end
 
 	Dir.chdir(cmakeDir)
-	status = system("cmake --install . #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+	status = system("cmake --install . #{flags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 	if status == nil or status == false
 		errorHandler("Package failed to install", false)
 	end
@@ -25,7 +25,7 @@ def compileClang(pkgName, flags, globalVars)
 		Dir.mkdir("build-clang")
 		Dir.chdir("build-clang")
 
-		status = system("cmake ../llvm -GNinja #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+		status = system("cmake ../llvm -GNinja #{flags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 		if status == nil
 			Dir.chdir("..")
 			FileUtils.rm_rf("build-clang")
@@ -53,14 +53,14 @@ def compileLLVMLibs(pkgName, buildDir, flags, globalVars)
 	Dir.mkdir("build-#{pkgName}")
 	Dir.chdir("build-#{pkgName}")
 
-	status = system("cmake ../#{buildDir} -GNinja #{flags} 2>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
+	status = system("cmake ../#{buildDir} -GNinja #{flags} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 	if status == nil
 		Dir.chdir("..")
 		FileUtils.rm_rf("build-#{pkgName}")
 		errorHandler("Package failed to configure", false)
 	end
 
-	status = system("cmake --build . -j#{globalVars["threads"]} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log | tee #{globalVars["baseDir"]}/logs/#{pkgName}.log")
+	status = system("cmake --build . -j#{globalVars["threads"]} 2>>#{globalVars["baseDir"]}/logs/#{pkgName}-error.log 1>>#{globalVars["baseDir"]}/logs/#{pkgName}.log")
 	if status == nil or status == false
 		errorHandler("Package failed to build", false)
 	end
@@ -77,8 +77,8 @@ set(CMAKE_ASM_COMPILER_TARGET ${triple})
 set(CMAKE_C_COMPILER_TARGET ${triple})
 set(CMAKE_CXX_COMPILER_TARGET ${triple})
 
-set(CMAKE_C_COMPILER "#{globalVars["tcprefix"]}/bin/clang")
-set(CMAKE_CXX_COMPILER "#{globalVars["tcprefix"]}/bin/clang++")
+set(CMAKE_C_COMPILER "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang")
+set(CMAKE_CXX_COMPILER "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang++")
 set(CMAKE_NM "#{globalVars["tcprefix"]}/bin/llvm-nm")
 set(CMAKE_AR "#{globalVars["tcprefix"]}/bin/llvm-ar")
 set(CMAKE_RANLIB "#{globalVars["tcprefix"]}/bin/llvm-ranlib")
@@ -94,44 +94,82 @@ EOF
 	File.write(crossfile, crossdata)
 end
 
+def createCompilerWrappers(globalVars)
+	# c wrapper
+	wrapperdata_c = <<EOF
+#!/bin/sh
+"#{globalVars["tcprefix"]}/bin/clang" "--target=#{globalVars["triple"]}" "--sysroot=#{globalVars["sysroot"]}" "$@"
+EOF
+
+	File.write("#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang", wrapperdata_c)
+	system("ln -sf './#{globalVars["triple"]}-clang' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-gcc'")
+	system("ln -sf './#{globalVars["triple"]}-clang' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-cc'")
+
+	# c++ wrapper
+	wrapperdata_cxx = <<EOF
+#!/bin/sh
+"#{globalVars["tcprefix"]}/bin/clang++" "--target=#{globalVars["triple"]}" "--sysroot=#{globalVars["sysroot"]}" "$@"
+EOF
+
+	File.write("#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang++", wrapperdata_cxx)
+	system("ln -sf './#{globalVars["triple"]}-clang++' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-g++'")
+	system("ln -sf './#{globalVars["triple"]}-clang++' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-c++'")
+	system("chmod +x '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang' '#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-clang++'")
+end
+
 def toolchainBuild globalVars
+	# toolchain
 	if File.exist?("#{globalVars["tcprefix"]}/bin/clang") == false
-		print "Building LLVM, Clang, LLD..."
+		print "Building LLVM, Clang, LLD...\n"
 		compileClang("llvm", "-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX='#{globalVars["tcprefix"]}' -DLLVM_TARGETS_TO_BUILD='#{$llvmTargets}' -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_HAVE_LIBXAR=0 -DLLVM_LINK_LLVM_DYLIB=1 -DCLANG_LINK_CLANG_DYLIB=1", globalVars)
-		print "Done. Installing LLVM, Clang, LLD..."
+		print "Done. Installing LLVM, Clang, LLD...\n"
 		installCMake("llvm", "--strip", globalVars, "build-clang")
-		puts "Done."
 	end
 
+	# linux headers
 	if File.exist?("#{globalVars["sysroot"]}/include/stdio.h") == false
-		print "Installing Linux and C library headers..."
+		print "Done. Installing Linux and C library headers..."
 		muslBuild("headers", globalVars, false)
 		puts "Done."
 	end
 
+	# cmake cross compile file + compiler wrappers
 	if File.exist?("#{globalVars["sysroot"]}/cross.cmake") == false
+		createCompilerWrappers(globalVars)
 		createCMakeToolchainFile(globalVars, "#{globalVars["sysroot"]}/cross.cmake")
 	end
 
+	# compiler builtins
 	if File.exist?("#{globalVars["sysroot"]}/lib/crtbeginS.o") == false
 		print "Building LLVM builtins..."
 		compileLLVMLibs("builtins", "compiler-rt", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 -DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1", globalVars)
 		print "Done.\nInstalling LLVM builtins..."
 		installCMake("llvm", "--strip", globalVars, "build-builtins")
+
 		# TODO: put this in its own function
-		system("ln -sf ./linux/clang_rt.crtbegin-#{globalVars["linux_arch"]}.o \"#{globalVars["sysroot"]}/lib/crtbeginS.o\"")
-		system("ln -sf ./linux/clang_rt.crtend-#{globalVars["linux_arch"]}.o \"#{globalVars["sysroot"]}/lib/crtendS.o\"")
+		llvm_arch = "#{globalVars["linux_arch"]}"
+		if globalVars["triple"].include? "eabihf"
+			llvm_arch = "armhf"
+		elsif globalVars["arch"] == "aarch64"
+			llvm_arch = "aarch64"
+		elsif globalVars["arch"].include? "riscv"
+			llvm_arch = globalVars["arch"]
+		end
+		system("ln -sf ./linux/clang_rt.crtbegin-#{llvm_arch}.o \"#{globalVars["sysroot"]}/lib/crtbeginS.o\"")
+		system("ln -sf ./linux/clang_rt.crtend-#{llvm_arch}.o \"#{globalVars["sysroot"]}/lib/crtendS.o\"")
 		system("mkdir -p '#{globalVars["tcprefix"]}/lib/clang/18/lib/linux/'")
-		system("ln -sf \"#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a\" \"#{globalVars["tcprefix"]}/lib/clang/18/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a\"")
+		system("ln -s \"#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{llvm_arch}.a\" \"#{globalVars["tcprefix"]}/lib/clang/18/lib/linux/libclang_rt.builtins-#{llvm_arch}.a\"")
 		puts "Done."
 	end
 
+	# libc
 	if File.exist?("#{globalVars["sysroot"]}/lib/libc.so") == false
 		print "Building Musl..."
 		muslBuild("libc", globalVars, false)
 		puts "Done."
 	end
 
+	# libatomic
 	if File.exist?("#{globalVars["sysroot"]}/lib/libatomic.so") == false
 		print "Building libatomic..."
 		compileLLVMLibs("libatomic", "compiler-rt", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DCOMPILER_RT_BUILD_LIBFUZZER=0 -DCOMPILER_RT_BUILD_MEMPROF=0 -DCOMPILER_RT_BUILD_ORC=0 -DCOMPILER_RT_BUILD_PROFILE=0 -DCOMPILER_RT_BUILD_SANITIZERS=0 -DCOMPILER_RT_BUILD_XRAY=0 -DCOMPILER_RT_DEFAULT_TARGET_ONLY=1 -DCOMPILER_RT_BUILD_STANDALONE_LIBATOMIC=1", globalVars)
@@ -139,8 +177,47 @@ def toolchainBuild globalVars
 		installCMake("llvm", "--strip", globalVars, "build-libatomic")
 		system("ln -sf ./linux/libclang_rt.atomic-#{globalVars["linux_arch"]}.so \"#{globalVars["sysroot"]}/lib/libatomic.so\"")
 		puts "Done."
-		# TODO: make symlinks to fix linking
 	end
 
-	errorHandler("Remaining LLVM support unimplemented.", false)
+	# C++ Runtimes
+	if File.exist?("#{globalVars["sysroot"]}/lib/libc++.so") == false
+		print "Building LLVM C++ Runtimes (libunwind, libcxxabi, pstl, and libcxx)..."
+		compileLLVMLibs("runtimes", "runtimes", "-DCMAKE_TOOLCHAIN_FILE='#{globalVars["sysroot"]}/cross.cmake' -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_C_COMPILER_WORKS=1 -DCMAKE_CXX_COMPILER_WORKS=1 -DCMAKE_INSTALL_PREFIX='#{globalVars["sysroot"]}' -DLLVM_ENABLE_RUNTIMES='libunwind;libcxxabi;pstl;libcxx' -DLIBUNWIND_USE_COMPILER_RT=1 -DLIBCXXABI_USE_COMPILER_RT=1 -DLIBCXX_USE_COMPILER_RT=1 -DLIBCXXABI_USE_LLVM_UNWINDER=1 -DLIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=0 -DLIBCXX_HAS_MUSL_LIBC=1", globalVars)
+		print "Done.\nInstalling LLVM C++ Runtimes..."
+		installCMake("llvm", "--strip", globalVars, "build-runtimes")
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libz.so") == false
+		print "Building zlib..."
+		Dir.chdir("#{globalVars["buildDir"]}/zlib-#{globalVars["zlib"]}")
+		if File.exist?("build") == false
+			Dir.mkdir("build")
+		end
+		Dir.chdir("build")
+		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}", "AR" => "#{globalVars["tcprefix"]}/bin/llvm-ar"}, "../configure --prefix=#{globalVars["sysroot"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}", "AR" => "#{globalVars["tcprefix"]}/bin/llvm-ar"}, "make -j#{globalVars["threads"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		puts "Done."
+		print "Installing zlib..."
+		blockingSpawn("make install 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log")
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libplrt.so") == false
+		print "Building pl-rt..."
+		compilePl32lib("pl-rt", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross_cflags"]}'", "build" ], globalVars)
+		puts "Done."
+		print "Installing pl-rt..."
+		compilePl32lib("pl-rt", "compile", "install", globalVars)
+		puts "Done."
+	end
+
+	if File.exist?("#{globalVars["sysroot"]}/lib/libplterm.so") == false
+		print "Building pltermlib..."
+		compilePl32lib("pltermlib", "compile", [ "--prefix=#{globalVars["sysroot"]} --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross_cflags"]}'", "build" ], globalVars)
+		puts "Done."
+		print "Installing pltermlib..."
+		compilePl32lib("pltermlib", "compile", "install", globalVars)
+		puts "Done."
+	end
 end

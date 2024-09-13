@@ -195,8 +195,8 @@ def init
 		when "gcc"
 			parsedConfig.store("cross_cc", "#{parsedConfig["triple"]}-gcc")
 		when "llvm"
-			parsedConfig.store("cross_cc", "clang")
-			parsedConfig.store("cross_cflags", "--sysroot=#{parsedConfig["sysroot"]} --target=#{parsedConfig["triple"]}")
+			parsedConfig.store("cross_cc", "#{parsedConfig["triple"]}-clang")
+			parsedConfig.store("cross_cflags", "--target=#{parsedConfig["triple"]} --sysroot=#{parsedConfig["sysroot"]}")
 		else
 			errorHandler("Unknown toolchain.", false)
 	end

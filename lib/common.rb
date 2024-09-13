@@ -14,7 +14,7 @@ def compileAutoconf(pkgName, action, flags, globalVars, isRootfs=false)
 	status = nil
 	envVars = "PATH=#{globalVars["tcprefix"]}/bin:#{ENV["PATH"]}"
 	if isRootfs == true
-		envVars = "#{envVars} CC='#{globalVars["cross_cc"]} #{globalVars["cross_cflags"]}' CFLAGS=-Os"
+		envVars = "#{envVars} CC='#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}' CFLAGS='-Os #{globalVars["cross_cflags"]}'"
 	end
 
 	if action == "configure" or (action == "compile" && flags.class == Array)
@@ -119,13 +119,21 @@ def muslBuild(action, globalVars, isRootfs=false)
 		when "libc"
 			if File.exist?("#{muslParams["prefixToInstallDir"]}#{muslParams["installDir"]}/lib/libc.so") == false
 				muslArgs = Hash.new
+				llvm_arch = "#{globalVars["linux_arch"]}"
+				if globalVars["triple"].include? "eabihf"
+					llvm_arch = "armhf"
+				elsif globalVars["arch"] == "aarch64"
+					llvm_arch = "aarch64"
+				elsif globalVars["arch"].include? "riscv"
+					llvm_arch = globalVars["arch"]
+				end
 				case globalVars["toolchain"]
 					when "gcc"
 						muslArgs.store("LIBCC", "#{globalVars["tcprefix"]}/lib/gcc/#{globalVars["triple"]}/#{globalVars["gcc"]}/libgcc.a")
 						muslArgs.store("AR", "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-ar")
 						muslArgs.store("RANLIB", "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-ranlib")
 					when "llvm"
-						muslArgs.store("LIBCC", "#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{globalVars["linux_arch"]}.a")
+						muslArgs.store("LIBCC", "#{globalVars["sysroot"]}/lib/linux/libclang_rt.builtins-#{llvm_arch}.a")
 						muslArgs.store("AR", "#{globalVars["tcprefix"]}/bin/llvm-ar")
 						muslArgs.store("RANLIB", "#{globalVars["tcprefix"]}/bin/llvm-ranlib")
 						muslArgs.store("CFLAGS", "#{globalVars["cross_cflags"]}")
@@ -146,6 +154,11 @@ def muslBuild(action, globalVars, isRootfs=false)
 					errorHandler("Package failed to compile", false)
 				end
 				system("make DESTDIR=#{muslParams["prefixToInstallDir"]} install 2>>#{globalVars["baseDir"]}/logs/libc-error.log >>#{globalVars["baseDir"]}/logs/libc.log")
+			end
+
+			if File.exist?("#{globalVars["outputDir"]}/rootfs/bin/musl-clang")
+				File.delete("#{globalVars["outputDir"]}/rootfs/bin/musl-clang")
+				File.delete("#{globalVars["outputDir"]}/rootfs/bin/ld.musl-clang")
 			end
 	end
 end

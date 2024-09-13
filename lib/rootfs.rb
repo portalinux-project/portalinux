@@ -34,7 +34,11 @@ def rootfsBuild globalVars
 			Dir.mkdir("build")
 		end
 		Dir.chdir("build")
-		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}", "AR" => "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-ar"}, "../configure --prefix=/usr --includedir=/opt/include 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
+		cross_ar = "#{globalVars["triple"]}-ar"
+		if globalVars["toolchain"] == "llvm"
+			cross_ar = "#{globalVars["tcprefix"]}/bin/llvm-ar"
+		end
+		blockingSpawn({"CC" => "#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]}", "AR" => "#{cross_ar}"}, "../configure --prefix=/usr --includedir=/opt/include 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
 		blockingSpawn("make -j#{globalVars["threads"]} 2>#{globalVars["baseDir"]}/logs/zlib-error.log 1>#{globalVars["baseDir"]}/logs/zlib.log");
 		puts "Done."
 		print "Installing zlib..."
@@ -47,9 +51,9 @@ def rootfsBuild globalVars
 		Dir.chdir("#{globalVars["buildDir"]}/toybox-#{globalVars["toybox"]}")
 		system("make defconfig 2>#{globalVars["baseDir"]}/logs/toybox-error.log >#{globalVars["baseDir"]}/logs/toybox.log")
 		configFile = File.open(".config", "a")
-		configFile.write("CONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\nCONFIG_TOYBOX_LIBZ=y\nCONFIG_XZCAT=y\nCONFIG_FSCK=y\nCONFIG_MKE2FS=y\nCONFIG_MKE2FS_JOURNAL=y\nCONFIG_PASSWD=y\nCONFIG_GZIP=y\n")
+		configFile.write("CONFIG_EXPR=y\nCONFIG_GETTY=y\nCONFIG_MDEV=y\nCONFIG_XZCAT=y\nCONFIG_FSCK=y\nCONFIG_MKE2FS=y\nCONFIG_MKE2FS_JOURNAL=y\nCONFIG_PASSWD=y\nCONFIG_GZIP=y\n")
 		configFile.close()
-		if system("make -j#{globalVars["threads"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS=#{globalVars["cross_cflags"]} 2>>#{globalVars["baseDir"]}/logs/toybox-error.log >>#{globalVars["baseDir"]}/logs/toybox.log") != true
+		if system("make -j#{globalVars["threads"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='#{globalVars["cross_cflags"]}' 2>>#{globalVars["baseDir"]}/logs/toybox-error.log >>#{globalVars["baseDir"]}/logs/toybox.log") != true
 			errorHandler("Toybox failed to compile", false)
 		end
 		puts "Done"
@@ -71,7 +75,7 @@ def rootfsBuild globalVars
 
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/lib/libplrt.so") == false
 		print "Building pl-rt..."
-		compilePl32lib("pl-rt", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+		compilePl32lib("pl-rt", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross_cflags"]}'", "build" ], globalVars)
 		puts "Done."
 		print "Installing pl-rt..."
 		compilePl32lib("pl-rt", "compile", "install", globalVars)
@@ -80,7 +84,7 @@ def rootfsBuild globalVars
 
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/lib/libplterm.so") == false
 		print "Building pltermlib..."
-		compilePl32lib("pltermlib", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+		compilePl32lib("pltermlib", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross_cflags"]}'", "build" ], globalVars)
 		puts "Done."
 		print "Installing pltermlib..."
 		compilePl32lib("pltermlib", "compile", "install", globalVars)
@@ -89,7 +93,7 @@ def rootfsBuild globalVars
 
 	if File.exist?("#{globalVars["outputDir"]}/rootfs/usr/bin/pl-init") == false
 		print "Building pl-srv..."
-		compilePl32lib("pl-srv", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os'", "build" ], globalVars)
+		compilePl32lib("pl-srv", "compile", [ "--prefix=#{globalVars["outputDir"]}/rootfs/usr --includedir=#{globalVars["outputDir"]}/rootfs/opt/include --target=#{globalVars["triple"]} CC=#{globalVars["tcprefix"]}/bin/#{globalVars["cross_cc"]} CFLAGS='-Os #{globalVars["cross_cflags"]}'", "build" ], globalVars)
 		puts "Done."
 		print "Installing pl-srv..."
 		compilePl32lib("pl-srv", "compile", "install", globalVars)
