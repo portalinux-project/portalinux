@@ -42,5 +42,11 @@ easily customize the root filesystem and add your own packages.
 
 # Contributions
 
-Contributions to the root filesystem are not open yet, but you can submit packages
-for the Ports User Repo once that is fully set up.
+Contributions to the root filesystem are not open yet, but you can submit
+packages for the Ports User Repo once that is fully set up.
+
+# v0.11 Maintenance Mode Notice
+
+PortaLinux Release v0.11 will keep being maintained until v0.12 gets a proper
+release. Until `v0.12-rootfs-test`, v0.11 will remain at the project root, and
+v0.12 development will continue in [`v0.12/`](v0.12)
