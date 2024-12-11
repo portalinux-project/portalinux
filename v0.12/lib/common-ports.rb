@@ -3,7 +3,7 @@
 # (c)2024 CinnamonWolfy, Under MPL 2.0
 
 require 'yaml'
-# require_relative 'plml.rb' # Not implemented yet
+# require_relative 'plml/plml' # Not implemented yet
 require 'net/http'
 
 module PLPorts
