@@ -34,7 +34,7 @@ def rootfsBuild globalVars
 			Dir.mkdir("build")
 		end
 		Dir.chdir("build")
-		cross_ar = "#{globalVars["triple"]}-ar"
+		cross_ar = "#{globalVars["tcprefix"]}/bin/#{globalVars["triple"]}-ar"
 		if globalVars["toolchain"] == "llvm"
 			cross_ar = "#{globalVars["tcprefix"]}/bin/llvm-ar"
 		end

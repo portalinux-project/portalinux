@@ -1,5 +1,5 @@
 name: "pltermlib"
-version: "0.05.2"
+version: "0.06"
 github: true
-tag: "v0.05.2"
+branch: "main"
 url: "portalinux-project/pltermlib"
