@@ -28,7 +28,7 @@ def fetchPackage(packageName)
 end
 
 def printPackageInfo(packageName)
-	pkgInfo = YAML.load_file("./properties.yaml")
+	pkgInfo = PLML.load_file("./properties.plml")
 	puts
 	puts "Package name: #{pkgInfo["name"]}"
 	puts "Package version: #{pkgInfo["version"]}"

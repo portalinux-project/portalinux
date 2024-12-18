@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MPL-2.0
-# Common code for PortaLinux Ports System and PortaLinux Build System, v0.01
+# Common code for PortaLinux Ports System and PortaLinux Build System, v0.02
 # (c)2024 CinnamonWolfy, Under MPL 2.0
 
-require 'yaml'
-# require_relative 'plml.rb' # Not implemented yet
+# require 'yaml'
+require 'plml' # Not implemented yet
 require 'net/http'
 
 module PLPorts
@@ -130,7 +130,7 @@ module PLPorts
 		extend self
 
 		def init(buildDir = './src', patchDir = './patches', overlayDir = './overlay')
-			pkgInfo = YAML.load_file('./properties.yaml')
+			pkgInfo = PLML.load_file('./properties.plml')
 			if pkgInfo == nil
 				Common.errorHandler("Invalid properties.yaml")
 			end

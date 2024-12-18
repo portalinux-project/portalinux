@@ -8,5 +8,5 @@ Gem::Specification.new do |spec|
   spec.files = `git ls-files`.split("\n")
 
   spec.extensions = %w(ext/plml/extconf.rb)
-  spec.require_paths = %w(lib/plml)
+  spec.require_paths = %w(lib)
 end

@@ -20,7 +20,7 @@ static VALUE load_file(VALUE self, VALUE file){
 		if(holder.isArray)
 			value = rb_ary_new();
 
-		printf("%s, %d, %d\n", holder.name.data.pointer, holder.name.data.size, holder.type);
+//		printf("%s, %d, %d\n", holder.name.data.pointer, holder.name.data.size, holder.type);
 
 		if(holder.type == PLML_TYPE_HEADER || holder.type == PLML_TYPE_NULL){
 			if(holder.type == PLML_TYPE_HEADER)
@@ -48,11 +48,19 @@ static VALUE load_file(VALUE self, VALUE file){
 				break;
 			case PLML_TYPE_BOOL:
 				if(holder.isArray){
-					for(int i = 0; i < holder.value.array.size; i++)
-						rb_ary_push(value, ((bool*)holder.value.array.pointer)[i] ? Qtrue : Qfalse);
+					for(int i = 0; i < holder.value.array.size; i++){
+						if(((bool*)holder.value.array.pointer)[i])
+							rb_ary_push(value, Qtrue);
+						else
+							rb_ary_push(value, Qfalse);
+					}
 				}else{
-					value = holder.value.boolean ? Qtrue : Qfalse;
+					if(holder.value.boolean)
+						value = Qtrue;
+					else
+						value = Qfalse;
 				}
+				break;
 			case PLML_TYPE_STRING:
 				if(holder.isArray){
 					for(int i = 0; i < holder.value.array.size; i++)
@@ -63,7 +71,7 @@ static VALUE load_file(VALUE self, VALUE file){
 				break;
 		}
 
-		printf("%s, Token Parsed\n", holder.name.data.pointer);
+//		printf("%s, Token Parsed\n", holder.name.data.pointer);
 
 		plMLFreeToken(holder);
 		rb_hash_aset(retHash, key, value);

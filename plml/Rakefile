@@ -1,5 +1,5 @@
 require "rake/extensiontask"
 
 Rake::ExtensionTask.new("plml") do |ext|
-  ext.lib_dir = "lib/plml"
+  ext.lib_dir = "lib"
 end
