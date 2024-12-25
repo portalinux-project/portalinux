@@ -31,7 +31,8 @@ easily customize the root filesystem and add your own packages.
 
 # Build Dependencies
 
-- Ruby >= 3.0 (for now, needs to be confirmed)
+- Ruby >= 3.0 (not confirmed. Ruby 1.9 or later is a requirement, as RubyGems is a dependency now)
+- rake-compiler (for PLML Ruby bindings)
 - GCC >= 9 / Clang >= 14
 - Make >= 4.0
 - CMake >= 3.0 (for compiling LLVM)
