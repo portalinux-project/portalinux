@@ -1,0 +1,5 @@
+name = "zlib"
+version = "1.3"
+github = true
+tag = "v1.3"
+url = "madler/zlib"

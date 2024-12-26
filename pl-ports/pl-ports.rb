@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # SPDX-License-Identifier: MPL-2.0
 
-# PortaLinux Ports System, v0.02
+# PortaLinux Ports System, v0.03
 # (c) 2024 CinnamonWolfy, Under MPL 2.0
 
 $LOAD_PATH.append(File.expand_path("./lib"))
@@ -104,7 +104,7 @@ def parseArgs
 	end
 end
 
-puts "PortaLinux Ports System, v0.02"
+puts "PortaLinux Ports System, v0.03"
 print "(c) 2024 CinnamonWolfy, Under MPL 2.0\n\n"
 
 parseArgs

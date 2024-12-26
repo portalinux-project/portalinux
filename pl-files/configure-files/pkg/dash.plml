@@ -1,0 +1,5 @@
+name = "dash"
+version = "0.5.12"
+github = true
+tag = "v0.5.12"
+url = "portalinux-project/dash"

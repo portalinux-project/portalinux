@@ -1,0 +1,4 @@
+name = "binutils"
+version = "2.41"
+github = false
+url = "https://ftp.gnu.org/gnu/binutils/binutils-2.41.tar.gz"

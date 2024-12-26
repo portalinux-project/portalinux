@@ -1,0 +1,5 @@
+name = "llvm"
+version = "18.1.5"
+github = true
+tag = "llvmorg-18.1.5"
+url = "llvm/llvm-project"

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # SPDX-License-Identifier: MPL-2.0
 
-require 'yaml'
+require 'plml/plml'
 require 'net/http'
 
 $supportedArches = nil
@@ -48,30 +48,29 @@ end
 
 def fetchPkgs pkgList
 	for i in pkgList
-		fileParse = YAML.load_file("#{$configDir}/pkg/#{i}.yaml")
-
-		if fileParse["github"] == true
-			tempUrl = "https://codeload.github.com/#{fileParse["url"]}/tar.gz/refs/"
-			if fileParse["tag"] == nil
-				tempUrl = tempUrl + "heads/"
-				if fileParse["branch"] == nil
-					tempUrl = tempUrl + "main"
+		fileParse = PLML.load_file("#{$configDir}/pkg/#{i}.plml")
+		use_secure = false
+		final_url = fileParse["url"]
+		final_filename = "#{File.basename final_url}"
+		if fileParse["url"].match?("https") == true or fileParse["github"] == true
+			use_secure = true
+			if fileParse["github"] == true
+				final_filename = "#{fileParse["name"]}-#{fileParse["version"]}"
+				final_url = "https://codeload.github.com/#{fileParse["url"]}/tar.gz/refs/"
+				if fileParse["tag"] == nil
+					final_url = final_url + "heads/"
+					if fileParse["branch"] == nil
+						final_url = final_url + "main"
+					else
+						final_url = final_url + fileParse["branch"]
+					end
 				else
-					tempUrl = tempUrl + fileParse["branch"]
+					final_url = final_url + "tags/" + fileParse["tag"]
 				end
-			else
-				tempUrl = tempUrl + "tags/" + fileParse["tag"]
 			end
-
-			downloadFile(tempUrl, "#{$baseDir}/tarballs/#{fileParse["name"]}-#{fileParse["version"]}.tar.gz", true)
-		else
-			use_secure = false
-			if fileParse["secure"] != nil
-				use_secure = fileParse["secure"]
-			end
-
-			downloadFile(fileParse["url"], "#{$baseDir}/tarballs/#{File.basename(URI.parse(fileParse["url"]).path)}", use_secure)
 		end
+
+		downloadFile(final_url, "#{$baseDir}/tarballs/#{final_filename}", use_secure)
 	end
 end
 
@@ -128,7 +127,7 @@ def patchPkgs pkgList
 			next
 		end
 
-		fileParse = YAML.load_file("#{$configDir}/pkg/#{pkg}.yaml")
+		fileParse = PLML.load_file("#{$configDir}/pkg/#{pkg}.plml")
 
 		print "Patching #{pkg}..."
 
@@ -165,7 +164,7 @@ def overlayPkgs pkgList
 			next
 		end
 
-		fileParse = YAML.load_file("#{$configDir}/pkg/#{pkg}.yaml")
+		fileParse = PLML.load_file("#{$configDir}/pkg/#{pkg}.plml")
 
 		Dir.chdir("#{$baseDir}/build/#{fileParse["name"]}-#{fileParse["version"]}")
 		openDir = Dir.open("#{$baseDir}/pl-files/overlays/#{pkg}")
@@ -191,7 +190,7 @@ def init extraPkgs
 
 	puts "Stage 1: Download packages"
 
-	presetFile = YAML.load_file("#{$configDir}/#{$preset}.yaml")
+	presetFile = PLML.load_file("#{$configDir}/#{$preset}.plml")
 	list = presetFile["pkgList"]
 	if extraPkgs != nil
 		for file in extraPkgs
@@ -221,11 +220,11 @@ def init extraPkgs
 		print "Creating config file..."
 		configFile = File.open("#{$baseDir}/.config", "w")
 
-		configFile.write("preset: #{$preset}\n")
-		configFile.write("prefix: #{$prefix}\n")
-		configFile.write("arch: #{$arch}\n")
-		configFile.write("toolchain: #{presetFile["toolchain"]}\n")
-		configFile.write("tcprefix: #{$prefix}/#{presetFile["toolchain"]}\n")
+		configFile.write("preset = #{$preset}\n")
+		configFile.write("prefix = #{$prefix}\n")
+		configFile.write("arch = #{$arch}\n")
+		configFile.write("toolchain = #{presetFile["toolchain"]}\n")
+		configFile.write("tcprefix = #{$prefix}/#{presetFile["toolchain"]}\n")
 		if extraPkgs != nil
 			configFile.write("extrapkg: #{extraPkgs}")
 		end
@@ -281,7 +280,7 @@ def parseArgs
 				puts " -t	Sets the cross toolchain install directory"
 				puts "		Default: ~/cross"
 				print " -h	Shows this help\n\n"
-				puts "For more information, please go to https://github.com/pocketlinux32/portalinux"
+				puts "For more information, please go to https://github.com/portalinux-project"
 				exit
 			else
 				errorHandler("Unknown option", true)
@@ -299,7 +298,7 @@ def validateArgs
 	if File.exist?("#{$configDir}/#{$preset}.yaml") == false
 		errorHandler("Preset not found", false)
 	else
-		parsedFile = YAML.load_file("#{$configDir}/#{$preset}.yaml")
+		parsedFile = PLML.load_file("#{$configDir}/#{$preset}.plml")
 		$supportedArches = parsedFile["supportedArch"]
 
 		if $arch != nil

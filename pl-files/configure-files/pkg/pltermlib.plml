@@ -1,0 +1,5 @@
+name = "pltermlib"
+version = "0.06"
+github = true
+branch = "main"
+url = "portalinux-project/pltermlib"

@@ -1,3 +1,0 @@
-toolchain: "llvm"
-pkgList: [ "linux", "llvm", "toybox", "dash", "musl", "pl-rt",  "pl-srv", "pltermlib", "zlib" ]
-supportedArch: [ "i486", "i586", "i686", "x86_64", "armv6", "armv7", "aarch64", "riscv64" ]

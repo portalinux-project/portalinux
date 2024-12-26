@@ -1,5 +1,0 @@
-name: "linux"
-version: "6.1.109"
-github: false
-secure: true
-url: "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.1.109.tar.xz"
