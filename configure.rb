@@ -15,6 +15,8 @@ def errorHandler(msg, isOpt)
 	print "Error: #{msg}."
 	if isOpt == true
 		puts " Run #{$0} -h for more information"
+	else
+		print "\n"
 	end
 	exit 1
 end
@@ -55,7 +57,7 @@ def fetchPkgs pkgList
 		if fileParse["url"].match?("https") == true or fileParse["github"] == true
 			use_secure = true
 			if fileParse["github"] == true
-				final_filename = "#{fileParse["name"]}-#{fileParse["version"]}"
+				final_filename = "#{fileParse["name"]}-#{fileParse["version"]}.tar.gz"
 				final_url = "https://codeload.github.com/#{fileParse["url"]}/tar.gz/refs/"
 				if fileParse["tag"] == nil
 					final_url = final_url + "heads/"
@@ -295,7 +297,7 @@ def validateArgs
 		errorHandler("Preset not set", true)
 	end
 
-	if File.exist?("#{$configDir}/#{$preset}.yaml") == false
+	if File.exist?("#{$configDir}/#{$preset}.plml") == false
 		errorHandler("Preset not found", false)
 	else
 		parsedFile = PLML.load_file("#{$configDir}/#{$preset}.plml")
