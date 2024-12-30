@@ -318,7 +318,7 @@ def validateArgs
 	end
 end
 
-puts "PortaLinux Configure System v0.11"
+puts "PortaLinux Configure System v0.11.1"
 print "(c) 2020-2024 CinnamonWolfy & raisinware, Under MPL 2.0\n\n"
 
 if ARGV.length < 1

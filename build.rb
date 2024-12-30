@@ -3,10 +3,9 @@
 
 $LOAD_PATH.append(File.expand_path("./lib"))
 
-require 'yaml'
+require 'plml/plml'
 require 'etc'
 require 'fileutils'
-# require 'pl-files/compile-files/plml'
 
 $threads = Etc.nprocessors / 2
 $baseDir = File.expand_path(".")
@@ -54,7 +53,7 @@ def calculateTime startTime
 end
 
 def generatePkgInfo config
-	preset = YAML.load_file("#{$baseDir}/pl-files/configure-files/#{config["preset"]}.yaml")
+	preset = PLML.load_file("#{$baseDir}/pl-files/configure-files/#{config["preset"]}.plml")
 	pkgList = preset["pkgList"]
 	retHash = Hash.new
 
@@ -65,7 +64,7 @@ def generatePkgInfo config
 	end
 
 	for pkgName in pkgList
-		pkg = YAML.load_file("#{$baseDir}/pl-files/configure-files/pkg/#{pkgName}.yaml")
+		pkg = PLML.load_file("#{$baseDir}/pl-files/configure-files/pkg/#{pkgName}.plml")
 		retHash.store("#{pkg["name"]}", "#{pkg["version"]}")
 	end
 
@@ -175,7 +174,7 @@ def init
 		Dir.mkdir($outputDir)
 	end
 
-	parsedConfig = YAML.load_file(".config")
+	parsedConfig = PLML.load_file(".config")
 	parsedConfig.store("triple", "#{parsedConfig["arch"]}-pocket-linux-musl")
 	if parsedConfig["arch"].scan("arm") != Array.new
 		parsedConfig["triple"] = parsedConfig["triple"] + "eabi"
@@ -309,7 +308,7 @@ def parseArgs
 	end
 end
 
-puts "PortaLinux Build System v0.11"
+puts "PortaLinux Build System v0.11.1"
 puts "(c) 2020-2024 CinnamonWolfy & raisinware, Under MPL 2.0"
 
 parseArgs
