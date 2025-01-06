@@ -131,7 +131,7 @@ module PLPorts
 		def init(buildDir = './src', patchDir = './patches', overlayDir = './overlay')
 			pkgInfo = PLML.load_file('./properties.plml')
 			if pkgInfo == nil
-				Common.errorHandler("Invalid properties.yaml")
+				Common.errorHandler("Invalid properties.plml")
 			end
 
 			@pkgName = pkgInfo['name']

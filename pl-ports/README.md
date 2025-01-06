@@ -61,12 +61,12 @@ class Package
 	extend PLPorts::BasePackage
 
 	def self.build()
-		system("./configure #{@pkgConfigFlags} CFLAGS=#{@pkgCompileFlags}")
-		system("make build")
+		PLPorts::Common.shellRun("./configure #{@pkgConfigFlags} CFLAGS=#{@pkgCompileFlags}")
+		PLPorts::Common.shellRun("make build")
 	end
 
 	def self.install()
-		system("make install")
+		PLPorts::Common.shellRun("make install")
 	end
 end
 ```

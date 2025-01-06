@@ -12,18 +12,20 @@ $pkgNames = Array.new
 $installPkg = false
 
 def fetchPackage(packageName)
-	# TODO: implement package fetching
-	if File.exist?("#{packageName}.popk") == false
-		PLPorts::Common.errorHandler("Fetching is not implemented. You must give a package that exists within the current directory")
-	end
+	if Dir.exist?("#{packageName}") == false
+		# TODO: implement package fetching
+		if File.exist?("#{packageName}.popk") == false
+			PLPorts::Common.errorHandler("Fetching is not implemented. You must give a package that exists within the current directory")
+		end
 
-	print "* Extracting #{packageName}..."
-	extracted = PLPorts::Common.extractArchive("#{packageName}.popk", packageName)
-	if extracted == 1
-		puts "Skipped."
-		Dir.chdir(packageName)
-	else
-		puts "Done."
+		print "* Extracting #{packageName}..."
+		extracted = PLPorts::Common.extractArchive("#{packageName}.popk", packageName)
+		if extracted == 1
+			puts "Skipped."
+			Dir.chdir(packageName)
+		else
+			puts "Done."
+		end
 	end
 end
 
