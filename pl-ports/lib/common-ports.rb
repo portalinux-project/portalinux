@@ -163,9 +163,23 @@ module PLPorts
 			print "* Downloading sources..."
 			filename = "#{File.basename @pkgUrl}"
 			secure = false
-			if @pkgUrl.match?("https") == true or @pkgUrl.match?("github.com")
+			if @pkgUrl.match?("https") == true or @pkgUrl.match?("github") == true
 				secure = true
-				if @pkgUrl.match?("github.com")
+				if @pkgUrl.match?("github") == true
+					urlParts = @pkgUrl.split(":")
+					refParts = [ "heads", "main" ]
+					if urlParts[2] != nil
+						tempParts = urlParts[2].split("/")
+						if tempParts.length > 1 and ( tempParts[0].match?("^h") == true or tempParts[0].match?("^t") == true )
+							refParts = tempParts
+							if refParts[0].match?("^h") == true
+								refParts = "heads"
+							elsif refParts[0].match?("^t") == true
+								refParts.match = "tags"
+							end
+						end
+					end
+					@pkgUrl = "https://codeload.github.com/#{urlParts[1]}/tar.gz/refs/#{refParts[0]}/#{refParts[1]}"
 					filename = "#{@pkgName}-#{@pkgVersion}.tar.gz"
 				end
 			end
