@@ -45,13 +45,13 @@ end
 
 def fetchPackage(packageName)
 	# TODO: implement package fetching
-	if File.exist?("#{packageName}.popk") == false and Dir.exist?("#{packageName}") == false
+	if File.exist?("packages/#{packageName}.popk") == false and Dir.exist?("build/#{packageName}") == false
 		PLPorts::Common.errorHandler("Fetching is not implemented. You must give a package that exists within the current directory")
 	end
 
-	if Dir.exist?("#{packageName}") == false
+	if Dir.exist?("build/#{packageName}") == false
 		print "* Extracting #{packageName}..."
-		extracted = PLPorts::Common.extractArchive("#{packageName}.popk", packageName)
+		extracted = PLPorts::Common.extractArchive("#{packageName}.popk", "build/#{packageName}")
 		if extracted == 1
 			puts "Skipped."
 			Dir.chdir(packageName)
